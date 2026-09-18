@@ -82,12 +82,15 @@ export default function EmployeesManager({
     setEditEmp(emp);
   };
 
+  const [rowError, setRowError] = useState('');
+
   const handleToggleActive = async (emp: EmployeeRow) => {
+    setRowError('');
     try {
       await apiFetch(`/api/admin/employees/${emp.id}`, 'PATCH', { isActive: !emp.isActive });
       router.refresh();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'فشل');
+      setRowError(err instanceof Error ? err.message : 'فشل');
     }
   };
 
@@ -266,6 +269,11 @@ export default function EmployeesManager({
 
   return (
     <div className="space-y-4">
+      {rowError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold animate-fade-in">
+          {rowError}
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl">

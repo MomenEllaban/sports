@@ -189,3 +189,47 @@
     animation: none;
   }
 }
+
+/* ============ LIGHT MODE: map the app's dark slate utilities to light surfaces ============
+   Components are written with dark slate classes; under [data-theme="light"] these
+   overrides remap them so the whole system (storefront + admin + POS) renders light. */
+[data-theme="light"] .bg-slate-950 { background-color: #f8fafc; }
+[data-theme="light"] .bg-slate-900 { background-color: #ffffff; }
+[data-theme="light"] .bg-slate-800 { background-color: #e2e8f0; }
+[data-theme="light"] .bg-slate-700 { background-color: #cbd5e1; }
+
+[data-theme="light"] .bg-slate-950\/80 { background-color: rgb(248 250 252 / 0.85); }
+[data-theme="light"] .bg-slate-900\/90 { background-color: rgb(255 255 255 / 0.92); }
+[data-theme="light"] .bg-slate-900\/60 { background-color: rgb(241 245 249 / 0.9); }
+[data-theme="light"] .bg-slate-900\/50 { background-color: rgb(241 245 249 / 0.7); }
+[data-theme="light"] .bg-slate-800\/80 { background-color: rgb(226 232 240 / 0.9); }
+
+[data-theme="light"] .text-slate-100,
+[data-theme="light"] .text-slate-200 { color: #0f172a; }
+[data-theme="light"] .text-slate-300 { color: #334155; }
+[data-theme="light"] .text-slate-400 { color: #64748b; }
+[data-theme="light"] .text-white { color: #0f172a; }
+
+[data-theme="light"] .border-slate-800,
+[data-theme="light"] .border-slate-700 { border-color: #e2e8f0; }
+[data-theme="light"] .border-slate-800\/80 { border-color: rgb(226 232 240 / 0.8); }
+[data-theme="light"] .divide-slate-800 > * + *,
+[data-theme="light"] .divide-slate-800\/60 > * + * { border-color: #e2e8f0; }
+
+[data-theme="light"] .hover\:bg-slate-800:hover { background-color: #e2e8f0; }
+[data-theme="light"] .hover\:bg-slate-700:hover { background-color: #cbd5e1; }
+[data-theme="light"] .hover\:bg-slate-900:hover { background-color: #f1f5f9; }
+[data-theme="light"] .hover\:text-white:hover { color: #0f172a; }
+
+[data-theme="light"] .placeholder\:text-slate-500::placeholder { color: #94a3b3; }
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] .shadow-blue-600\/25,
+[data-theme="light"] .shadow-blue-600\/30 { --tw-shadow-color: rgb(37 99 235 / 0.15); }

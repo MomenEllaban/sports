@@ -61,14 +61,14 @@ export default async function AdminDashboardPage() {
               </div>
             </Link>
 
-            <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2 animate-fade-up">
+            <Link href="/admin/accounting" className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2 hover:border-emerald-500/40 transition-all animate-fade-up">
               <div className="flex justify-between items-center text-xs text-slate-400">
                 <span>إيراد اليوم (Online + POS)</span>
                 <DollarSign className="w-4 h-4 text-emerald-400" />
               </div>
               <div className="text-3xl font-black text-slate-100">{todayRevenue.toLocaleString()} <span className="text-sm text-slate-400">ج.م</span></div>
               <div className="text-[11px] text-slate-400">{totalSalesCount} عملية كاشير إجمالاً</div>
-            </div>
+            </Link>
 
             <Link href="/admin/products" className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2 hover:border-purple-500/40 transition-all animate-fade-up">
               <div className="flex justify-between items-center text-xs text-slate-400">
@@ -79,14 +79,14 @@ export default async function AdminDashboardPage() {
               <div className="text-[11px] text-slate-400">منتجات رياضية نشطة</div>
             </Link>
 
-            <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2 animate-fade-up">
+            <Link href="/admin/settings" className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2 hover:border-amber-500/40 transition-all animate-fade-up">
               <div className="flex justify-between items-center text-xs text-slate-400">
                 <span>الفروع النشطة</span>
                 <MapPin className="w-4 h-4 text-amber-400" />
               </div>
               <div className="text-3xl font-black text-slate-100">{branchesCount}</div>
               <div className="text-[11px] text-amber-400 font-bold">فرع الإبراهيمية + سموحة</div>
-            </div>
+            </Link>
           </div>
 
           {/* Low Stock Alerts & Recent Orders */}
@@ -132,7 +132,10 @@ export default async function AdminDashboardPage() {
                   <AlertTriangle className="w-4 h-4" />
                   <span>تنبيهات نواقص المخزون</span>
                 </div>
-                <Link href="/admin/inventory" className="text-[11px] font-bold text-blue-400 hover:underline">المخزون</Link>
+                <div className="flex gap-2">
+                  <Link href="/admin/inventory" className="text-[11px] font-bold text-blue-400 hover:underline">المخزون</Link>
+                  <Link href="/admin/purchasing" className="text-[11px] font-bold text-emerald-400 hover:underline">أمر توريد</Link>
+                </div>
               </div>
 
               <div className="space-y-3">

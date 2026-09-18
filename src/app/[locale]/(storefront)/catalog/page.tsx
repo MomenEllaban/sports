@@ -70,15 +70,18 @@ export default async function CatalogPage({
           </div>
 
           {/* Search Form */}
-          <form method="GET" className="relative w-full md:w-80">
+          <form method="GET" className="relative w-full md:w-80" role="search">
+            <label htmlFor="catalog-search" className="sr-only">بحث في الكتالوج</label>
             <input
-              type="text"
+              id="catalog-search"
+              type="search"
               name="query"
               defaultValue={query || ''}
               placeholder="بحث باسم المنتج، SKU، أو الماركة..."
-              className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+              aria-label="بحث باسم المنتج أو SKU أو الماركة"
+              className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
             />
-            <button type="submit" className="absolute right-3 top-2.5 text-slate-400 hover:text-white">
+            <button type="submit" aria-label="بحث" className="absolute right-3 top-2.5 text-slate-400 hover:text-white">
               <Search className="w-4 h-4" />
             </button>
           </form>

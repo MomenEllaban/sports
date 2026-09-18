@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
-import { Modal, apiFetch } from './ui';
+import { Modal, Field, apiFetch } from './ui';
 
 interface ExpenseRow {
   id: string;
   expenseNumber: string;
+  branchId: string;
   category: string;
   description: string;
   amount: number;
@@ -30,19 +31,41 @@ export default function ExpensesManager({
   const router = useRouter();
   const isAr = locale === 'ar';
   const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<ExpenseRow | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [rowError, setRowError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({ branchId: branches[0]?.id || '', category: 'OTHER', description: '', amount: '' });
 
   const inputCls = 'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-emerald-500';
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm({ branchId: branches[0]?.id || '', category: 'OTHER', description: '', amount: '' });
+    setFormError('');
+    setShowModal(true);
+  };
+
+  const openEdit = (e: ExpenseRow) => {
+    setEditing(e);
+    setForm({ branchId: e.branchId, category: e.category, description: e.description, amount: String(e.amount) });
+    setFormError('');
+    setShowModal(true);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setFormError('');
     try {
-      await apiFetch('/api/admin/expenses', 'POST', { ...form, amount: Number(form.amount) });
+      if (editing) {
+        await apiFetch(`/api/admin/expenses/${editing.id}`, 'PATCH', { ...form, amount: Number(form.amount) });
+      } else {
+        await apiFetch('/api/admin/expenses', 'POST', { ...form, amount: Number(form.amount) });
+      }
       setShowModal(false);
+      setEditing(null);
       setForm({ branchId: branches[0]?.id || '', category: 'OTHER', description: '', amount: '' });
       router.refresh();
     } catch {
@@ -52,15 +75,35 @@ export default function ExpensesManager({
     }
   };
 
+  const remove = async (id: string) => {
+    if (!window.confirm(isAr ? 'حذف هذا المصروف؟' : 'Delete this expense?')) return;
+    setRowError('');
+    setDeletingId(id);
+    try {
+      await apiFetch(`/api/admin/expenses/${id}`, 'DELETE', {});
+      router.refresh();
+    } catch {
+      setRowError(t('operationFailed'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-extrabold text-sm text-slate-100">{isAr ? 'مصروفات التشغيل' : 'Operating expenses'}</h3>
-        <button onClick={() => setShowModal(true)} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all">
+        <button onClick={openAdd} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all">
           <Plus className="w-4 h-4" />
           {t('newExpense')}
         </button>
       </div>
+
+      {rowError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
+          {rowError}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-right">
@@ -71,6 +114,7 @@ export default function ExpensesManager({
               <th className="pb-2">{isAr ? 'التصنيف' : 'Category'}</th>
               <th className="pb-2">{isAr ? 'البيان' : 'Description'}</th>
               <th className="pb-2">{isAr ? 'المبلغ' : 'Amount'}</th>
+              <th className="pb-2">{t('actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
@@ -81,6 +125,16 @@ export default function ExpensesManager({
                 <td className="py-2.5 text-slate-400">{e.category}</td>
                 <td className="py-2.5 text-slate-200">{e.description}</td>
                 <td className="py-2.5 font-black text-rose-400">{e.amount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>
+                <td className="py-2.5">
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(e)} className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-all">
+                      {t('edit')}
+                    </button>
+                    <button onClick={() => remove(e.id)} disabled={deletingId === e.id} className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-bold transition-all disabled:opacity-50">
+                      {t('delete')}
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -89,19 +143,27 @@ export default function ExpensesManager({
       </div>
 
       {showModal && (
-        <Modal title={t('newExpense')} onClose={() => setShowModal(false)}>
+        <Modal title={editing ? t('edit') : t('newExpense')} onClose={() => { setShowModal(false); setEditing(null); }}>
           <form onSubmit={submit} className="space-y-3 text-xs">
             {formError && <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">{formError}</div>}
             <div className="grid grid-cols-2 gap-3">
-              <select value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })} className={inputCls}>
-                {branches.map((b) => <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn}</option>)}
-              </select>
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <Field label={isAr ? 'الفرع' : 'Branch'}>
+                <select value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })} className={inputCls}>
+                  {branches.map((b) => <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn}</option>)}
+                </select>
+              </Field>
+              <Field label={isAr ? 'تصنيف المصروف' : 'Category'}>
+                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </Field>
             </div>
-            <input required placeholder={isAr ? 'بيان المصروف' : 'Description'} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
-            <input required type="number" min="1" placeholder={isAr ? 'المبلغ (ج.م)' : 'Amount (EGP)'} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className={inputCls} />
+            <Field label={isAr ? 'بيان المصروف *' : 'Description *'} hint={isAr ? 'مثال: إيجار الفرع - سبتمبر' : 'e.g. Branch rent - September'}>
+              <input required placeholder={isAr ? 'بيان المصروف' : 'Description'} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
+            </Field>
+            <Field label={isAr ? 'المبلغ (ج.م) *' : 'Amount (EGP) *'}>
+              <input required type="number" min="1" placeholder={isAr ? 'المبلغ (ج.م)' : 'Amount (EGP)'} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className={inputCls} />
+            </Field>
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? t('loading') : t('confirm')}
             </button>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
+import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
@@ -212,9 +212,14 @@ export default function OrdersManager({
                     <div className="font-bold text-slate-100">
                       {ord.customer?.name || ord.guestName || (isAr ? 'عميل' : 'Guest')}
                     </div>
-                    <div className="text-[10px] text-slate-400" dir="ltr">
+                    <Link
+                      href={`/admin/customers?phone=${encodeURIComponent(ord.customer?.phone || ord.guestPhone)}`}
+                      className="text-[10px] text-blue-400 hover:underline"
+                      dir="ltr"
+                      title={isAr ? 'عرض ملف العميل' : 'View customer'}
+                    >
                       {ord.customer?.phone || ord.guestPhone}
-                    </div>
+                    </Link>
                   </td>
                   <td className="p-3">
                     {ord.items.length > 0 ? (

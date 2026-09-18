@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
-import { Modal, StatusBadge, apiFetch } from './ui';
+import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 
 interface SupplierOpt { id: string; name: string; code: string }
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -104,19 +104,30 @@ export default function PurchasingManager({
             </div>
             <div className="flex justify-between items-center pt-1">
               <span className="font-black text-slate-100">{po.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</span>
-              {po.status !== 'RECEIVED' && po.status !== 'CANCELLED' && (
-                <button
-                  onClick={() => {
-                    const init: Record<string, number> = {};
-                    po.items.forEach((i) => { init[i.id] = i.quantityOrdered - i.quantityReceived; });
-                    setReceiveQty(init);
-                    setReceiving(po);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all"
-                >
-                  {isAr ? 'استلام بضاعة' : 'Receive goods'}
-                </button>
-              )}
+              <div className="flex gap-2">
+                {po.status !== 'RECEIVED' && po.status !== 'CANCELLED' && (
+                  <button
+                    onClick={() => {
+                      const init: Record<string, number> = {};
+                      po.items.forEach((i) => { init[i.id] = i.quantityOrdered - i.quantityReceived; });
+                      setReceiveQty(init);
+                      setReceiving(po);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all"
+                  >
+                    {isAr ? 'استلام بضاعة' : 'Receive goods'}
+                  </button>
+                )}
+                {po.status === 'SUBMITTED' && (
+                  <ActionButton
+                    onAction={async () => { await apiFetch(`/api/admin/purchase-orders/${po.id}`, 'PATCH', {}); router.refresh(); }}
+                    confirmMessage={isAr ? `إلغاء أمر التوريد ${po.poNumber}؟` : `Cancel PO ${po.poNumber}?`}
+                    className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 border border-rose-500/40 text-rose-400 hover:text-white font-bold text-xs"
+                  >
+                    {t('status_CANCELLED')}
+                  </ActionButton>
+                )}
+              </div>
             </div>
           </div>
         ))}

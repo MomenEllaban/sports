@@ -26,12 +26,12 @@ const EMPTY_FORM = {
   loyaltyPoints: '0',
 };
 
-export default function CustomersManager({ customers }: { customers: CustomerRow[] }) {
+export default function CustomersManager({ customers, initialPhone = '' }: { customers: CustomerRow[]; initialPhone?: string }) {
   const locale = useLocale();
   const router = useRouter();
   const isAr = locale === 'ar';
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialPhone);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editCustomer, setEditCustomer] = useState<CustomerRow | null>(null);
   const [deleteCustomer, setDeleteCustomer] = useState<CustomerRow | null>(null);

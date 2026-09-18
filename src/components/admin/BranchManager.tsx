@@ -26,6 +26,8 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
   const [editingBranch, setEditingBranch] = useState<BranchItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -113,23 +115,32 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
       : `Are you sure you want to remove branch "${b.name}"?`;
     if (!window.confirm(confirmMsg)) return;
 
+    setDeleteError('');
+    setDeletingId(b.id);
     try {
       const res = await fetch(`/api/admin/branches/${b.id}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        alert(data.error || 'تعذر حذف الفرع');
+        setDeleteError(data.error || (isAr ? 'تعذر حذف الفرع' : 'Could not delete branch'));
         return;
       }
       router.refresh();
     } catch {
-      alert('فشل الاتصال لحذف الفرع');
+      setDeleteError(isAr ? 'فشل الاتصال لحذف الفرع' : 'Connection failed while deleting');
+    } finally {
+      setDeletingId(null);
     }
   };
 
   return (
     <div className="space-y-4">
+      {deleteError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold animate-fade-in">
+          {deleteError}
+        </div>
+      )}
       <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-800 pb-3">
         <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
           <Building className="w-5 h-5 text-amber-400" />
@@ -184,7 +195,8 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
                 <button
                   type="button"
                   onClick={() => handleDelete(b)}
-                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400"
+                  disabled={deletingId === b.id}
+                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 disabled:opacity-50"
                   title={isAr ? 'حذف / تعطيل' : 'Delete'}
                 >
                   <Trash2 className="w-3 h-3" />

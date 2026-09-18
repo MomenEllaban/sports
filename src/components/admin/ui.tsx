@@ -128,3 +128,37 @@ export async function apiFetch(url: string, method: string, body?: unknown) {
   }
   return data;
 }
+
+// Unified labeled form field: visible <label> above every input + example placeholder + hint + error.
+// Use for ALL user-editable inputs (admin + storefront + POS).
+export function Field({
+  label,
+  hint,
+  error,
+  children,
+  htmlFor,
+}: {
+  label: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
+  htmlFor?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <label htmlFor={htmlFor} className="block font-bold text-slate-300 text-xs">
+        {label}
+      </label>
+      {children}
+      {hint && !error && <p className="text-[11px] text-slate-500">{hint}</p>}
+      {error && (
+        <p role="alert" className="text-[11px] text-rose-400 font-bold">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export const fieldInputCls =
+  'w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500 placeholder:text-slate-500';

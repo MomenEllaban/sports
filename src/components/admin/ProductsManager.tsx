@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
+import { useRouter, Link } from '@/i18n/routing';
 import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 
@@ -70,6 +70,7 @@ export default function ProductsManager({
   // Category modals
   const [showAddCat, setShowAddCat] = useState(false);
   const [catForm, setCatForm] = useState(EMPTY_CAT);
+  const [rowError, setRowError] = useState('');
 
   // Brand modals
   const [showAddBrand, setShowAddBrand] = useState(false);
@@ -239,21 +240,23 @@ export default function ProductsManager({
 
   const handleDeleteCategory = async (id: string) => {
     if (!window.confirm(isAr ? 'هل تريد حذف هذا التصنيف؟' : 'Delete this category?')) return;
+    setRowError('');
     try {
       await apiFetch(`/api/admin/categories/${id}`, 'DELETE');
       router.refresh();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'فشل الحذف');
+      setRowError(err instanceof Error ? err.message : 'فشل الحذف');
     }
   };
 
   const handleDeleteBrand = async (id: string) => {
     if (!window.confirm(isAr ? 'هل تريد حذف هذه الماركة؟' : 'Delete this brand?')) return;
+    setRowError('');
     try {
       await apiFetch(`/api/admin/brands/${id}`, 'DELETE');
       router.refresh();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'فشل الحذف');
+      setRowError(err instanceof Error ? err.message : 'فشل الحذف');
     }
   };
 
@@ -406,6 +409,11 @@ export default function ProductsManager({
 
   return (
     <div className="space-y-4">
+      {rowError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold animate-fade-in">
+          {rowError}
+        </div>
+      )}
       {/* Tab Navigation */}
       <div className="flex gap-1 bg-slate-950 p-1 rounded-2xl w-fit">
         {[
@@ -438,7 +446,8 @@ export default function ProductsManager({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={isAr ? 'بحث بالاسم أو SKU أو باركود...' : 'Search by name, SKU or barcode...'}
-                className="pr-9 pl-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-64 focus:outline-none focus:border-blue-500"
+                aria-label={isAr ? 'بحث في المنتجات' : 'Search products'}
+                className="pr-9 pl-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-64 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -485,8 +494,16 @@ export default function ProductsManager({
                     </td>
                     <td className="p-3 text-slate-300">{isAr ? prod.category.nameAr : prod.category.nameEn}</td>
                     <td className="p-3 font-black text-emerald-400">{prod.price.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>
-                    <td className="p-3 font-bold text-blue-400">{stockOf(prod, 'الإبراهيمية')}</td>
-                    <td className="p-3 font-bold text-purple-400">{stockOf(prod, 'سموحة')}</td>
+                    <td className="p-3 font-bold text-blue-400">
+                      <Link href="/admin/inventory" title={isAr ? 'عرض في المخزون' : 'View in inventory'} className="hover:underline">
+                        {stockOf(prod, 'الإبراهيمية')}
+                      </Link>
+                    </td>
+                    <td className="p-3 font-bold text-purple-400">
+                      <Link href="/admin/inventory" title={isAr ? 'عرض في المخزون' : 'View in inventory'} className="hover:underline">
+                        {stockOf(prod, 'سموحة')}
+                      </Link>
+                    </td>
                     <td className="p-3">
                       <button
                         onClick={() => toggleActive(prod.id, !prod.isActive)}

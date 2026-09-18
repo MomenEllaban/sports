@@ -63,14 +63,17 @@ export default function TrackingPage() {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} className="glass-panel p-4 rounded-3xl border border-slate-800 flex gap-3 max-w-2xl mx-auto">
+        <form onSubmit={handleSearch} role="search" className="glass-panel p-4 rounded-3xl border border-slate-800 flex gap-3 max-w-2xl mx-auto">
+          <label htmlFor="tracking-search" className="sr-only">{tTracking('inputPlaceholder')}</label>
           <input
+            id="tracking-search"
             type="text"
             required
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tTracking('inputPlaceholder')}
-            className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-semibold"
+            aria-label={tTracking('inputPlaceholder')}
+            className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-semibold placeholder:text-slate-500"
           />
           <button
             type="submit"

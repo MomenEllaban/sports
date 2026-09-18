@@ -60,6 +60,8 @@ export default function UsersManager({
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -158,16 +160,20 @@ export default function UsersManager({
       : `Are you sure you want to delete user "${u.name}"?`;
     if (!window.confirm(confirmMsg)) return;
 
+    setDeleteError('');
+    setDeletingId(u.id);
     try {
       const res = await fetch(`/api/admin/users/${u.id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        alert(data.error || 'تعذر حذف المستخدم');
+        setDeleteError(data.error || (isAr ? 'تعذر حذف المستخدم' : 'Could not delete user'));
         return;
       }
       router.refresh();
     } catch {
-      alert('فشل الاتصال لحذف المستخدم');
+      setDeleteError(isAr ? 'فشل الاتصال لحذف المستخدم' : 'Connection failed while deleting');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -184,6 +190,11 @@ export default function UsersManager({
 
   return (
     <div className="space-y-4">
+      {deleteError && (
+        <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold animate-fade-in">
+          {deleteError}
+        </div>
+      )}
       {/* Action Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3 flex-1 max-w-lg">
@@ -315,7 +326,8 @@ export default function UsersManager({
                         <button
                           type="button"
                           onClick={() => handleDelete(u)}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                          disabled={deletingId === u.id}
+                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors disabled:opacity-50"
                           title={isAr ? 'حذف' : 'Delete'}
                         >
                           <Trash2 className="w-3.5 h-3.5" />

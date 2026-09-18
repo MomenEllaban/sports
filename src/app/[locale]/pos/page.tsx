@@ -292,15 +292,20 @@ export default function PosTerminalPage() {
         <div className="col-span-7 border-l border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 overflow-hidden">
           {/* Barcode Search Input */}
           <div className="relative">
+            <label htmlFor="pos-search" className="block text-[11px] font-bold text-slate-400 mb-1">
+              بحث المنتجات (باركود / اسم / SKU)
+            </label>
             <input
+              id="pos-search"
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="امسح البار كود أو ابحث باسم المنتج / SKU..."
-              className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-sm font-semibold text-slate-100 focus:outline-none focus:border-amber-500 shadow-inner"
+              aria-label="بحث المنتجات بالباركود أو الاسم"
+              className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-sm font-semibold text-slate-100 focus:outline-none focus:border-amber-500 shadow-inner placeholder:text-slate-500"
               autoFocus
             />
-            <Barcode className="w-5 h-5 text-amber-400 absolute left-3 top-3.5" />
+            <Barcode className="w-5 h-5 text-amber-400 absolute left-3 top-9" />
           </div>
 
           {/* Products Quick Touch Grid */}
@@ -506,26 +511,39 @@ export default function PosTerminalPage() {
               </div>
 
               <div className="grid grid-cols-12 gap-2">
-                <input
-                  type="number"
-                  placeholder="مبلغ الخصم (ج.م)"
-                  value={discountInput}
-                  onChange={(e) => setDiscountInput(e.target.value)}
-                  className="col-span-5 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100"
-                />
-                <input
-                  type="password"
-                  placeholder="PIN المدير (1234)"
-                  value={managerPin}
-                  onChange={(e) => setManagerPin(e.target.value)}
-                  className="col-span-4 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100"
-                />
-                <button
-                  onClick={handleApplyDiscount}
-                  className="col-span-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs"
-                >
-                  تطبيق
-                </button>
+                <div className="col-span-5">
+                  <label htmlFor="pos-discount" className="block text-[10px] font-bold text-slate-400 mb-1">مبلغ الخصم (ج.م)</label>
+                  <input
+                    id="pos-discount"
+                    type="number"
+                    min={0}
+                    placeholder="مثال: 50"
+                    value={discountInput}
+                    onChange={(e) => setDiscountInput(e.target.value)}
+                    className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
+                  />
+                </div>
+                <div className="col-span-4">
+                  <label htmlFor="pos-pin" className="block text-[10px] font-bold text-slate-400 mb-1">PIN المدير</label>
+                  <input
+                    id="pos-pin"
+                    type="password"
+                    inputMode="numeric"
+                    placeholder="1234"
+                    value={managerPin}
+                    onChange={(e) => setManagerPin(e.target.value)}
+                    className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
+                  />
+                </div>
+                <div className="col-span-3 flex items-end">
+                  <button
+                    onClick={handleApplyDiscount}
+                    aria-label="تطبيق الخصم"
+                    className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs"
+                  >
+                    تطبيق
+                  </button>
+                </div>
               </div>
               {pinError && <p className="text-[10px] text-rose-400">كلمة سر المدير خاطئة (جرب 1234)</p>}
             </div>

@@ -6,7 +6,12 @@ import { prisma } from '@/lib/db';
 
 export const revalidate = 10;
 
-export default async function AdminCustomersPage() {
+export default async function AdminCustomersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ phone?: string }>;
+}) {
+  const { phone } = await searchParams;
   const customers = await prisma.customer.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
@@ -35,7 +40,7 @@ export default async function AdminCustomersPage() {
           </div>
 
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden p-4 animate-fade-up">
-            <CustomersManager customers={serializable} />
+            <CustomersManager customers={serializable} initialPhone={phone || ''} />
           </div>
         </main>
       </div>

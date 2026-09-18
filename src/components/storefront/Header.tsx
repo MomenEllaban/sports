@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import ThemeToggle from '@/components/admin/ThemeToggle';
 
 export default function Header() {
   const t = useTranslations('common');
@@ -122,6 +123,9 @@ export default function Header() {
               </span>
             )}
           </Link>
+
+          {/* Theme toggle (dark / light) */}
+          <ThemeToggle />
 
           {/* Mobile menu toggle */}
           <button

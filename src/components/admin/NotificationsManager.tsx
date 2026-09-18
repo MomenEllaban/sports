@@ -43,6 +43,17 @@ export default function NotificationsManager({ notifications }: { notifications:
     }
   };
 
+  const removeOne = async (id: string) => {
+    if (!window.confirm(isAr ? 'حذف هذا الإشعار؟' : 'Delete this notification?')) return;
+    setError('');
+    try {
+      await apiFetch(`/api/admin/notifications/${id}`, 'DELETE', {});
+      router.refresh();
+    } catch {
+      setError(t('operationFailed'));
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -71,6 +82,9 @@ export default function NotificationsManager({ notifications }: { notifications:
                   {t('markRead')}
                 </button>
               )}
+              <button onClick={() => removeOne(n.id)} className="shrink-0 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[11px] font-bold transition-all" title={t('delete')}>
+                {t('delete')}
+              </button>
             </div>
           ))}
         </div>
