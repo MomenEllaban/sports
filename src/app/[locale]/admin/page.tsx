@@ -1,0 +1,153 @@
+import React from 'react';
+import AdminSidebar from '@/components/admin/AdminSidebar';
+import AdminHeader from '@/components/admin/AdminHeader';
+import { prisma } from '@/lib/db';
+import { DollarSign, ShoppingBag, Layers, ShieldCheck, MapPin, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Link } from '@/i18n/routing';
+
+export const revalidate = 10;
+
+export default async function AdminDashboardPage() {
+  const totalOrdersCount = await prisma.order.count();
+  const totalSalesCount = await prisma.sale.count();
+  const branchesCount = await prisma.branch.count();
+  const productsCount = await prisma.product.count();
+
+  const orders = await prisma.order.findMany({
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const lowStockItems = await prisma.branchInventory.findMany({
+    where: { stockQuantity: { lte: 5 } },
+    include: { product: true, branch: true },
+    take: 5,
+  });
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex dir-rtl">
+      <AdminSidebar />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <AdminHeader />
+
+        <main className="p-6 space-y-6 overflow-y-auto">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-black text-slate-100">لوحة التحكم والملخص العام</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                متابعة مبيعات فرع الإبراهيمية الرئيسي والفروع ومستويات التوريد
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
+              محدث مباشرة
+            </span>
+          </div>
+
+          {/* KPI Stat Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex justify-between items-center text-xs text-slate-400">
+                <span>إجمالي الطلبات الإلكترونية</span>
+                <ShoppingBag className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="text-3xl font-black text-slate-100">{totalOrdersCount}</div>
+              <div className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5" /> +15% هذا الشهر
+              </div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex justify-between items-center text-xs text-slate-400">
+                <span>إجمالي مبيعات الـ POS</span>
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-3xl font-black text-slate-100">{totalSalesCount}</div>
+              <div className="text-[11px] text-slate-400">مبيعات الكاشير المباشرة</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex justify-between items-center text-xs text-slate-400">
+                <span>الأصناف في الكتالوج</span>
+                <Layers className="w-4 h-4 text-purple-400" />
+              </div>
+              <div className="text-3xl font-black text-slate-100">{productsCount}</div>
+              <div className="text-[11px] text-slate-400">منتجات رياضية نشطة</div>
+            </div>
+
+            <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex justify-between items-center text-xs text-slate-400">
+                <span>الفروع النشطة</span>
+                <MapPin className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="text-3xl font-black text-slate-100">{branchesCount}</div>
+              <div className="text-[11px] text-amber-400 font-bold">فرع الإبراهيمية + سموحة</div>
+            </div>
+          </div>
+
+          {/* Low Stock Alerts & Recent Orders */}
+          <div className="grid lg:grid-cols-12 gap-6">
+            {/* Recent Orders Table */}
+            <div className="lg:col-span-8 glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-extrabold text-sm text-slate-100">أحدث الطلبات الواردة</h3>
+                <Link href="/admin/orders" className="text-xs font-bold text-blue-400 hover:underline">
+                  عرض جميع الطلبات
+                </Link>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-right">
+                  <thead className="text-slate-400 border-b border-slate-800">
+                    <tr>
+                      <th className="pb-2">رقم الطلب</th>
+                      <th className="pb-2">العميل</th>
+                      <th className="pb-2">طريقة الدفع</th>
+                      <th className="pb-2">المبلغ الكلي</th>
+                      <th className="pb-2">الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {orders.map((ord) => (
+                      <tr key={ord.id} className="hover:bg-slate-900/50">
+                        <td className="py-3 font-bold text-amber-400">{ord.orderNumber}</td>
+                        <td className="py-3 font-medium text-slate-200">{ord.guestName || ord.guestPhone}</td>
+                        <td className="py-3 text-slate-300">{ord.paymentMethod}</td>
+                        <td className="py-3 font-bold text-slate-100">{ord.totalAmount} ج.م</td>
+                        <td className="py-3">
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold text-[10px]">
+                            {ord.orderStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Low Stock Warnings */}
+            <div className="lg:col-span-4 glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                <span>تنبيهات نواقص المخزون</span>
+              </div>
+
+              <div className="space-y-3">
+                {lowStockItems.map((item) => (
+                  <div key={item.id} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                    <div className="font-bold text-slate-200 line-clamp-1">{item.product.nameAr}</div>
+                    <div className="flex justify-between text-[11px] text-slate-400">
+                      <span>الفرع: {item.branch.name}</span>
+                      <span className="text-rose-400 font-bold">متبقي: {item.stockQuantity} قطعة</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

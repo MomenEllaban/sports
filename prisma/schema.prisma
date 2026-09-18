@@ -1,0 +1,515 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  BRANCH_MANAGER
+  STAFF
+  CASHIER
+  FINANCE
+}
+
+enum OrderSource {
+  ONLINE
+  POS
+  WHATSAPP
+}
+
+enum ShippingProvider {
+  BOSTA
+  MYLERZ
+  MRSOOL
+  LOCAL_COURIER
+  PICKUP
+}
+
+enum PaymentMethod {
+  PAYMOB
+  FAWRY
+  COD
+  INSTAPAY
+  VODAFONE_CASH
+  KASHIER
+  CASH
+  CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum InventoryLogType {
+  SALE
+  RESTOCK
+  TRANSFER
+  ADJUSTMENT
+  RETURN
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  RECEIVED
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SALARIES
+  MARKETING
+  MAINTENANCE
+  SUPPLIES
+  TAXES
+  OTHER
+}
+
+enum PayrollStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+enum SalaryType {
+  MONTHLY
+  HOURLY
+  COMMISSION
+}
+
+enum NotificationType {
+  NEW_ORDER
+  LOW_STOCK
+  STOCK_TRANSFER
+  PO_UPDATE
+  PAYROLL_READY
+  LARGE_DISCOUNT
+  ETA_FAILURE
+}
+
+enum TaxInvoiceStatus {
+  SUBMITTED
+  VALID
+  INVALID
+  CANCELLED
+}
+
+model Branch {
+  id           String   @id @default(cuid())
+  name         String
+  nameEn       String
+  address      String
+  addressEn    String
+  phone        String
+  city         String   @default("Alexandria")
+  workingHours String   @default("Sat-Wed 10am-10pm, Thu-Fri 10am-11pm")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  inventories    BranchInventory[]
+  transfersFrom  StockTransfer[]     @relation("TransferFromBranch")
+  transfersTo    StockTransfer[]     @relation("TransferToBranch")
+  orders         Order[]
+  sales          Sale[]
+  inventoryLogs  InventoryLog[]
+  purchaseOrders PurchaseOrder[]
+  expenses       Expense[]
+  employees      Employee[]
+  notifications  Notification[]
+  taxInvoices    TaxInvoice[]
+}
+
+model BranchInventory {
+  id                String   @id @default(cuid())
+  branchId          String
+  productId         String
+  stockQuantity     Int      @default(0)
+  lowStockThreshold Int      @default(5)
+  updatedAt         DateTime @updatedAt
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, productId])
+}
+
+model StockTransfer {
+  id             String         @id @default(cuid())
+  transferNumber String         @unique
+  fromBranchId   String
+  toBranchId     String
+  status         TransferStatus @default(PENDING)
+  requestedById  String
+  approvedById   String?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  fromBranch Branch              @relation("TransferFromBranch", fields: [fromBranchId], references: [id])
+  toBranch   Branch              @relation("TransferToBranch", fields: [toBranchId], references: [id])
+  items      StockTransferItem[]
+}
+
+model StockTransferItem {
+  id         String @id @default(cuid())
+  transferId String
+  productId  String
+  quantity   Int
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product       @relation(fields: [productId], references: [id])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  role         Role     @default(STAFF)
+  branchIds    String[] @default([])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  employee Employee?
+}
+
+model Employee {
+  id             String     @id @default(cuid())
+  userId         String?    @unique
+  name           String
+  phone          String
+  roleTitle      String
+  salary         Float
+  salaryType     SalaryType @default(MONTHLY)
+  commissionRate Float      @default(0.0)
+  branchId       String
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id])
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  payrollItems PayrollItem[]
+}
+
+model PayrollRun {
+  id          String        @id @default(cuid())
+  periodMonth Int
+  periodYear  Int
+  status      PayrollStatus @default(DRAFT)
+  totalAmount Float         @default(0.0)
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  items PayrollItem[]
+}
+
+model PayrollItem {
+  id               String        @id @default(cuid())
+  payrollRunId     String
+  employeeId       String
+  baseSalary       Float
+  bonus            Float         @default(0.0)
+  deductions       Float         @default(0.0)
+  commissionAmount Float         @default(0.0)
+  netSalary        Float
+  status           PayrollStatus @default(DRAFT)
+
+  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  phone         String   @unique
+  name          String?
+  email         String?
+  loyaltyPoints Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  addresses Address[]
+  orders    Order[]
+  sales     Sale[]
+}
+
+model Address {
+  id          String  @id @default(cuid())
+  customerId  String
+  title       String  @default("Home")
+  street      String
+  building    String?
+  city        String  @default("Alexandria")
+  governorate String  @default("Alexandria")
+  isDefault   Boolean @default(true)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  nameAr      String
+  nameEn      String
+  description String?
+  image       String?
+  products    Product[]
+}
+
+model Brand {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  nameAr   String
+  nameEn   String
+  logo     String?
+  products Product[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  barcode       String?  @unique
+  nameAr        String
+  nameEn        String
+  descriptionAr String?
+  descriptionEn String?
+  price         Float
+  costPrice     Float    @default(0.0)
+  categoryId    String
+  brandId       String?
+  size          String?
+  color         String?
+  isFeatured    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  images        String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category           Category            @relation(fields: [categoryId], references: [id])
+  brand              Brand?              @relation(fields: [brandId], references: [id])
+  inventories        BranchInventory[]
+  orderItems         OrderItem[]
+  saleItems          SaleItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  transferItems      StockTransferItem[]
+  inventoryLogs      InventoryLog[]
+}
+
+model Order {
+  id               String           @id @default(cuid())
+  orderNumber      String           @unique
+  orderSource      OrderSource      @default(ONLINE)
+  customerId       String?
+  guestPhone       String
+  guestName        String?
+  deliveryAddress  String
+  branchId         String
+  deliveryZone     String           @default("Alexandria Central")
+  deliveryFee      Float            @default(30.0)
+  shippingProvider ShippingProvider @default(BOSTA)
+  trackingNumber   String?
+  paymentMethod    PaymentMethod    @default(COD)
+  paymentStatus    PaymentStatus    @default(PENDING)
+  orderStatus      OrderStatus      @default(PENDING)
+  subtotal         Float
+  taxAmount        Float            @default(0.0)
+  discountAmount   Float            @default(0.0)
+  totalAmount      Float
+  codReconciled    Boolean          @default(false)
+  etaReceiptId     String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  items      OrderItem[]
+  taxInvoice TaxInvoice?
+}
+
+model OrderItem {
+  id         String @id @default(cuid())
+  orderId    String
+  productId  String
+  unitPrice  Float
+  quantity   Int
+  totalPrice Float
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Sale {
+  id             String        @id @default(cuid())
+  saleNumber     String        @unique
+  branchId       String
+  cashierId      String
+  customerId     String?
+  subtotal       Float
+  taxAmount      Float         @default(0.0)
+  discountAmount Float         @default(0.0)
+  totalAmount    Float
+  paymentMethod  PaymentMethod @default(CASH)
+  paymentStatus  PaymentStatus @default(PAID)
+  status         String        @default("COMPLETED")
+  etaReceiptId   String?
+  createdAt      DateTime      @default(now())
+
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  items      SaleItem[]
+  taxInvoice TaxInvoice?
+}
+
+model SaleItem {
+  id         String @id @default(cuid())
+  saleId     String
+  productId  String
+  unitPrice  Float
+  quantity   Int
+  discount   Float  @default(0.0)
+  totalPrice Float
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model InventoryLog {
+  id               String           @id @default(cuid())
+  branchId         String
+  productId        String
+  type             InventoryLogType
+  changeQuantity   Int
+  previousQuantity Int
+  newQuantity      Int
+  referenceId      String?
+  notes            String?
+  createdById      String?
+  createdAt        DateTime         @default(now())
+
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Supplier {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  taxNumber     String?
+  createdAt     DateTime @default(now())
+
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  poNumber    String              @unique
+  supplierId  String
+  branchId    String
+  status      PurchaseOrderStatus @default(DRAFT)
+  totalAmount Float               @default(0.0)
+  notes       String?
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  branch   Branch              @relation(fields: [branchId], references: [id])
+  items    PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id               String @id @default(cuid())
+  purchaseOrderId  String
+  productId        String
+  unitCost         Float
+  quantityOrdered  Int
+  quantityReceived Int    @default(0)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  expenseNumber String          @unique
+  branchId      String
+  category      ExpenseCategory @default(OTHER)
+  description   String
+  amount        Float
+  receiptImage  String?
+  date          DateTime        @default(now())
+  createdById   String
+  createdAt     DateTime        @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  titleAr    String
+  titleEn    String
+  messageAr  String
+  messageEn  String
+  type       NotificationType
+  targetRole Role?
+  branchId   String?
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  branch Branch? @relation(fields: [branchId], references: [id])
+}
+
+model TaxInvoice {
+  id              String           @id @default(cuid())
+  invoiceNumber   String           @unique
+  etaUuid         String?          @unique
+  orderId         String?          @unique
+  saleId          String?          @unique
+  branchId        String
+  totalAmount     Float
+  vatAmount       Float
+  qrCodeData      String?
+  status          TaxInvoiceStatus @default(SUBMITTED)
+  etaResponseText String?
+  createdAt       DateTime         @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  order  Order? @relation(fields: [orderId], references: [id])
+  sale   Sale?  @relation(fields: [saleId], references: [id])
+}
