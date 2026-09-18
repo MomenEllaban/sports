@@ -3,6 +3,7 @@ import Header from '@/components/storefront/Header';
 import HeroBanner from '@/components/storefront/HeroBanner';
 import Footer from '@/components/storefront/Footer';
 import ProductCard from '@/components/storefront/ProductCard';
+import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
 import { Link } from '@/i18n/routing';
 import { Trophy, Activity, Waves, Dumbbell, Shield, MapPin, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -73,11 +74,11 @@ export default async function StorefrontHomePage({
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {categories.map((cat) => (
+            {categories.map((cat, index) => (
+              <Reveal key={cat.id} delay={Math.min(index * 70, 280)}>
               <Link
-                key={cat.id}
                 href={`/catalog?category=${cat.slug}`}
-                className="glass-card p-5 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-3 group"
+                className="glass-card p-5 rounded-2xl border border-slate-800 flex flex-col items-center text-center gap-3 group hover:-translate-y-1 transition-transform duration-300"
               >
                 <div className="p-3 rounded-2xl bg-slate-900 group-hover:scale-110 transition-transform">
                   {categoryIcons[cat.slug] || <Dumbbell className="w-6 h-6 text-blue-400" />}
@@ -88,6 +89,7 @@ export default async function StorefrontHomePage({
                   </h3>
                 </div>
               </Link>
+              </Reveal>
             ))}
           </div>
         </section>
@@ -112,15 +114,18 @@ export default async function StorefrontHomePage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {products.map((product, index) => (
+              <Reveal key={product.id} delay={Math.min(index * 70, 280)}>
+                <ProductCard product={product} />
+              </Reveal>
             ))}
           </div>
         </section>
 
         {/* Flagship Branch Highlight Section */}
         <section className="max-w-7xl mx-auto px-4">
-          <div className="glass-panel p-8 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-blue-950/40 grid md:grid-cols-12 gap-8 items-center">
+          <Reveal>
+          <div className="glass-panel p-8 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-blue-950/40 grid md:grid-cols-12 gap-8 items-center hover:border-amber-500/30 transition-colors duration-300">
             <div className="md:col-span-8 space-y-4">
               <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30">
                 الفرع الرئيسي والمخزن بالإسكندرية
@@ -151,6 +156,7 @@ export default async function StorefrontHomePage({
               </Link>
             </div>
           </div>
+          </Reveal>
         </section>
       </main>
 

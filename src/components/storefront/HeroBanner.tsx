@@ -12,28 +12,28 @@ export default function HeroBanner() {
   return (
     <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800 py-16 lg:py-24">
       {/* Dynamic Background Effects */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-float-slow" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-float-slow" />
 
       <div className="max-w-7xl mx-auto px-4 relative z-10 grid lg:grid-cols-12 gap-12 items-center">
         {/* Left Column: Headlines & Action Buttons */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold tracking-wide">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold tracking-wide animate-fade-up">
             <MapPin className="w-4 h-4 text-amber-400" />
             <span>فرع الإبراهيمية الرئيسي: 92 شارع عمر لطفى - سيدي جابر</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-100 tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-100 tracking-tight leading-tight animate-fade-up stagger-1">
             <span className="block">{tHero('title')}</span>
             <span className="gold-gradient-text block mt-2">ابطال الرياضة الإبراهيمية</span>
           </h1>
 
-          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl">
+          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl animate-fade-up stagger-2">
             {tHero('subtitle')}
           </p>
 
           {/* Key Value Badges */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 animate-fade-up stagger-3">
             <div className="glass-panel p-3 rounded-xl flex items-center gap-2 text-xs font-semibold text-slate-300">
               <Truck className="w-4 h-4 text-blue-400 shrink-0" />
               <span>توصيل فوري بالإسكندرية</span>
@@ -49,7 +49,7 @@ export default function HeroBanner() {
           </div>
 
           {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-4 pt-4">
+          <div className="flex flex-wrap items-center gap-4 pt-4 animate-fade-up stagger-4">
             <Link
               href="/catalog"
               className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-base shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all"
@@ -69,8 +69,8 @@ export default function HeroBanner() {
         </div>
 
         {/* Right Column: Visual Showcase */}
-        <div className="lg:col-span-5 relative">
-          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl relative">
+        <div className="lg:col-span-5 relative animate-fade-up stagger-2">
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl relative animate-float-slow">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
                 الفرع الرئيسي الحكيم

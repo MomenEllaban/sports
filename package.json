@@ -9,7 +9,8 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "npx tsx prisma/seed.ts"
+    "db:seed": "npx tsx prisma/seed.ts",
+    "test:smoke": "npx tsx --env-file=.env scripts/smoke-test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

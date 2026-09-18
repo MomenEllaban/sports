@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User } from 'lucide-react';
+import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 
 export default function Header() {
@@ -13,6 +13,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const items = useCartStore((s) => s.items);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const totalItemsCount = items.reduce((acc, i) => acc + i.quantity, 0);
 
@@ -121,8 +122,42 @@ export default function Header() {
               </span>
             )}
           </Link>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      {mobileOpen && (
+        <nav className="lg:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md animate-fade-in">
+          <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-sm font-bold text-slate-200">
+            {[
+              { href: '/', label: tNav('home') },
+              { href: '/catalog', label: tNav('catalog') },
+              { href: '/branches', label: tNav('branches') },
+              { href: '/tracking', label: tNav('trackOrder') },
+              { href: '/pos', label: t('pos') },
+              { href: '/admin', label: t('admin') },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="px-3 py-2.5 rounded-xl hover:bg-slate-800 hover:text-blue-400 transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
