@@ -4,7 +4,6 @@ import Footer from '@/components/storefront/Footer';
 import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
 import { MapPin, Phone, Clock, Navigation } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
 
 export const revalidate = 60;
 
@@ -13,9 +12,9 @@ export default async function BranchesPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const { locale } = await params;
+  const { locale: rawLocale } = await params;
+  const locale = rawLocale || 'ar';
   const isAr = locale === 'ar';
-  await getTranslations({ locale, namespace: 'nav' });
 
   const branches = await prisma.branch.findMany({
     where: { isActive: true },
