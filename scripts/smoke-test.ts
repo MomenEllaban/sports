@@ -150,9 +150,71 @@ try {
     prisma.category.count(),
   ]);
   ok(`db counts branches=${branches} products=${products} categories=${categories}`);
+  const [orders, sales, pos, expenses, runs, transfers, notifs] = await Promise.all([
+    prisma.order.count(),
+    prisma.sale.count(),
+    prisma.purchaseOrder.count(),
+    prisma.expense.count(),
+    prisma.payrollRun.count(),
+    prisma.stockTransfer.count(),
+    prisma.notification.count(),
+  ]);
+  if (orders >= 5 && sales >= 3 && pos >= 2 && expenses >= 4 && runs >= 1 && transfers >= 1 && notifs >= 4) {
+    ok(`rich seed orders=${orders} sales=${sales} pos=${pos} expenses=${expenses} payrollRuns=${runs} transfers=${transfers} notifications=${notifs}`);
+  } else {
+    fail('rich seed data', `orders=${orders} sales=${sales} pos=${pos} expenses=${expenses} runs=${runs} transfers=${transfers} notifs=${notifs}`);
+  }
   await prisma.$disconnect();
 } catch (e) {
   fail('db connection', String(e).slice(0, 300));
+}
+
+console.log('\n[7/7] Admin wiring (auth route, guard, APIs, i18n)');
+const requiredFiles = [
+  'src/app/api/auth/[...nextauth]/route.ts',
+  'src/app/api/admin/orders/[id]/route.ts',
+  'src/app/api/admin/products/route.ts',
+  'src/app/api/admin/products/[id]/route.ts',
+  'src/app/api/admin/transfers/route.ts',
+  'src/app/api/admin/transfers/[id]/route.ts',
+  'src/app/api/admin/purchase-orders/route.ts',
+  'src/app/api/admin/purchase-orders/[id]/receive/route.ts',
+  'src/app/api/admin/expenses/route.ts',
+  'src/app/api/admin/payroll-runs/route.ts',
+  'src/app/api/admin/payroll-runs/[id]/route.ts',
+  'src/app/api/admin/notifications/route.ts',
+  'src/app/api/admin/notifications/[id]/route.ts',
+  'src/app/api/admin/notifications/read-all/route.ts',
+  'src/components/admin/ui.tsx',
+  'src/components/admin/OrdersManager.tsx',
+  'src/components/admin/ProductsManager.tsx',
+  'src/components/admin/TransfersManager.tsx',
+  'src/components/admin/PurchasingManager.tsx',
+  'src/components/admin/PayrollManager.tsx',
+  'src/components/admin/NotificationsManager.tsx',
+  'src/components/admin/ExpensesManager.tsx',
+  'src/components/admin/CustomersManager.tsx',
+  'src/lib/admin-guard.ts',
+  'src/app/[locale]/admin/error.tsx',
+];
+for (const f of requiredFiles) {
+  if (fs.existsSync(path.join(root, f))) ok(`file ${f.split('/').slice(-2).join('/')}`);
+  else fail(`file ${f}`, 'missing');
+}
+try {
+  const ar = JSON.parse(fs.readFileSync(path.join(root, 'messages/ar.json'), 'utf8'));
+  const en = JSON.parse(fs.readFileSync(path.join(root, 'messages/en.json'), 'utf8'));
+  const needKeys = ['auth', 'admin'];
+  let i18nOk = true;
+  for (const ns of needKeys) {
+    if (!ar[ns] || !en[ns]) { fail(`i18n namespace ${ns}`, 'missing'); i18nOk = false; }
+  }
+  for (const k of ['status_DELIVERED', 'pay_COD', 'src_ONLINE', 'markAllRead', 'newExpense']) {
+    if (!(ar.admin && ar.admin[k]) || !(en.admin && en.admin[k])) { fail(`i18n key ${k}`, 'missing'); i18nOk = false; }
+  }
+  if (i18nOk) ok('i18n auth+admin namespaces with status keys (ar/en)');
+} catch (e) {
+  fail('i18n parse', String(e).slice(0, 200));
 }
 
 console.log(`\n==== RESULT: ${passed} passed, ${failed} failed ====`);

@@ -46,7 +46,13 @@ export default function PosTerminalPage() {
     getVatAmount,
     getTotalAmount,
     discountAmount,
+    offlineQueue,
+    queueOfflineSale,
+    clearOfflineQueue,
   } = usePosStore();
+  const [loadError, setLoadError] = useState('');
+  const [saleError, setSaleError] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchPosProducts();
@@ -55,13 +61,16 @@ export default function PosTerminalPage() {
   const fetchPosProducts = async () => {
     try {
       setLoading(true);
+      setLoadError('');
       const res = await fetch('/api/pos/products');
       const data = await res.json();
       if (data.success) {
         setProducts(data.products);
+      } else {
+        setLoadError('تعذر تحميل المنتجات من السيرفر.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setLoadError('تعذر الاتصال بالسيرفر. تحقق من الإنترنت وحاول مجدداً.');
     } finally {
       setLoading(false);
     }
@@ -90,20 +99,23 @@ export default function PosTerminalPage() {
 
   const handleCompleteSale = async (payMethod: 'CASH' | 'CARD' | 'INSTAPAY') => {
     if (ticketItems.length === 0) return;
+    setSaleError('');
+
+    const payload = {
+      paymentMethod: payMethod,
+      discountAmount,
+      items: ticketItems.map((i) => ({
+        productId: i.id,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+      })),
+    };
 
     try {
       const res = await fetch('/api/pos/sale', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentMethod: payMethod,
-          discountAmount,
-          items: ticketItems.map((i) => ({
-            productId: i.id,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-          })),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -128,12 +140,56 @@ export default function PosTerminalPage() {
         clearTicket();
         fetchPosProducts(); // Refresh stock
       } else {
-        alert('حدث خطأ أثناء حفظ الفاتورة.');
+        setSaleError(data.error || 'حدث خطأ أثناء حفظ الفاتورة.');
       }
-    } catch (err) {
-      console.error(err);
-      alert('تم حفظ الفاتورة في الانتظار (وضع عدم الاتصال).');
+    } catch {
+      // Offline mode: queue the sale locally and sync later
+      queueOfflineSale({
+        id: `offline-${Date.now()}`,
+        saleNumber: `OFFLINE-${Date.now()}`,
+        branchId: '',
+        cashierId: '',
+        items: ticketItems.map((i) => ({ ...i })),
+        subtotal: getSubtotal(),
+        taxAmount: getVatAmount(),
+        discountAmount,
+        totalAmount: getTotalAmount(),
+        paymentMethod: payMethod,
+        timestamp: new Date().toISOString(),
+      });
+      clearTicket();
     }
+  };
+
+  const handleSyncOffline = async () => {
+    if (offlineQueue.length === 0 || syncing) return;
+    setSyncing(true);
+    setSaleError('');
+    const remaining: typeof offlineQueue = [];
+    for (const sale of offlineQueue) {
+      try {
+        const res = await fetch('/api/pos/sale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentMethod: sale.paymentMethod,
+            discountAmount: sale.discountAmount,
+            items: sale.items.map((i) => ({ productId: i.id, quantity: i.quantity, unitPrice: i.unitPrice })),
+          }),
+        });
+        const data = await res.json();
+        if (!data.success) remaining.push(sale);
+      } catch {
+        remaining.push(sale);
+      }
+    }
+    clearOfflineQueue();
+    remaining.forEach((s) => queueOfflineSale(s));
+    if (remaining.length > 0) {
+      setSaleError(`تعذر مزامنة ${remaining.length} فاتورة. سيُعاد المحاولة لاحقاً.`);
+    }
+    setSyncing(false);
+    fetchPosProducts();
   };
 
   return (
@@ -185,6 +241,13 @@ export default function PosTerminalPage() {
           <div className="flex-1 overflow-y-auto pr-1">
             {loading ? (
               <div className="text-center text-xs text-slate-500 py-12">جاري تحميل المنتجات...</div>
+            ) : loadError ? (
+              <div className="text-center text-xs py-12 space-y-3">
+                <p className="text-rose-400 font-bold">{loadError}</p>
+                <button onClick={fetchPosProducts} className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
+                  إعادة المحاولة
+                </button>
+              </div>
             ) : (
               <div className="grid grid-cols-3 gap-3">
                 {filteredProducts.map((prod) => {
@@ -287,6 +350,19 @@ export default function PosTerminalPage() {
 
           {/* Discounts & Totals Drawer */}
           <div className="space-y-3 pt-3 border-t border-slate-800 shrink-0">
+            {saleError && (
+              <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
+                {saleError}
+              </div>
+            )}
+            {offlineQueue.length > 0 && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold flex justify-between items-center">
+                <span>فواتير معلقة (عدم اتصال): {offlineQueue.length}</span>
+                <button onClick={handleSyncOffline} disabled={syncing} className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-bold">
+                  {syncing ? 'جاري المزامنة...' : 'مزامنة الآن'}
+                </button>
+              </div>
+            )}
             {/* Manager Discount Section */}
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between items-center">

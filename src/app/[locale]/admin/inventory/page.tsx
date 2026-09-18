@@ -1,48 +1,54 @@
 import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
+import TransfersManager from '@/components/admin/TransfersManager';
 import { prisma } from '@/lib/db';
-import { Layers, ArrowLeftRight, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 export const revalidate = 10;
 
 export default async function AdminInventoryPage() {
-  const branches = await prisma.branch.findMany({
-    include: {
-      inventories: {
-        include: {
-          product: true,
-        },
-      },
-    },
-  });
+  const [branches, products, logs, transfers] = await Promise.all([
+    prisma.branch.findMany({
+      include: { inventories: { include: { product: true } } },
+    }),
+    prisma.product.findMany({ where: { isActive: true }, select: { id: true, nameAr: true, nameEn: true } }),
+    prisma.inventoryLog.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: { product: true, branch: true },
+    }),
+    prisma.stockTransfer.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { fromBranch: true, toBranch: true, items: { include: { product: true } } },
+    }),
+  ]);
 
-  const logs = await prisma.inventoryLog.findMany({
-    take: 10,
-    orderBy: { createdAt: 'desc' },
-    include: { product: true, branch: true },
-  });
+  const serializableTransfers = transfers.map((tr) => ({
+    ...tr,
+    createdAt: tr.createdAt.toISOString(),
+    notes: tr.notes,
+  }));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex dir-rtl">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
       <AdminSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
         <AdminHeader />
 
         <main className="p-6 space-y-6 overflow-y-auto">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-black text-slate-100">المخزون والتحويلات بين الفروع</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                متابعة رصيد الأصناف لكل فرع بشكل منفصل وإنشاء أوامر التحويل الداخلي
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-100">المخزون والتحويلات بين الفروع</h1>
+            <p className="text-xs text-slate-400 mt-0.5">متابعة رصيد الأصناف لكل فرع بشكل منفصل وإنشاء أوامر التحويل الداخلي</p>
+          </div>
 
-            <button className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20">
-              <ArrowLeftRight className="w-4 h-4" />
-              طلب تحويل مخزون بين الفروع
-            </button>
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
+            <h3 className="font-extrabold text-sm text-slate-100">أوامر التحويل بين الفروع</h3>
+            <TransfersManager
+              branches={branches.map((b) => ({ id: b.id, name: b.name, nameEn: b.nameEn }))}
+              products={products}
+              transfers={serializableTransfers}
+            />
           </div>
 
           {/* Branch Inventories Grid */}

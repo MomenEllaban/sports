@@ -504,6 +504,230 @@ async function main() {
 
   console.log(`✅ Supplier seeded: ${supplier.name}`);
 
+  // 9. Rich test data: customers, orders, sales, POs, expenses, payroll, transfers, notifications
+  const allProducts = await prisma.product.findMany();
+  const pick = (sku: string) => allProducts.find((p) => p.sku === sku)!;
+
+  const extraCustomers = await Promise.all(
+    [
+      { phone: '01234567890', name: 'منى الشريف', city: 'سموحة، الإسكندرية' },
+      { phone: '01555556666', name: 'كريم عادل', city: 'ميامي، الإسكندرية' },
+      { phone: '01177778888', name: 'هبة مصطفى', city: 'العجمي، الإسكندرية' },
+    ].map((c, i) =>
+      prisma.customer.create({
+        data: {
+          phone: c.phone,
+          name: c.name,
+          loyaltyPoints: [45, 200, 10][i],
+          addresses: { create: { title: 'المنزل', street: c.city, city: 'الإسكندرية', governorate: 'الإسكندرية', isDefault: true } },
+        },
+      })
+    )
+  );
+
+  const orderSeeds = [
+    { n: 'ORD-2026-101', status: OrderStatus.PENDING, source: OrderSource.ONLINE, pay: PaymentMethod.PAYMOB, cust: 0, total: 1402, skus: ['SPD-CAP-SIL', 'GYM-GLV-PAD'] },
+    { n: 'ORD-2026-102', status: OrderStatus.PROCESSING, source: OrderSource.WHATSAPP, pay: PaymentMethod.COD, cust: 1, total: 7315, skus: ['COU-BK-500'] },
+    { n: 'ORD-2026-103', status: OrderStatus.SHIPPED, source: OrderSource.ONLINE, pay: PaymentMethod.FAWRY, cust: 2, total: 2087, skus: ['TRX-PRO-KIT', 'KTT-PRO-5M'] },
+    { n: 'ORD-2026-104', status: OrderStatus.DELIVERED, source: OrderSource.ONLINE, pay: PaymentMethod.INSTAPAY, cust: 0, total: 20520, skus: ['COU-TR-900', 'YGA-BLK-EVA'] },
+    { n: 'ORD-2026-105', status: OrderStatus.CANCELLED, source: OrderSource.ONLINE, pay: PaymentMethod.COD, cust: 1, total: 1428, skus: ['CRC-MED-CLG'] },
+  ];
+
+  for (const o of orderSeeds) {
+    const cust = extraCustomers[o.cust];
+    const items = o.skus.map((sku) => {
+      const p = pick(sku);
+      return { productId: p.id, unitPrice: p.price, quantity: 1, totalPrice: p.price };
+    });
+    const subtotal = items.reduce((s, i) => s + i.totalPrice, 0);
+    const vat = Math.round(subtotal * 0.14 * 100) / 100;
+    await prisma.order.create({
+      data: {
+        orderNumber: o.n,
+        orderSource: o.source,
+        customerId: cust.id,
+        guestPhone: cust.phone,
+        guestName: cust.name,
+        deliveryAddress: `test address - ${o.n}`,
+        branchId: ibrahimeyahBranch.id,
+        deliveryZone: 'Alexandria Central',
+        deliveryFee: 30,
+        shippingProvider: ShippingProvider.BOSTA,
+        trackingNumber: `BST-TEST-${o.n.slice(-3)}`,
+        paymentMethod: o.pay,
+        paymentStatus: o.status === OrderStatus.DELIVERED ? PaymentStatus.PAID : PaymentStatus.PENDING,
+        orderStatus: o.status,
+        subtotal,
+        taxAmount: vat,
+        totalAmount: Math.round((subtotal + vat + 30) * 100) / 100,
+        items: { create: items },
+      },
+    });
+  }
+  console.log('✅ Extra test orders created (5 with varied statuses)');
+
+  // POS sales
+  const saleSeeds = [
+    { n: 'POS-2026-201', pay: PaymentMethod.CASH, skus: ['SPD-CAP-SIL', 'SPD-CAP-SIL', 'YGA-BLK-EVA'] },
+    { n: 'POS-2026-202', pay: PaymentMethod.CARD, skus: ['TRX-PRO-KIT'] },
+    { n: 'POS-2026-203', pay: PaymentMethod.INSTAPAY, skus: ['GYM-GRP-WRP', 'GYM-GLV-PAD'] },
+  ];
+  for (const s of saleSeeds) {
+    const items = s.skus.map((sku) => {
+      const p = pick(sku);
+      return { productId: p.id, unitPrice: p.price, quantity: 1, totalPrice: p.price, discount: 0 };
+    });
+    const subtotal = items.reduce((x, i) => x + i.totalPrice, 0);
+    const vat = Math.round(subtotal * 0.14 * 100) / 100;
+    const sale = await prisma.sale.create({
+      data: {
+        saleNumber: s.n,
+        branchId: ibrahimeyahBranch.id,
+        cashierId: cashierUser.id,
+        subtotal,
+        taxAmount: vat,
+        totalAmount: subtotal + vat,
+        paymentMethod: s.pay,
+        paymentStatus: PaymentStatus.PAID,
+        items: { create: items },
+      },
+    });
+    for (const it of items) {
+      const inv = await prisma.branchInventory.findUnique({
+        where: { branchId_productId: { branchId: ibrahimeyahBranch.id, productId: it.productId } },
+      });
+      if (inv) {
+        await prisma.branchInventory.update({
+          where: { branchId_productId: { branchId: ibrahimeyahBranch.id, productId: it.productId } },
+          data: { stockQuantity: Math.max(0, inv.stockQuantity - it.quantity) },
+        });
+        await prisma.inventoryLog.create({
+          data: {
+            branchId: ibrahimeyahBranch.id,
+            productId: it.productId,
+            type: 'SALE',
+            changeQuantity: -it.quantity,
+            previousQuantity: inv.stockQuantity,
+            newQuantity: Math.max(0, inv.stockQuantity - it.quantity),
+            referenceId: s.n,
+            createdById: cashierUser.id,
+          },
+        });
+      }
+    }
+    console.log(`✅ POS sale seeded: ${sale.saleNumber}`);
+  }
+
+  // Purchase orders
+  const po1 = await prisma.purchaseOrder.create({
+    data: {
+      poNumber: 'PO-2026-301',
+      supplierId: supplier.id,
+      branchId: ibrahimeyahBranch.id,
+      status: 'SUBMITTED',
+      totalAmount: 12000,
+      notes: 'توريد تجريبي - كابات وتيشيرتات',
+      createdById: adminUser.id,
+      items: {
+        create: [
+          { productId: pick('SPD-CAP-SIL').id, unitCost: 200, quantityOrdered: 50 },
+          { productId: pick('YGA-BLK-EVA').id, unitCost: 95, quantityOrdered: 20 },
+        ],
+      },
+    },
+  });
+  await prisma.purchaseOrder.create({
+    data: {
+      poNumber: 'PO-2026-302',
+      supplierId: supplier.id,
+      branchId: smouhaBranch.id,
+      status: 'RECEIVED',
+      totalAmount: 5800,
+      createdById: managerUser.id,
+      items: {
+        create: [{ productId: pick('KTT-PRO-5M').id, unitCost: 290, quantityOrdered: 20, quantityReceived: 20 }],
+      },
+    },
+  });
+  console.log(`✅ Purchase orders seeded: ${po1.poNumber} + PO-2026-302`);
+
+  // Expenses
+  await prisma.expense.createMany({
+    data: [
+      { expenseNumber: 'EXP-2026-401', branchId: ibrahimeyahBranch.id, category: 'RENT', description: 'إيجار فرع الإبراهيمية - سبتمبر', amount: 25000, createdById: financeUser.id },
+      { expenseNumber: 'EXP-2026-402', branchId: ibrahimeyahBranch.id, category: 'UTILITIES', description: 'فاتورة الكهرباء والمياه', amount: 3200, createdById: financeUser.id },
+      { expenseNumber: 'EXP-2026-403', branchId: smouhaBranch.id, category: 'MARKETING', description: 'إعلانات سوشيال ميديا', amount: 5500, createdById: financeUser.id },
+      { expenseNumber: 'EXP-2026-404', branchId: ibrahimeyahBranch.id, category: 'MAINTENANCE', description: 'صيانة المشايات الكهربائية', amount: 1800, createdById: managerUser.id },
+    ],
+  });
+  console.log('✅ Expenses seeded (4)');
+
+  // Payroll run for current month
+  const nowDt = new Date();
+  const allEmployees = await prisma.employee.findMany();
+  const runItems = allEmployees.map((e) => {
+    const commission = Math.round(e.salary * e.commissionRate * 100) / 100;
+    return {
+      employeeId: e.id,
+      baseSalary: e.salary,
+      bonus: 500,
+      deductions: 0,
+      commissionAmount: commission,
+      netSalary: Math.round((e.salary + 500 + commission) * 100) / 100,
+      status: 'DRAFT' as const,
+    };
+  });
+  await prisma.payrollRun.create({
+    data: {
+      periodMonth: nowDt.getMonth() + 1,
+      periodYear: nowDt.getFullYear(),
+      status: 'DRAFT',
+      totalAmount: runItems.reduce((s, i) => s + i.netSalary, 0),
+      createdById: adminUser.id,
+      items: { create: runItems },
+    },
+  });
+  console.log('✅ Payroll run seeded (current month DRAFT)');
+
+  // Pending stock transfer (test the approve flow)
+  await prisma.stockTransfer.create({
+    data: {
+      transferNumber: 'TRF-2026-501',
+      fromBranchId: ibrahimeyahBranch.id,
+      toBranchId: smouhaBranch.id,
+      status: 'PENDING',
+      requestedById: managerUser.id,
+      notes: 'تحويل تجريبي للاختبار',
+      items: { create: [{ productId: pick('SPD-CAP-SIL').id, quantity: 5 }] },
+    },
+  });
+  console.log('✅ Pending stock transfer seeded: TRF-2026-501');
+
+  // Extra inventory logs (restock trail)
+  await prisma.inventoryLog.create({
+    data: {
+      branchId: ibrahimeyahBranch.id,
+      productId: pick('SPD-CAP-SIL').id,
+      type: 'RESTOCK',
+      changeQuantity: 20,
+      previousQuantity: 25,
+      newQuantity: 45,
+      referenceId: 'PO-2026-302',
+      createdById: managerUser.id,
+    },
+  });
+
+  // Notifications
+  await prisma.notification.createMany({
+    data: [
+      { titleAr: 'طلب إلكتروني جديد: ORD-2026-104', titleEn: 'New online order: ORD-2026-104', messageAr: 'طلب بمبلغ 20520 ج.م بانتظار التجهيز.', messageEn: 'Order for 20520 EGP awaiting fulfillment.', type: 'NEW_ORDER' },
+      { titleAr: 'مخزون منخفض: مشاية كوجار T-900', titleEn: 'Low stock: Cougar T-900', messageAr: 'متبقي 4 قطع فقط بفرع الإبراهيمية.', messageEn: 'Only 4 units left in Ibrahimeyah.', type: 'LOW_STOCK', branchId: ibrahimeyahBranch.id },
+      { titleAr: 'تحديث أمر توريد: PO-2026-301', titleEn: 'PO update: PO-2026-301', messageAr: 'أمر التوريد بانتظار الاستلام.', messageEn: 'Purchase order awaiting receiving.', type: 'PO_UPDATE' },
+      { titleAr: 'مسير المرتبات جاهز للاعتماد', titleEn: 'Payroll run ready for approval', messageAr: 'مسير مرتبات الشهر الحالي بانتظار الاعتماد.', messageEn: 'Current month payroll awaiting approval.', type: 'PAYROLL_READY' },
+    ],
+  });
+  console.log('✅ Notifications seeded (4)');
+
   console.log('🚀 Seed finished successfully!');
 }
 

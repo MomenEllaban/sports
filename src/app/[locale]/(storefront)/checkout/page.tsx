@@ -22,6 +22,7 @@ export default function CheckoutPage() {
   const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'PAYMOB' | 'FAWRY' | 'INSTAPAY'>('COD');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
   const [orderCompleted, setOrderCompleted] = useState<{ orderNumber: string; trackingNumber: string; paymentInstructions?: string } | null>(null);
 
   const subtotal = getSubtotal();
@@ -34,6 +35,7 @@ export default function CheckoutPage() {
     if (!phone || items.length === 0) return;
 
     setIsSubmitting(true);
+    setFormError('');
 
     try {
       const response = await fetch('/api/orders/create', {
@@ -61,11 +63,10 @@ export default function CheckoutPage() {
           paymentInstructions: data.instructionsAr,
         });
       } else {
-        alert(data.error || 'حدث خطأ أثناء حفظ الطلب.');
+        setFormError(data.error || 'حدث خطأ أثناء حفظ الطلب.');
       }
-    } catch (err) {
-      console.error(err);
-      alert('تعذر الاتصال بالسيرفر. يرجى المحاولة مرة أخرى.');
+    } catch {
+      setFormError('تعذر الاتصال بالسيرفر. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSubmitting(false);
     }
@@ -334,6 +335,11 @@ export default function CheckoutPage() {
               >
                 {isSubmitting ? 'جاري التأكيد...' : tCheckout('placeOrder')}
               </button>
+              {formError && (
+                <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold text-center animate-fade-in">
+                  {formError}
+                </div>
+              )}
             </div>
           </div>
         </form>

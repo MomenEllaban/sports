@@ -1,0 +1,16 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { requireAdminSession } from '@/lib/admin-guard';
+
+export async function POST() {
+  try {
+    const { error } = await requireAdminSession();
+    if (error) return error;
+
+    const result = await prisma.notification.updateMany({ where: { isRead: false }, data: { isRead: true } });
+    return NextResponse.json({ success: true, updated: result.count });
+  } catch (e) {
+    console.error('Admin notifications read-all error:', e);
+    return NextResponse.json({ success: false, error: 'Failed to update notifications' }, { status: 500 });
+  }
+}

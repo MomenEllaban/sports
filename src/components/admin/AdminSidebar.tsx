@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname, Link } from '@/i18n/routing';
+import { useLocale } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import {
   LayoutDashboard,
@@ -31,6 +32,8 @@ export interface SidebarItem {
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const locale = useLocale();
+  const isAr = locale === 'ar';
   const { data: session } = useSession();
 
   const userRole = (session?.user as { role?: Role })?.role || Role.SUPER_ADMIN;
@@ -162,7 +165,7 @@ export default function AdminSidebar() {
                 }`}
               >
                 {item.icon}
-                <span>{item.labelAr}</span>
+                <span>{isAr ? item.labelAr : item.labelEn}</span>
               </Link>
             );
           })}

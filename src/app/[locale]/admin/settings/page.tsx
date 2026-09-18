@@ -2,7 +2,7 @@ import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { prisma } from '@/lib/db';
-import { Settings, ShieldCheck, CreditCard, Truck, MapPin, ToggleLeft, Save } from 'lucide-react';
+import { Settings, ShieldCheck, CreditCard, Truck, MapPin } from 'lucide-react';
 import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
 
 export const revalidate = 10;
@@ -28,10 +28,9 @@ export default async function AdminSettingsPage() {
                 تكوين الفروع، بوابات الدفع الإلكتروني، منظومة الضرائب ETA، ومناطق الشحن
               </p>
             </div>
-            <button className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25">
-              <Save className="w-4 h-4" />
-              حفظ جميع التغييرات
-            </button>
+            <span className="px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 font-bold text-xs border border-slate-700">
+              الإعدادات تُدار من متغيرات البيئة (Vercel Env)
+            </span>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
@@ -53,7 +52,9 @@ export default async function AdminSettingsPage() {
                   <input
                     type="text"
                     defaultValue="123-456-789"
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 font-mono"
+                    disabled
+                    readOnly
+                    className="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-400 font-mono"
                   />
                 </div>
 
@@ -86,7 +87,9 @@ export default async function AdminSettingsPage() {
                   <input
                     type="password"
                     defaultValue="paymob_live_sec_key_placeholder"
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 font-mono"
+                    disabled
+                    readOnly
+                    className="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-400 font-mono"
                   />
                 </div>
 
@@ -95,7 +98,9 @@ export default async function AdminSettingsPage() {
                   <input
                     type="text"
                     defaultValue="FAWRY_EGY_99812"
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 font-mono"
+                    disabled
+                    readOnly
+                    className="w-full p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-slate-400 font-mono"
                   />
                 </div>
               </div>

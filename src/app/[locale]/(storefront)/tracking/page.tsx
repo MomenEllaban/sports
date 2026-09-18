@@ -43,8 +43,7 @@ export default function TrackingPage() {
       } else {
         setErrorMsg(data.message || 'لم نتمكن من العثور على طلب بهذا الرقم أو الموبايل.');
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       setErrorMsg('تعذر الاتصال بالسيرفر. حاول مرة أخرى.');
     } finally {
       setLoading(false);

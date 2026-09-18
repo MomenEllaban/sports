@@ -34,6 +34,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     success: true,
     order: {
+      id: order.id,
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       shippingProvider: order.shippingProvider,
