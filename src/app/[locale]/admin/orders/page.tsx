@@ -7,9 +7,18 @@ import { prisma } from '@/lib/db';
 export const revalidate = 10;
 
 export default async function AdminOrdersPage() {
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  const [orders, products, branches] = await Promise.all([
+    prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
+        customer: { select: { id: true, name: true, phone: true } },
+        branch: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.product.findMany({ where: { isActive: true }, select: { id: true, nameAr: true, nameEn: true, price: true } }),
+    prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true, nameEn: true } }),
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex">
@@ -29,7 +38,15 @@ export default async function AdminOrdersPage() {
           </div>
 
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden animate-fade-up">
-            <OrdersManager orders={orders} />
+            <OrdersManager
+              orders={orders.map((o) => ({
+                ...o,
+                createdAt: o.createdAt.toISOString(),
+                updatedAt: o.updatedAt.toISOString(),
+              }))}
+              products={products}
+              branches={branches}
+            />
           </div>
         </main>
       </div>

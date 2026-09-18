@@ -127,20 +127,35 @@ export default function PurchasingManager({
           <form onSubmit={submitPo} className="space-y-3 text-xs">
             {formError && <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">{formError}</div>}
             <div className="grid grid-cols-2 gap-3">
-              <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={inputCls}>
-                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className={inputCls}>
-                {branches.map((b) => <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn}</option>)}
-              </select>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'المورد *' : 'Supplier *'}</label>
+                <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={inputCls}>
+                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الفرع المستلِم *' : 'Receiving Branch *'}</label>
+                <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className={inputCls}>
+                  {branches.map((b) => <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn}</option>)}
+                </select>
+              </div>
             </div>
             {lines.map((line, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-2">
-                <select value={line.productId} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, productId: e.target.value } : l)))} className={`${inputCls} col-span-6`}>
-                  {products.map((p) => <option key={p.id} value={p.id}>{pName(p)}</option>)}
-                </select>
-                <input type="number" min="1" value={line.quantityOrdered} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, quantityOrdered: Number(e.target.value) } : l)))} className={`${inputCls} col-span-3`} placeholder={isAr ? 'الكمية' : 'Qty'} />
-                <input type="number" min="0" value={line.unitCost} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, unitCost: Number(e.target.value) } : l)))} className={`${inputCls} col-span-3`} placeholder={isAr ? 'التكلفة' : 'Cost'} />
+              <div key={idx} className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-6">
+                  {idx === 0 && <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'المنتج' : 'Product'}</label>}
+                  <select value={line.productId} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, productId: e.target.value } : l)))} className={`${inputCls}`}>
+                    {products.map((p) => <option key={p.id} value={p.id}>{pName(p)}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-3">
+                  {idx === 0 && <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الكمية' : 'Qty'}</label>}
+                  <input type="number" min="1" value={line.quantityOrdered} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, quantityOrdered: Number(e.target.value) } : l)))} className={inputCls} placeholder={isAr ? 'الكمية' : 'Qty'} />
+                </div>
+                <div className="col-span-3">
+                  {idx === 0 && <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'التكلفة (ج.م)' : 'Unit Cost'}</label>}
+                  <input type="number" min="0" value={line.unitCost} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, unitCost: Number(e.target.value) } : l)))} className={inputCls} placeholder={isAr ? 'سعر الوحدة' : 'Unit cost'} />
+                </div>
               </div>
             ))}
             <button type="button" onClick={() => setLines([...lines, { productId: products[0]?.id || '', quantityOrdered: 10, unitCost: 0 }])} className="text-blue-400 font-bold hover:underline">

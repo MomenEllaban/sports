@@ -6,7 +6,7 @@ import { PaymentMethod, PaymentStatus } from '@prisma/client';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { paymentMethod, discountAmount = 0, items } = body;
+    const { paymentMethod, discountAmount = 0, items, customerId } = body;
 
     const flagshipBranch = await prisma.branch.findFirst({
       where: { isActive: true },
@@ -70,11 +70,19 @@ export async function POST(req: Request) {
 
     const saleNumber = `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
+    // Validate customer if provided
+    let resolvedCustomerId: string | null = null;
+    if (customerId) {
+      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (customer) resolvedCustomerId = customerId;
+    }
+
     const sale = await prisma.sale.create({
       data: {
         saleNumber,
         branchId: flagshipBranch.id,
         cashierId: cashierUser.id,
+        customerId: resolvedCustomerId,
         subtotal,
         discountAmount: Number(discountAmount),
         taxAmount: vatAmount,
@@ -86,6 +94,17 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Add loyalty points to customer (1 point per 10 EGP spent)
+    if (resolvedCustomerId) {
+      const pointsEarned = Math.floor(totalAmount / 10);
+      if (pointsEarned > 0) {
+        await prisma.customer.update({
+          where: { id: resolvedCustomerId },
+          data: { loyaltyPoints: { increment: pointsEarned } },
+        });
+      }
+    }
 
     // Submit ETA e-receipt
     const etaRes = await submitToEta({

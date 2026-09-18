@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useLocale } from 'next-intl';
 import { Bell, MapPin, LogOut, ShieldCheck } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import ThemeToggle from './ThemeToggle';
 
 export default function AdminHeader() {
   const { data: session } = useSession();
@@ -52,6 +53,9 @@ export default function AdminHeader() {
             </span>
           )}
         </Link>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* User Profile & Logout */}
         <div className="flex items-center gap-3 border-r border-slate-800 pr-4">

@@ -11,6 +11,7 @@ import {
   Layers,
   Truck,
   Users,
+  UserCog,
   DollarSign,
   Briefcase,
   BarChart3,
@@ -81,6 +82,14 @@ export default function AdminSidebar() {
       labelEn: 'Customer Directory & Loyalty',
       href: '/admin/customers',
       icon: <Users className="w-5 h-5 text-indigo-400" />,
+    },
+    {
+      key: 'employees',
+      labelAr: 'الموظفين والكادر الوظيفي',
+      labelEn: 'Employees & Staff',
+      href: '/admin/employees',
+      icon: <UserCog className="w-5 h-5 text-teal-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
       key: 'accounting',

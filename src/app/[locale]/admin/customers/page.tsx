@@ -9,10 +9,17 @@ export const revalidate = 10;
 export default async function AdminCustomersPage() {
   const customers = await prisma.customer.findMany({
     orderBy: { createdAt: 'desc' },
-    include: { orders: { select: { id: true } }, addresses: true },
+    include: {
+      orders: { select: { id: true } },
+      addresses: { select: { street: true, city: true } },
+    },
   });
 
-  const serializable = customers.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() }));
+  const serializable = customers.map((c) => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  }));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex">

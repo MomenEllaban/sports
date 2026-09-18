@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePosStore } from '@/store/posStore';
-import { ShoppingCart, Search, Barcode, Printer, User, ShieldAlert, Check, RefreshCw, Zap, Tag, Lock } from 'lucide-react';
+import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
 import Image from 'next/image';
 
 interface DbProduct {
@@ -34,6 +34,13 @@ export default function PosTerminalPage() {
   const [managerPin, setManagerPin] = useState('');
   const [discountInput, setDiscountInput] = useState('');
   const [pinError, setPinError] = useState(false);
+
+  // Customer lookup state
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customer, setCustomer] = useState<{ id: string; name: string | null; phone: string; loyaltyPoints: number } | null>(null);
+  const [customerSearching, setCustomerSearching] = useState(false);
+  const [customerError, setCustomerError] = useState('');
+  const customerInputRef = useRef<HTMLInputElement>(null);
 
   const {
     ticketItems,
@@ -97,6 +104,33 @@ export default function PosTerminalPage() {
     }
   };
 
+  const searchCustomer = async () => {
+    if (!customerPhone || customerPhone.length < 5) return;
+    setCustomerSearching(true);
+    setCustomerError('');
+    try {
+      const res = await fetch(`/api/pos/customer?phone=${encodeURIComponent(customerPhone)}`);
+      const data = await res.json();
+      if (data.success) {
+        setCustomer(data.customer);
+        setCustomerError('');
+      } else {
+        setCustomer(null);
+        setCustomerError('العميل غير موجود — سيتم البيع بدون ربط');
+      }
+    } catch {
+      setCustomerError('تعذر البحث');
+    } finally {
+      setCustomerSearching(false);
+    }
+  };
+
+  const clearCustomer = () => {
+    setCustomer(null);
+    setCustomerPhone('');
+    setCustomerError('');
+  };
+
   const handleCompleteSale = async (payMethod: 'CASH' | 'CARD' | 'INSTAPAY') => {
     if (ticketItems.length === 0) return;
     setSaleError('');
@@ -104,6 +138,7 @@ export default function PosTerminalPage() {
     const payload = {
       paymentMethod: payMethod,
       discountAmount,
+      customerId: customer?.id || null,
       items: ticketItems.map((i) => ({
         productId: i.id,
         quantity: i.quantity,
@@ -346,6 +381,54 @@ export default function PosTerminalPage() {
                 ))
               )}
             </div>
+          </div>
+
+          {/* Customer Search Section */}
+          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs shrink-0">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-300 flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-blue-400" />
+                العميل (اختياري):
+              </span>
+              {customer && (
+                <button onClick={clearCustomer} className="text-rose-400 hover:text-rose-300">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {customer ? (
+              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-blue-300">{customer.name || customer.phone}</div>
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Award className="w-3 h-3 text-amber-400" />
+                    {customer.loyaltyPoints} نقطة ولاء
+                  </div>
+                </div>
+                <Check className="w-4 h-4 text-emerald-400" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-12 gap-2">
+                <input
+                  ref={customerInputRef}
+                  type="tel"
+                  placeholder="رقم موبايل العميل..."
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && searchCustomer()}
+                  className="col-span-9 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100"
+                  dir="ltr"
+                />
+                <button
+                  onClick={searchCustomer}
+                  disabled={customerSearching}
+                  className="col-span-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-lg text-xs flex items-center justify-center"
+                >
+                  {customerSearching ? '...' : <Search className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            )}
+            {customerError && <p className="text-[10px] text-amber-400">{customerError}</p>}
           </div>
 
           {/* Discounts & Totals Drawer */}
