@@ -40,6 +40,10 @@ export default function PosTerminalPage() {
   const [customer, setCustomer] = useState<{ id: string; name: string | null; phone: string; loyaltyPoints: number } | null>(null);
   const [customerSearching, setCustomerSearching] = useState(false);
   const [customerError, setCustomerError] = useState('');
+  const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [newCustomerLoading, setNewCustomerLoading] = useState(false);
   const customerInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -129,6 +133,33 @@ export default function PosTerminalPage() {
     setCustomer(null);
     setCustomerPhone('');
     setCustomerError('');
+  };
+
+  const handleCreateQuickCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomerName.trim() || !newCustomerPhone.trim()) return;
+    setNewCustomerLoading(true);
+    try {
+      const res = await fetch('/api/pos/customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCustomerName.trim(), phone: newCustomerPhone.trim() }),
+      });
+      const data = await res.json();
+      if (data.success && data.customer) {
+        setCustomer(data.customer);
+        setShowQuickCustomerModal(false);
+        setNewCustomerName('');
+        setNewCustomerPhone('');
+        setCustomerError('');
+      } else {
+        setCustomerError(data.error || 'فشل إضافة العميل');
+      }
+    } catch {
+      setCustomerError('فشل الاتصال لإضافة العميل');
+    } finally {
+      setNewCustomerLoading(false);
+    }
   };
 
   const handleCompleteSale = async (payMethod: 'CASH' | 'CARD' | 'INSTAPAY') => {
@@ -408,27 +439,43 @@ export default function PosTerminalPage() {
                 <Check className="w-4 h-4 text-emerald-400" />
               </div>
             ) : (
-              <div className="grid grid-cols-12 gap-2">
-                <input
-                  ref={customerInputRef}
-                  type="tel"
-                  placeholder="رقم موبايل العميل..."
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && searchCustomer()}
-                  className="col-span-9 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100"
-                  dir="ltr"
-                />
-                <button
-                  onClick={searchCustomer}
-                  disabled={customerSearching}
-                  className="col-span-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-lg text-xs flex items-center justify-center"
-                >
-                  {customerSearching ? '...' : <Search className="w-3.5 h-3.5" />}
-                </button>
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-12 gap-2">
+                  <input
+                    ref={customerInputRef}
+                    type="tel"
+                    placeholder="رقم موبايل العميل..."
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && searchCustomer()}
+                    className="col-span-9 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100"
+                    dir="ltr"
+                  />
+                  <button
+                    onClick={searchCustomer}
+                    disabled={customerSearching}
+                    className="col-span-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-lg text-xs flex items-center justify-center"
+                  >
+                    {customerSearching ? '...' : <Search className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  {customerError ? (
+                    <p className="text-[10px] text-amber-400">{customerError}</p>
+                  ) : <span />}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCustomerPhone(customerPhone);
+                      setShowQuickCustomerModal(true);
+                    }}
+                    className="text-[10px] text-blue-400 hover:text-blue-300 font-bold underline"
+                  >
+                    + عميل جديد سريع
+                  </button>
+                </div>
               </div>
             )}
-            {customerError && <p className="text-[10px] text-amber-400">{customerError}</p>}
           </div>
 
           {/* Discounts & Totals Drawer */}
@@ -591,6 +638,75 @@ export default function PosTerminalPage() {
           </div>
         </div>
       )}
+
+      {/* Quick Customer Modal */}
+      {showQuickCustomerModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-400" />
+                إضافة عميل سريع
+              </h3>
+              <button
+                onClick={() => setShowQuickCustomerModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQuickCustomer} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                  اسم العميل *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: أحمد مصطفى"
+                  value={newCustomerName}
+                  onChange={(e) => setNewCustomerName(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                  رقم الموبايل *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="مثال: 01012345678"
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:border-blue-500 outline-none"
+                  dir="ltr"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={newCustomerLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-lg shadow-blue-600/20"
+                >
+                  {newCustomerLoading ? 'جاري الحفظ...' : 'حفظ وتثبيت بالفاتورة'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickCustomerModal(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

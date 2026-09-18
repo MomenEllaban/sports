@@ -1,8 +1,9 @@
 import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
+import BranchManager from '@/components/admin/BranchManager';
 import { prisma } from '@/lib/db';
-import { Settings, ShieldCheck, CreditCard, Truck, MapPin } from 'lucide-react';
+import { Settings, ShieldCheck, CreditCard, Truck } from 'lucide-react';
 import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
 
 export const revalidate = 10;
@@ -107,25 +108,12 @@ export default async function AdminSettingsPage() {
             </div>
 
             {/* Branch Management */}
-            <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-              <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
-                <MapPin className="w-5 h-5 text-amber-400" />
-                فروع الشركة المعرفية ({branches.length})
-              </h3>
-
-              <div className="space-y-3 text-xs">
-                {branches.map((b) => (
-                  <div key={b.id} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
-                    <div className="font-bold text-slate-100">{b.name}</div>
-                    <div className="text-slate-400">{b.address}</div>
-                    <div className="text-amber-400 text-[11px] font-semibold">{b.workingHours}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 lg:col-span-2">
+              <BranchManager branches={branches} />
             </div>
 
             {/* Delivery Zone Matrix */}
-            <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+            <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 lg:col-span-2">
               <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
                 <Truck className="w-5 h-5 text-cyan-400" />
                 جدول أسعار ومناطق التوصيل بالإسكندرية

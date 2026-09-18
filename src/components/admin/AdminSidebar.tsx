@@ -123,6 +123,14 @@ export default function AdminSidebar() {
       icon: <Bell className="w-5 h-5 text-rose-400" />,
     },
     {
+      key: 'users',
+      labelAr: 'المستخدمين والصلاحيات',
+      labelEn: 'Users & Permissions',
+      href: '/admin/users',
+      icon: <ShieldAlert className="w-5 h-5 text-indigo-400" />,
+      allowedRoles: [Role.SUPER_ADMIN],
+    },
+    {
       key: 'settings',
       labelAr: 'إعدادات الفروع والضرائب',
       labelEn: 'System & Branch Settings',
