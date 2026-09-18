@@ -43,4 +43,4 @@
 - [x] T3 — Real light mode: CSS overrides + toggles + FOUC guard, tested
 - [x] T4 — Missing CRUD endpoints (PO cancel, expense edit/delete, notification delete) + UI wiring
 - [x] T5 — Cross-linking (orders↔customers, products↔inventory, low-stock→purchasing, dashboard cards)
-- [ ] T6 — Full verification: tsc + smoke + build + runtime E2E (both themes, both locales) + commit/push
+- [x] T6 — Full verification: tsc + smoke + build + runtime E2E (both themes, both locales) + commit/push
