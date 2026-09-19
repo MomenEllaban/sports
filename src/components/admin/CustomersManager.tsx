@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Award, Plus, Pencil, Trash2, Search, Phone, Mail, FileText, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface CustomerRow {
@@ -30,7 +31,9 @@ const EMPTY_FORM = {
 export default function CustomersManager({ customers, initialPhone = '' }: { customers: CustomerRow[]; initialPhone?: string }) {
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
+  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [search, setSearch] = useState(initialPhone);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -92,9 +95,12 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
         loyaltyPoints: Number(form.loyaltyPoints) || 0,
       });
       setShowAddModal(false);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في إضافة العميل');
+      const msg = err instanceof Error ? err.message : 'فشل في إضافة العميل';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -111,9 +117,12 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
         loyaltyPoints: Number(form.loyaltyPoints) || 0,
       });
       setEditCustomer(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في تحديث بيانات العميل');
+      const msg = err instanceof Error ? err.message : 'فشل في تحديث بيانات العميل';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -126,9 +135,12 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
     try {
       await apiFetch(`/api/admin/customers/${deleteCustomer.id}`, 'DELETE');
       setDeleteCustomer(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : 'فشل في حذف العميل');
+      const msg = err instanceof Error ? err.message : 'فشل في حذف العميل';
+      setDeleteError(msg);
+      toast(msg, 'error');
     } finally {
       setDeleting(false);
     }

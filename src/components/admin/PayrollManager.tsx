@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { StatusBadge, ActionButton, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface RunRow {
@@ -28,6 +29,7 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
   const [error, setError] = useState('');
 
@@ -41,9 +43,12 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
     setError('');
     try {
       await apiFetch('/api/admin/payroll-runs', 'POST', {});
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
     }
   };
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { usePosStore } from '@/store/posStore';
+import { useToast } from '@/components/Toast';
 import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -16,6 +17,7 @@ interface DbProduct {
 }
 
 export default function PosTerminalPage() {
+  const { toast } = useToast();
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -120,10 +122,12 @@ export default function PosTerminalPage() {
     const ok = applyDiscount(val, managerPin);
     if (!ok) {
       setPinError(true);
+      toast('كلمة سر المدير خاطئة', 'error');
     } else {
       setPinError(false);
       setDiscountInput('');
       setManagerPin('');
+      toast(`تم تطبيق خصم ${val.toLocaleString()} ج.م`, 'success');
     }
   };
 
@@ -216,6 +220,7 @@ export default function PosTerminalPage() {
       const data = await res.json();
       if (data.success) {
         setLastChange(paidChange);
+        toast(`تم حفظ الفاتورة ${data.saleNumber} بنجاح`, 'success');
         setReceiptData({
           saleNumber: data.saleNumber,
           items: ticketItems.map((i) => ({
@@ -245,7 +250,9 @@ export default function PosTerminalPage() {
         setReferenceInput('');
         fetchPosProducts(); // Refresh stock
       } else {
-        setSaleError(data.error || 'حدث خطأ أثناء حفظ الفاتورة.');
+        const msg = data.error || 'حدث خطأ أثناء حفظ الفاتورة.';
+        setSaleError(msg);
+        toast(msg, 'error');
       }
     } catch {
       // Offline mode: queue the sale locally and sync later
@@ -295,7 +302,11 @@ export default function PosTerminalPage() {
     clearOfflineQueue();
     remaining.forEach((s) => queueOfflineSale(s));
     if (remaining.length > 0) {
-      setSaleError(`تعذر مزامنة ${remaining.length} فاتورة. سيُعاد المحاولة لاحقاً.`);
+      const msg = `تعذر مزامنة ${remaining.length} فاتورة. سيُعاد المحاولة لاحقاً.`;
+      setSaleError(msg);
+      toast(msg, 'error');
+    } else if (offlineQueue.length > 0) {
+      toast('تم مزامنة كل الفواتير المعلقة بنجاح', 'success');
     }
     setSyncing(false);
     fetchPosProducts();

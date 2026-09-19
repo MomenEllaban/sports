@@ -319,6 +319,14 @@
   }
 }
 
+/* ============ Interactive affordance: every action button is clearly clickable ============ */
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* ============ POS receipt printing: print only the receipt ============ */
 @media print {
   body {

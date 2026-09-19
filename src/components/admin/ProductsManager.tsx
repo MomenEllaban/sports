@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
 import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package, Upload, Image as ImageIcon, Loader2, Cloud, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface ProductRow {
@@ -55,7 +56,9 @@ export default function ProductsManager({
 }) {
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
+  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('products');
   const [search, setSearch] = useState('');
@@ -271,9 +274,12 @@ export default function ProductsManager({
       });
       setShowAddProduct(false);
       setProductForm(EMPTY_PRODUCT);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في إضافة المنتج');
+      const msg = err instanceof Error ? err.message : 'فشل في إضافة المنتج';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -296,9 +302,12 @@ export default function ProductsManager({
         images: productForm.images,
       });
       setEditProduct(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في تحديث المنتج');
+      const msg = err instanceof Error ? err.message : 'فشل في تحديث المنتج';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -311,9 +320,12 @@ export default function ProductsManager({
     try {
       await apiFetch(`/api/admin/products/${deleteProduct.id}`, 'DELETE');
       setDeleteProduct(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setDeleteProductError(err instanceof Error ? err.message : 'فشل في حذف المنتج');
+      const msg = err instanceof Error ? err.message : 'فشل في حذف المنتج';
+      setDeleteProductError(msg);
+      toast(msg, 'error');
     } finally {
       setDeleting(false);
     }
@@ -327,9 +339,12 @@ export default function ProductsManager({
       await apiFetch('/api/admin/categories', 'POST', catForm);
       setShowAddCat(false);
       setCatForm(EMPTY_CAT);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في إضافة التصنيف');
+      const msg = err instanceof Error ? err.message : 'فشل في إضافة التصنيف';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -343,9 +358,12 @@ export default function ProductsManager({
       await apiFetch('/api/admin/brands', 'POST', brandForm);
       setShowAddBrand(false);
       setBrandForm(EMPTY_BRAND);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في إضافة الماركة');
+      const msg = err instanceof Error ? err.message : 'فشل في إضافة الماركة';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -356,9 +374,12 @@ export default function ProductsManager({
     setRowError('');
     try {
       await apiFetch(`/api/admin/categories/${id}`, 'DELETE');
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setRowError(err instanceof Error ? err.message : 'فشل الحذف');
+      const msg = err instanceof Error ? err.message : 'فشل الحذف';
+      setRowError(msg);
+      toast(msg, 'error');
     }
   };
 
@@ -367,9 +388,12 @@ export default function ProductsManager({
     setRowError('');
     try {
       await apiFetch(`/api/admin/brands/${id}`, 'DELETE');
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setRowError(err instanceof Error ? err.message : 'فشل الحذف');
+      const msg = err instanceof Error ? err.message : 'فشل الحذف';
+      setRowError(msg);
+      toast(msg, 'error');
     }
   };
 

@@ -6,6 +6,7 @@ import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface OrderItem {
@@ -58,6 +59,7 @@ export default function OrdersManager({
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
 
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -104,9 +106,12 @@ export default function OrdersManager({
     setError('');
     try {
       await apiFetch(`/api/admin/orders/${id}`, 'PATCH', { orderStatus });
+      toast(t('orderStatusUpdated'), 'success');
       router.refresh();
     } catch {
-      setError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
     } finally {
       setUpdatingId('');
     }
@@ -140,9 +145,12 @@ export default function OrdersManager({
       });
 
       setShowNewOrder(false);
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch (err: unknown) {
-      setNewOrderError(err instanceof Error ? err.message : 'فشل في إنشاء الطلب');
+      const msg = err instanceof Error ? err.message : 'فشل في إنشاء الطلب';
+      setNewOrderError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }

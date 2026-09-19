@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus, Edit2, Trash2, MapPin, Phone, Clock, Building, CheckCircle2, XCircle } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 interface BranchItem {
   id: string;
@@ -20,7 +21,9 @@ interface BranchItem {
 export default function BranchManager({ branches }: { branches: BranchItem[] }) {
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
+  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [showModal, setShowModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<BranchItem | null>(null);
@@ -101,9 +104,12 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
       }
 
       setShowModal(false);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setError((err as Error).message || 'حدث خطأ أثناء حفظ الفرع');
+      const msg = (err as Error).message || 'حدث خطأ أثناء حفظ الفرع';
+      setError(msg);
+      toast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -123,12 +129,17 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        setDeleteError(data.error || (isAr ? 'تعذر حذف الفرع' : 'Could not delete branch'));
+        const msg = data.error || (isAr ? 'تعذر حذف الفرع' : 'Could not delete branch');
+        setDeleteError(msg);
+        toast(msg, 'error');
         return;
       }
+      toast(okMsg, 'success');
       router.refresh();
     } catch {
-      setDeleteError(isAr ? 'فشل الاتصال لحذف الفرع' : 'Connection failed while deleting');
+      const msg = isAr ? 'فشل الاتصال لحذف الفرع' : 'Connection failed while deleting';
+      setDeleteError(msg);
+      toast(msg, 'error');
     } finally {
       setDeletingId(null);
     }

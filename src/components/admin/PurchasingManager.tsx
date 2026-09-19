@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface SupplierOpt { id: string; name: string; code: string }
@@ -34,6 +35,7 @@ export default function PurchasingManager({
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
   const [showNew, setShowNew] = useState(false);
   const [receiving, setReceiving] = useState<PoRow | null>(null);
@@ -62,9 +64,12 @@ export default function PurchasingManager({
     try {
       await apiFetch('/api/admin/purchase-orders', 'POST', { supplierId, branchId, items: lines });
       setShowNew(false);
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setFormError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -80,9 +85,12 @@ export default function PurchasingManager({
       await apiFetch(`/api/admin/purchase-orders/${receiving.id}/receive`, 'POST', { received });
       setReceiving(null);
       setReceiveQty({});
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setFormError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }

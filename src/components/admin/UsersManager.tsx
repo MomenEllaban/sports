@@ -19,6 +19,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { Role } from '@prisma/client';
+import { useToast } from '@/components/Toast';
 
 interface UserItem {
   id: string;
@@ -53,7 +54,9 @@ export default function UsersManager({
 }) {
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
+  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -147,9 +150,12 @@ export default function UsersManager({
       }
 
       setShowModal(false);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setError((err as Error).message || 'حدث خطأ أثناء حفظ بيانات المستخدم');
+      const msg = (err as Error).message || 'حدث خطأ أثناء حفظ بيانات المستخدم';
+      setError(msg);
+      toast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -167,12 +173,17 @@ export default function UsersManager({
       const res = await fetch(`/api/admin/users/${u.id}`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        setDeleteError(data.error || (isAr ? 'تعذر حذف المستخدم' : 'Could not delete user'));
+        const msg = data.error || (isAr ? 'تعذر حذف المستخدم' : 'Could not delete user');
+        setDeleteError(msg);
+        toast(msg, 'error');
         return;
       }
+      toast(okMsg, 'success');
       router.refresh();
     } catch {
-      setDeleteError(isAr ? 'فشل الاتصال لحذف المستخدم' : 'Connection failed while deleting');
+      const msg = isAr ? 'فشل الاتصال لحذف المستخدم' : 'Connection failed while deleting';
+      setDeleteError(msg);
+      toast(msg, 'error');
     } finally {
       setDeletingId(null);
     }

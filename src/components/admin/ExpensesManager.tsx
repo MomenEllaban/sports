@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, Field, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface ExpenseRow {
@@ -30,6 +31,7 @@ export default function ExpensesManager({
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
@@ -74,9 +76,12 @@ export default function ExpensesManager({
       setShowModal(false);
       setEditing(null);
       setForm({ branchId: branches[0]?.id || '', category: 'OTHER', description: '', amount: '' });
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setFormError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -88,9 +93,12 @@ export default function ExpensesManager({
     setDeletingId(id);
     try {
       await apiFetch(`/api/admin/expenses/${id}`, 'DELETE', {});
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setRowError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setRowError(msg);
+      toast(msg, 'error');
     } finally {
       setDeletingId(null);
     }

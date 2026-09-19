@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { ArrowLeftRight } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -32,6 +33,7 @@ export default function TransfersManager({
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,9 +60,12 @@ export default function TransfersManager({
       await apiFetch('/api/admin/transfers', 'POST', { fromBranchId, toBranchId, items: lines });
       setShowModal(false);
       setLines([{ productId: products[0]?.id || '', quantity: 1 }]);
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setFormError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }

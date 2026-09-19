@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus, Pencil, Trash2, Phone, Mail, MapPin, Building, ShieldCheck } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface SupplierRow {
@@ -30,7 +31,9 @@ const EMPTY_FORM = {
 export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow[] }) {
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
+  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [showAdd, setShowAdd] = useState(false);
   const [editSup, setEditSup] = useState<SupplierRow | null>(null);
@@ -72,9 +75,12 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
       await apiFetch('/api/admin/suppliers', 'POST', form);
       setShowAdd(false);
       setForm(EMPTY_FORM);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في إضافة المورد');
+      const msg = err instanceof Error ? err.message : 'فشل في إضافة المورد';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -88,9 +94,12 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
     try {
       await apiFetch(`/api/admin/suppliers/${editSup.id}`, 'PATCH', form);
       setEditSup(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في تحديث المورد');
+      const msg = err instanceof Error ? err.message : 'فشل في تحديث المورد';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -103,9 +112,12 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
     try {
       await apiFetch(`/api/admin/suppliers/${deleteSup.id}`, 'DELETE');
       setDeleteSup(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : 'فشل في حذف المورد');
+      const msg = err instanceof Error ? err.message : 'فشل في حذف المورد';
+      setDeleteError(msg);
+      toast(msg, 'error');
     } finally {
       setDeleting(false);
     }

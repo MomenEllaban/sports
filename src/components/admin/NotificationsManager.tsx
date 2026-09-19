@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface NotifRow {
@@ -21,6 +22,7 @@ export default function NotificationsManager({ notifications }: { notifications:
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
   const [error, setError] = useState('');
 
@@ -36,7 +38,9 @@ export default function NotificationsManager({ notifications }: { notifications:
       await apiFetch(`/api/admin/notifications/${id}`, 'PATCH', {});
       router.refresh();
     } catch {
-      setError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
     }
   };
 
@@ -44,9 +48,12 @@ export default function NotificationsManager({ notifications }: { notifications:
     setError('');
     try {
       await apiFetch('/api/admin/notifications/read-all', 'POST', {});
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
     }
   };
 
@@ -55,9 +62,12 @@ export default function NotificationsManager({ notifications }: { notifications:
     setError('');
     try {
       await apiFetch(`/api/admin/notifications/${id}`, 'DELETE', {});
+      toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch {
-      setError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
     }
   };
 

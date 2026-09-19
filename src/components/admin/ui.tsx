@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useToast } from '@/components/Toast';
 
 // Localized badge for any enum status (order / payment / transfer / PO / invoice)
 export function StatusBadge({ value, tone }: { value: string; tone?: 'order' | 'payment' | 'generic' }) {
@@ -48,19 +49,22 @@ export function SourceLabel({ value }: { value: string }) {
   return <span>{label}</span>;
 }
 
-// Button with built-in loading + inline error handling (no console noise for users)
+// Button with built-in loading + toast feedback + inline error (no console noise for users)
 export function ActionButton({
   onAction,
   children,
   className = '',
   confirmMessage,
+  successMessage,
 }: {
   onAction: () => Promise<void>;
   children: React.ReactNode;
   className?: string;
   confirmMessage?: string;
+  successMessage?: string;
 }) {
   const t = useTranslations('admin');
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,8 +75,11 @@ export function ActionButton({
     setError('');
     try {
       await onAction();
+      toast(successMessage || t('operationSuccess'), 'success');
     } catch {
-      setError(t('operationFailed'));
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
     } finally {
       setLoading(false);
     }

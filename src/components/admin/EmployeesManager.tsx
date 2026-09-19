@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus, Pencil, Trash2, UserCheck, UserX, Phone, Briefcase, DollarSign, Building2 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -41,7 +42,9 @@ export default function EmployeesManager({
 }) {
   const locale = useLocale();
   const router = useRouter();
+  const { toast } = useToast();
   const isAr = locale === 'ar';
+  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [showAdd, setShowAdd] = useState(false);
   const [editEmp, setEditEmp] = useState<EmployeeRow | null>(null);
@@ -99,9 +102,12 @@ export default function EmployeesManager({
     setRowError('');
     try {
       await apiFetch(`/api/admin/employees/${emp.id}`, 'PATCH', { isActive: !emp.isActive });
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setRowError(err instanceof Error ? err.message : 'فشل');
+      const msg = err instanceof Error ? err.message : 'فشل';
+      setRowError(msg);
+      toast(msg, 'error');
     }
   };
 
@@ -116,9 +122,12 @@ export default function EmployeesManager({
         commissionRate: Number(form.commissionRate) || 0,
       });
       setShowAdd(false);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في إضافة الموظف');
+      const msg = err instanceof Error ? err.message : 'فشل في إضافة الموظف';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -136,9 +145,12 @@ export default function EmployeesManager({
         commissionRate: Number(form.commissionRate) || 0,
       });
       setEditEmp(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setFormError(err instanceof Error ? err.message : 'فشل في تحديث بيانات الموظف');
+      const msg = err instanceof Error ? err.message : 'فشل في تحديث بيانات الموظف';
+      setFormError(msg);
+      toast(msg, 'error');
     } finally {
       setSaving(false);
     }
@@ -151,9 +163,12 @@ export default function EmployeesManager({
     try {
       await apiFetch(`/api/admin/employees/${deleteEmp.id}`, 'DELETE');
       setDeleteEmp(null);
+      toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : 'فشل في حذف الموظف');
+      const msg = err instanceof Error ? err.message : 'فشل في حذف الموظف';
+      setDeleteError(msg);
+      toast(msg, 'error');
     } finally {
       setDeleting(false);
     }
