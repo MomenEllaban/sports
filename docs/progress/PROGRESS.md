@@ -10,6 +10,7 @@
 | 05 | POS session branch | DONE | (this commit) | pos-branch 3/3, guards green | context resolver, cashierId, branch picker |
 | 06 | Server pricing+discounts | DONE | (this commit) | pos-discount 7/7, all 32/32 | discount auth, PIN lockout, approver recorded |
 | 07 | Atomic inventory | DONE | (this commit) | pos-atomic 5/5, all 37/37 | inventory service, tx, idempotency |
+| 08 | Order state machine | DONE | (this commit) | order-status 5/5 | transitions, exactly-once restock |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.
