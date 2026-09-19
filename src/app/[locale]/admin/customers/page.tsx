@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import CustomersManager from '@/components/admin/CustomersManager';
@@ -35,8 +35,8 @@ export default async function AdminCustomersPage({
 
         <main className="p-6 space-y-6 overflow-y-auto">
           <div>
-            <h1 className="text-2xl font-black text-slate-100">Ø¯Ù„ÙŠÙ„ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆÙ†Ù‚Ø§Ø· Ø§Ù„ÙˆÙ„Ø§Ø¡</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Ø³Ø¬Ù„ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ø§Ù„ØªØ±Ø§ÙƒÙ…ÙŠ (Ø§Ù„Ù‡ÙˆÙŠØ© Ø¨Ø±Ù‚Ù… Ø§Ù„Ù…ÙˆØ¨Ø§ÙŠÙ„) ÙˆØ³Ø¬Ù„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª</p>
+            <h1 className="text-2xl font-black text-slate-100">دليل العملاء ونقاط الولاء</h1>
+            <p className="text-xs text-slate-400 mt-0.5">سجل العملاء التراكمي (الهوية برقم الموبايل) وسجل الطلبات</p>
           </div>
 
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden p-4 animate-fade-up">

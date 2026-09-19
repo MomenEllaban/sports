@@ -263,13 +263,24 @@ export default function PosTerminalPage() {
       {/* POS Top Header Bar */}
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm">
-            POS
-          </div>
+          <Image
+            src="/logo.avif"
+            alt="أبطال الرياضة"
+            width={960}
+            height={822}
+            quality={85}
+            sizes="40px"
+            className="h-10 w-auto rounded-lg object-contain drop-shadow-[0_0_8px_rgba(245,166,35,0.35)]"
+          />
           <div>
-            <h1 className="font-bold text-sm text-slate-100 leading-tight">
-              كاشير - فرع الإبراهيمية الرئيسي
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-sm text-slate-100 leading-tight">
+                كاشير - فرع الإبراهيمية الرئيسي
+              </h1>
+              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-black text-[10px] border border-amber-500/30">
+                POS
+              </span>
+            </div>
             <p className="text-[10px] text-slate-400">92 شارع عمر لطفى - الإسكندرية</p>
           </div>
         </div>

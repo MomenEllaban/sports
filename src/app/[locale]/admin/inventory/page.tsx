@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import TransfersManager from '@/components/admin/TransfersManager';
@@ -38,12 +38,12 @@ export default async function AdminInventoryPage() {
 
         <main className="p-6 space-y-6 overflow-y-auto">
           <div>
-            <h1 className="text-2xl font-black text-slate-100">Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ÙˆØ§Ù„ØªØ­ÙˆÙŠÙ„Ø§Øª Ø¨ÙŠÙ† Ø§Ù„ÙØ±ÙˆØ¹</h1>
-            <p className="text-xs text-slate-400 mt-0.5">Ù…ØªØ§Ø¨Ø¹Ø© Ø±ØµÙŠØ¯ Ø§Ù„Ø£ØµÙ†Ø§Ù Ù„ÙƒÙ„ ÙØ±Ø¹ Ø¨Ø´ÙƒÙ„ Ù…Ù†ÙØµÙ„ ÙˆØ¥Ù†Ø´Ø§Ø¡ Ø£ÙˆØ§Ù…Ø± Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠ</p>
+            <h1 className="text-2xl font-black text-slate-100">المخزون والتحويلات بين الفروع</h1>
+            <p className="text-xs text-slate-400 mt-0.5">متابعة رصيد الأصناف لكل فرع بشكل منفصل وإنشاء أوامر التحويل الداخلي</p>
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-            <h3 className="font-extrabold text-sm text-slate-100">Ø£ÙˆØ§Ù…Ø± Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø¨ÙŠÙ† Ø§Ù„ÙØ±ÙˆØ¹</h3>
+            <h3 className="font-extrabold text-sm text-slate-100">أوامر التحويل بين الفروع</h3>
             <TransfersManager
               branches={branches.map((b) => ({ id: b.id, name: b.name, nameEn: b.nameEn }))}
               products={products}
@@ -61,7 +61,7 @@ export default async function AdminInventoryPage() {
                     <p className="text-[11px] text-slate-400">{branch.address}</p>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
-                    {branch.inventories.length} ØµÙ†Ù Ù…Ø³Ø¬Ù„
+                    {branch.inventories.length} صنف مسجل
                   </span>
                 </div>
 
@@ -70,7 +70,7 @@ export default async function AdminInventoryPage() {
                     <div key={inv.id} className="p-2.5 rounded-xl bg-slate-900 flex justify-between items-center text-xs">
                       <span className="font-semibold text-slate-200 line-clamp-1">{inv.product.nameAr}</span>
                       <span className={`font-bold px-2 py-0.5 rounded ${inv.stockQuantity <= inv.lowStockThreshold ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-300'}`}>
-                        {inv.stockQuantity} Ù‚Ø·Ø¹Ø©
+                        {inv.stockQuantity} قطعة
                       </span>
                     </div>
                   ))}
@@ -81,17 +81,17 @@ export default async function AdminInventoryPage() {
 
           {/* Recent Audit Logs */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-            <h3 className="font-extrabold text-sm text-slate-100">Ø³Ø¬Ù„ Ø­Ø±ÙƒØ§Øª Ø§Ù„Ù…Ø®Ø²ÙˆÙ† (Audit Log)</h3>
+            <h3 className="font-extrabold text-sm text-slate-100">سجل حركات المخزون (Audit Log)</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-right">
                 <thead className="text-slate-400 border-b border-slate-800">
                   <tr>
-                    <th className="pb-2">Ø§Ù„ØªØ§Ø±ÙŠØ®</th>
-                    <th className="pb-2">Ø§Ù„ÙØ±Ø¹</th>
-                    <th className="pb-2">Ø§Ù„Ù…Ù†ØªØ¬</th>
-                    <th className="pb-2">Ù†ÙˆØ¹ Ø§Ù„Ø­Ø±ÙƒØ©</th>
-                    <th className="pb-2">Ø§Ù„ØªØºÙŠÙŠØ±</th>
-                    <th className="pb-2">Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ø¬Ø¯ÙŠØ¯</th>
+                    <th className="pb-2">التاريخ</th>
+                    <th className="pb-2">الفرع</th>
+                    <th className="pb-2">المنتج</th>
+                    <th className="pb-2">نوع الحركة</th>
+                    <th className="pb-2">التغيير</th>
+                    <th className="pb-2">الرصيد الجديد</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -108,7 +108,7 @@ export default async function AdminInventoryPage() {
                       <td className={`py-2.5 font-extrabold ${log.changeQuantity < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                         {log.changeQuantity}
                       </td>
-                      <td className="py-2.5 font-bold text-slate-200">{log.newQuantity} Ù‚Ø·Ø¹Ø©</td>
+                      <td className="py-2.5 font-bold text-slate-200">{log.newQuantity} قطعة</td>
                     </tr>
                   ))}
                 </tbody>

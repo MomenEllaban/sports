@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import UsersManager from '@/components/admin/UsersManager';
@@ -42,14 +42,14 @@ export default async function AdminUsersPage() {
             <div>
               <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2.5">
                 <ShieldCheck className="w-7 h-7 text-blue-500" />
-                Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† ÙˆØ¥Ø¯Ø§Ø±Ø© Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª
+                المستخدمين وإدارة الصلاحيات
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                Ø¥Ø¯Ø§Ø±Ø© Ø­Ø³Ø§Ø¨Ø§Øª Ù…ÙˆØ¸ÙÙŠ Ø§Ù„ÙØ±ÙˆØ¹ØŒ Ø§Ù„ÙƒØ§Ø´ÙŠØ±ØŒ Ø§Ù„Ù…Ø­Ø§Ø³Ø¨ÙŠÙ†ØŒ ÙˆØ§Ù„Ù…Ø¯ÙŠØ±ÙŠÙ† ÙˆØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø£Ø¯ÙˆØ§Ø±
+                إدارة حسابات موظفي الفروع، الكاشير، المحاسبين، والمديرين وتوزيع الأدوار
               </p>
             </div>
             <span className="px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs">
-              Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª: {users.length}
+              إجمالي الحسابات: {users.length}
             </span>
           </div>
 

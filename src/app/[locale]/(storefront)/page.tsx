@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import Header from '@/components/storefront/Header';
 import HeroBanner from '@/components/storefront/HeroBanner';
 import Footer from '@/components/storefront/Footer';
@@ -9,7 +9,7 @@ import { Link } from '@/i18n/routing';
 import { Trophy, Activity, Waves, Dumbbell, Shield, MapPin, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
-export const dynamic = 'force-dynamic'; // ISR 60s
+export const dynamic = 'force-dynamic';
 
 export default async function StorefrontHomePage({
   params,
@@ -59,17 +59,17 @@ export default async function StorefrontHomePage({
           <div className="flex justify-between items-end mb-8">
             <div>
               <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
-                Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ©
+                التصنيفات الرياضية
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-100 mt-1">
-                ØªØ³ÙˆÙ‚ Ø­Ø³Ø¨ Ø§Ù„Ø±ÙŠØ§Ø¶Ø© ÙˆØ§Ù„Ù†Ø´Ø§Ø·
+                تسوق حسب الرياضة والنشاط
               </h2>
             </div>
             <Link
               href="/catalog"
               className="text-sm font-bold text-amber-400 hover:underline flex items-center gap-1"
             >
-              Ø¹Ø±Ø¶ Ø§Ù„ÙƒÙ„ {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              عرض الكل {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Link>
           </div>
 
@@ -99,7 +99,7 @@ export default async function StorefrontHomePage({
           <div className="flex justify-between items-end mb-8">
             <div>
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                Ø§Ù„Ù…Ø¹Ø¯Ø§Øª ÙˆØ§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ø£ÙƒØ«Ø± Ø·Ù„Ø¨Ø§Ù‹
+                المعدات والأدوات الأكثر طلباً
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-100 mt-1">
                 {t('featuredProducts')}
@@ -109,7 +109,7 @@ export default async function StorefrontHomePage({
               href="/catalog"
               className="text-sm font-bold text-blue-400 hover:underline flex items-center gap-1"
             >
-              ØªØµÙØ­ Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„
+              تصفح الكتالوج بالكامل
             </Link>
           </div>
 
@@ -128,18 +128,18 @@ export default async function StorefrontHomePage({
           <div className="glass-panel p-8 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-blue-950/40 grid md:grid-cols-12 gap-8 items-center hover:border-amber-500/30 transition-colors duration-300">
             <div className="md:col-span-8 space-y-4">
               <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30">
-                Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ ÙˆØ§Ù„Ù…Ø®Ø²Ù† Ø¨Ø§Ù„Ø¥Ø³ÙƒÙ†Ø¯Ø±ÙŠØ©
+                الفرع الرئيسي والمخزن بالإسكندرية
               </span>
               <h3 className="text-2xl sm:text-3xl font-black text-slate-100">
-                ÙØ±Ø¹ Ø§Ù„Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…ÙŠØ© (92 Ø´Ø§Ø±Ø¹ Ø¹Ù…Ø± Ù„Ø·ÙÙ‰)
+                فرع الإبراهيمية (92 شارع عمر لطفى)
               </h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                ÙŠØ³Ø¹Ø¯Ù†Ø§ Ø§Ø³ØªÙ‚Ø¨Ø§Ù„ÙƒÙ… Ù„ØªØ¬Ø±Ø¨Ø© Ø§Ù„Ù…Ø´Ø§ÙŠØ§Øª Ø§Ù„ÙƒÙ‡Ø±Ø¨Ø§Ø¦ÙŠØ©ØŒ Ø§Ù„Ø¹Ø¬Ù„ Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØŒ Ù‚ÙŠØ§Ø³ Ù…Ù„Ø§Ø¨Ø³ ÙˆØ£Ø­Ø°ÙŠØ© Ø§Ù„Ø³Ø¨Ø§Ø­Ø© ÙˆØ§Ù„Ø¨Ø§Ù„ÙŠÙ‡ØŒ Ø£Ùˆ Ø§Ù„Ø´Ø±Ø§Ø¡ Ø§Ù„Ù…Ø¨Ø§Ø´Ø± ÙˆØ§Ø³ØªÙ„Ø§Ù… Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© Ø¨Ø¯ÙˆÙ† Ø±Ø³ÙˆÙ… Ø´Ø­Ù†.
+                يسعدنا استقبالكم لتجربة المشايات الكهربائية، العجل الرياضي، قياس ملابس وأحذية السباحة والباليه، أو الشراء المباشر واستلام الطلبات الإلكترونية بدون رسوم شحن.
               </p>
               <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-300">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-amber-400" />
-                  <span>Ø§Ù„Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…ÙŠØ© Ø¨Ø­Ø±ÙŠØŒ Ø³ÙŠØ¯ÙŠ Ø¬Ø§Ø¨Ø±ØŒ Ø¨Ø§Ø¨ Ø´Ø±Ù‚ÙŠ</span>
+                  <span>الإبراهيمية بحري، سيدي جابر، باب شرقي</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Phone className="w-4 h-4 text-blue-400" />
@@ -152,7 +152,7 @@ export default async function StorefrontHomePage({
                 href="/branches"
                 className="px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-amber-500/20"
               >
-                Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„ÙˆØµÙˆÙ„ ÙˆØªÙˆØ¬ÙŠÙ‡Ø§Øª Ø§Ù„Ø®Ø±ÙŠØ·Ø©
+                معلومات الوصول وتوجيهات الخريطة
               </Link>
             </div>
           </div>

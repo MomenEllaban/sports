@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import Header from '@/components/storefront/Header';
 import Footer from '@/components/storefront/Footer';
 import Reveal from '@/components/storefront/Reveal';
@@ -28,14 +28,14 @@ export default async function BranchesPage({
         <Reveal>
           <div className="space-y-2 animate-fade-up">
             <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-              {isAr ? 'ÙØ±ÙˆØ¹Ù†Ø§ Ø¨Ø§Ù„Ø¥Ø³ÙƒÙ†Ø¯Ø±ÙŠØ©' : 'Our Alexandria branches'}
+              {isAr ? 'فروعنا بالإسكندرية' : 'Our Alexandria branches'}
             </span>
             <h1 className="text-2xl sm:text-4xl font-black">
-              {isAr ? 'ÙØ±ÙˆØ¹ Ø£Ø¨Ø·Ø§Ù„ Ø§Ù„Ø±ÙŠØ§Ø¶Ø©' : 'Sports Champions Branches'}
+              {isAr ? 'فروع أبطال الرياضة' : 'Sports Champions Branches'}
             </h1>
             <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
               {isAr
-                ? 'Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ø¨Ø§Ù„Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…ÙŠØ©: 92 Ø´Ø§Ø±Ø¹ Ø¹Ù…Ø± Ù„Ø·ÙÙ‰ØŒ Ø³ÙŠØ¯ÙŠ Ø¬Ø§Ø¨Ø±. Ø§Ø³ØªÙ„Ø§Ù… Ù…Ø¬Ø§Ù†ÙŠ Ù„Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© ÙˆØªØ¬Ø±Ø¨Ø© Ø§Ù„Ù…Ø¹Ø¯Ø§Øª Ù‚Ø¨Ù„ Ø§Ù„Ø´Ø±Ø§Ø¡.'
+                ? 'الفرع الرئيسي بالإبراهيمية: 92 شارع عمر لطفى، سيدي جابر. استلام مجاني للطلبات الإلكترونية وتجربة المعدات قبل الشراء.'
                 : 'Flagship branch in Ibrahimeyah: 92 Omar Lotfy St, Sidi Gaber. Free pickup for online orders.'}
             </p>
           </div>
@@ -46,10 +46,10 @@ export default async function BranchesPage({
             <Reveal className="col-span-full">
               <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center space-y-3 animate-fade-in">
                 <MapPin className="w-10 h-10 text-amber-400 mx-auto" />
-                <h2 className="font-extrabold text-lg">ÙØ±Ø¹ Ø§Ù„Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…ÙŠØ© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ</h2>
-                <p className="text-xs text-slate-400">92 Ø´Ø§Ø±Ø¹ Ø¹Ù…Ø± Ù„Ø·ÙÙ‰ØŒ Ø§Ù„Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…ÙŠØ© Ø¨Ø­Ø±ÙŠØŒ Ø³ÙŠØ¯ÙŠ Ø¬Ø§Ø¨Ø±ØŒ Ø¨Ø§Ø¨ Ø´Ø±Ù‚ÙŠØŒ Ø§Ù„Ø¥Ø³ÙƒÙ†Ø¯Ø±ÙŠØ©</p>
+                <h2 className="font-extrabold text-lg">فرع الإبراهيمية الرئيسي</h2>
+                <p className="text-xs text-slate-400">92 شارع عمر لطفى، الإبراهيمية بحري، سيدي جابر، باب شرقي، الإسكندرية</p>
                 <p className="text-xs text-slate-300 font-bold" dir="ltr">03 5926908</p>
-                <p className="text-[11px] text-slate-500">Ø§Ù„Ø³Ø¨Øª â€“ Ø§Ù„Ø£Ø±Ø¨Ø¹Ø§Ø¡ 10Øµ â€“ 10Ù… | Ø§Ù„Ø®Ù…ÙŠØ³ ÙˆØ§Ù„Ø¬Ù…Ø¹Ø© 10Øµ â€“ 11Ù…</p>
+                <p className="text-[11px] text-slate-500">السبت – الأربعاء 10ص – 10م | الخميس والجمعة 10ص – 11م</p>
                 <a
                   href="https://www.google.com/maps/search/?api=1&query=92+Omar+Lotfy+St+Ibrahimeyah+Alexandria"
                   target="_blank"
@@ -57,7 +57,7 @@ export default async function BranchesPage({
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all"
                 >
                   <Navigation className="w-4 h-4" />
-                  {isAr ? 'Ø§Ù„Ø§ØªØ¬Ø§Ù‡Ø§Øª Ø¹Ù„Ù‰ Ø§Ù„Ø®Ø±ÙŠØ·Ø©' : 'Get directions'}
+                  {isAr ? 'الاتجاهات على الخريطة' : 'Get directions'}
                 </a>
               </div>
             </Reveal>
@@ -71,7 +71,7 @@ export default async function BranchesPage({
                     <MapPin className="w-5 h-5 text-white" />
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-[11px] font-bold border border-emerald-500/30">
-                    {isAr ? 'Ù…ÙØªÙˆØ­ Ø§Ù„Ø¢Ù†' : 'Open now'}
+                    {isAr ? 'مفتوح الآن' : 'Open now'}
                   </span>
                 </div>
                 <div>
@@ -97,7 +97,7 @@ export default async function BranchesPage({
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold transition-all"
                 >
                   <Navigation className="w-4 h-4 text-amber-400" />
-                  {isAr ? 'Ø§Ù„Ø§ØªØ¬Ø§Ù‡Ø§Øª' : 'Directions'}
+                  {isAr ? 'الاتجاهات' : 'Directions'}
                 </a>
               </div>
             </Reveal>

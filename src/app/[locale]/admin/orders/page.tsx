@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import OrdersManager from '@/components/admin/OrdersManager';
@@ -30,9 +30,9 @@ export default async function AdminOrdersPage() {
         <main className="p-6 space-y-6 overflow-y-auto">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-black text-slate-100">Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª ÙˆØ§Ù„Ø´Ø­Ù†Ø§Øª</h1>
+              <h1 className="text-2xl font-black text-slate-100">إدارة الطلبات والشحنات</h1>
               <p className="text-xs text-slate-400 mt-0.5">
-                Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…ÙˆØ­Ø¯ (Online / POS / WhatsApp) ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø´Ø±ÙƒØ§Øª Ø§Ù„Ø´Ø­Ù† (Ø¨ÙˆØ³Ø·Ø©/Ù…Ø§ÙŠÙ„Ø±Ø²)
+                جدول الطلبات الموحد (Online / POS / WhatsApp) ومتابعة شركات الشحن (بوسطة/مايلرز)
               </p>
             </div>
           </div>

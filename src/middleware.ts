@@ -8,7 +8,17 @@ const intlMiddleware = createMiddleware(routing);
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Protect all admin routes (both /admin/... and /en/admin/...) except login
+  // 1. Detect and cleanly redirect any repeated locale prefixes (e.g. /en/en/admin -> /en/admin)
+  const repeatedLocaleMatch = pathname.match(/^\/(ar|en)(?:\/(ar|en))+(\/.*)?$/);
+  if (repeatedLocaleMatch) {
+    const finalLocale = repeatedLocaleMatch[2] || repeatedLocaleMatch[1];
+    const rest = repeatedLocaleMatch[3] || '';
+    const cleanUrl = req.nextUrl.clone();
+    cleanUrl.pathname = (finalLocale === 'en' ? `/en${rest}` : rest) || '/';
+    return NextResponse.redirect(cleanUrl, 308);
+  }
+
+  // 2. Protect all admin routes (both /admin/... and /en/admin/...) except login
   const isAdminRoute = /^(\/(ar|en))?\/admin(\/|$)/.test(pathname);
   const isLoginRoute = pathname.includes('/admin/login');
 
@@ -18,7 +28,9 @@ export default async function middleware(req: NextRequest) {
       const locale = pathname.startsWith('/en') ? 'en' : 'ar';
       const loginUrl = req.nextUrl.clone();
       loginUrl.pathname = locale === 'en' ? '/en/admin/login' : '/admin/login';
-      loginUrl.searchParams.set('callbackUrl', pathname);
+      // Strip any locale prefix so next-intl's router does not double-prefix callbackUrl
+      const cleanCallback = pathname.replace(/^\/(?:ar|en)(?=\/|$)/, '') || '/admin';
+      loginUrl.searchParams.set('callbackUrl', cleanCallback);
       return NextResponse.redirect(loginUrl);
     }
   }

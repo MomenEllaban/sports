@@ -31,7 +31,12 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         setErrorMsg(t('invalidCredentials'));
         setLoading(false);
       } else {
-        router.push(callbackUrl);
+        // Normalize target: remove host and strip any leading locale prefix so next-intl router doesn't duplicate
+        let target = (callbackUrl || '/admin').replace(/^https?:\/\/[^\/]+/, '');
+        target = target.replace(/^\/(?:ar|en)(?=\/|$)+/g, '') || '/admin';
+        if (!target.startsWith('/')) target = `/${target}`;
+        router.push(target);
+        router.refresh();
       }
     } catch {
       setErrorMsg(t('connectionError'));

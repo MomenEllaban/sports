@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { MapPin, Phone, Clock, ShieldCheck, CreditCard, Heart } from 'lucide-react';
 import { Link } from '@/i18n/routing';
@@ -13,14 +14,25 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {/* Col 1: About & Flagship Location */}
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-blue-600 flex items-center justify-center font-bold text-white text-base">
-              أ
+          <Link href="/" className="flex items-center gap-3 group">
+            <Image
+              src="/logo.avif"
+              alt={tCommon('appName')}
+              width={960}
+              height={822}
+              quality={80}
+              sizes="48px"
+              className="h-11 w-auto rounded-lg object-contain drop-shadow-[0_0_12px_rgba(245,166,35,0.3)] group-hover:scale-105 transition-transform"
+            />
+            <div>
+              <h3 className="font-extrabold text-slate-100 text-base group-hover:text-blue-400 transition-colors">
+                {tCommon('appName')}
+              </h3>
+              <p className="text-[10px] text-amber-400 font-semibold">
+                {tCommon('tagline')}
+              </p>
             </div>
-            <h3 className="font-extrabold text-slate-100 text-base">
-              {tCommon('appName')}
-            </h3>
-          </div>
+          </Link>
           <p className="text-xs text-slate-400 leading-relaxed">
             المقر الرئيسي لبيع الملابس والمعدات الرياضية ومستلزمات السباحة، الكارديو، الجيم والباليه بالإسكندرية.
           </p>

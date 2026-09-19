@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import Header from '@/components/storefront/Header';
 import Footer from '@/components/storefront/Footer';
 import ProductCard from '@/components/storefront/ProductCard';
@@ -62,26 +62,26 @@ export default async function CatalogPage({
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
           <div>
             <h1 className="text-3xl font-black text-slate-100">
-              ÙƒØªØ§Ù„ÙˆØ¬ Ø§Ù„Ø£Ø¬Ù‡Ø²Ø© ÙˆØ§Ù„Ù…Ø¹Ø¯Ø§Øª Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ©
+              كتالوج الأجهزة والمعدات الرياضية
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              ØªØµÙØ­ Ø§Ù„ØªØ´ÙƒÙŠÙ„Ø© Ø§Ù„ÙƒØ§Ù…Ù„Ø© Ø¨ÙØ±Ø¹ Ø§Ù„Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…ÙŠØ© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ø¨Ø§Ù„Ø¥Ø³ÙƒÙ†Ø¯Ø±ÙŠØ© ({products.length} ØµÙ†Ù)
+              تصفح التشكيلة الكاملة بفرع الإبراهيمية الرئيسي بالإسكندرية ({products.length} صنف)
             </p>
           </div>
 
           {/* Search Form */}
           <form method="GET" className="relative w-full md:w-80" role="search">
-            <label htmlFor="catalog-search" className="sr-only">Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬</label>
+            <label htmlFor="catalog-search" className="sr-only">بحث في الكتالوج</label>
             <input
               id="catalog-search"
               type="search"
               name="query"
               defaultValue={query || ''}
-              placeholder="Ø¨Ø­Ø« Ø¨Ø§Ø³Ù… Ø§Ù„Ù…Ù†ØªØ¬ØŒ SKUØŒ Ø£Ùˆ Ø§Ù„Ù…Ø§Ø±ÙƒØ©..."
-              aria-label="Ø¨Ø­Ø« Ø¨Ø§Ø³Ù… Ø§Ù„Ù…Ù†ØªØ¬ Ø£Ùˆ SKU Ø£Ùˆ Ø§Ù„Ù…Ø§Ø±ÙƒØ©"
+              placeholder="بحث باسم المنتج، SKU، أو الماركة..."
+              aria-label="بحث باسم المنتج أو SKU أو الماركة"
               className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
             />
-            <button type="submit" aria-label="Ø¨Ø­Ø«" className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-100">
+            <button type="submit" aria-label="بحث" className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-100">
               <Search className="w-4 h-4" />
             </button>
           </form>
@@ -95,7 +95,7 @@ export default async function CatalogPage({
               !category ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'
             }`}
           >
-            Ø¬Ù…ÙŠØ¹ Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª
+            جميع التصنيفات
           </Link>
           {categories.map((cat) => (
             <Link
@@ -113,9 +113,9 @@ export default async function CatalogPage({
         {/* Products Grid */}
         {products.length === 0 ? (
           <div className="p-12 text-center glass-panel rounded-3xl space-y-3">
-            <p className="text-slate-400 text-sm">Ù„Ù… Ù†Ø¬Ø¯ Ø£ÙŠ Ù…Ù†ØªØ¬Ø§Øª ØªØ·Ø§Ø¨Ù‚ Ø§Ù„Ø¨Ø­Ø« Ø£Ùˆ Ø§Ù„ØªØµÙ†ÙŠÙ Ø§Ù„Ù…Ø­Ø¯Ø¯.</p>
+            <p className="text-slate-400 text-sm">لم نجد أي منتجات تطابق البحث أو التصنيف المحدد.</p>
             <Link href="/catalog" className="text-xs font-bold text-amber-400 hover:underline">
-              Ø¹Ø±Ø¶ Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„
+              عرض الكتالوج بالكامل
             </Link>
           </div>
         ) : (
