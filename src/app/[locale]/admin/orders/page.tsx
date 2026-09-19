@@ -7,8 +7,17 @@ import { prisma } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminOrdersPage() {
-  const [orders, products, branches] = await Promise.all([
+  const [orders, sales, products, branches] = await Promise.all([
     prisma.order.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
+        customer: { select: { id: true, name: true, phone: true } },
+        branch: { select: { id: true, name: true } },
+      },
+    }),
+    // POS cashier sales appear here too (source POS, completed/paid) — single source of truth stays the Sale table
+    prisma.sale.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
@@ -19,6 +28,45 @@ export default async function AdminOrdersPage() {
     prisma.product.findMany({ where: { isActive: true }, select: { id: true, nameAr: true, nameEn: true, price: true } }),
     prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true, nameEn: true } }),
   ]);
+
+  const orderRows = orders.map((o) => ({
+    kind: 'ORDER' as const,
+    ...o,
+    createdAt: o.createdAt.toISOString(),
+    updatedAt: o.updatedAt.toISOString(),
+  }));
+
+  const posRows = sales.map((s) => ({
+    kind: 'POS' as const,
+    id: s.id,
+    orderNumber: s.saleNumber,
+    orderSource: 'POS',
+    guestName: s.customer?.name || null,
+    guestPhone: s.customer?.phone || '',
+    deliveryAddress: s.branch?.name || '',
+    shippingProvider: 'PICKUP',
+    trackingNumber: s.saleNumber,
+    paymentMethod: s.paymentMethod,
+    totalAmount: s.totalAmount,
+    subtotal: s.subtotal,
+    discountAmount: s.discountAmount,
+    taxAmount: s.taxAmount,
+    orderStatus: 'DELIVERED',
+    paymentStatus: 'PAID',
+    createdAt: s.createdAt.toISOString(),
+    updatedAt: s.createdAt.toISOString(),
+    items: s.items.map((i) => ({
+      id: i.id,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      totalPrice: i.totalPrice,
+      product: i.product,
+    })),
+    customer: s.customer,
+    branch: s.branch,
+  }));
+
+  const rows = [...orderRows, ...posRows].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex">
@@ -39,11 +87,7 @@ export default async function AdminOrdersPage() {
 
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden animate-fade-up">
             <OrdersManager
-              orders={orders.map((o) => ({
-                ...o,
-                createdAt: o.createdAt.toISOString(),
-                updatedAt: o.updatedAt.toISOString(),
-              }))}
+              orders={rows}
               products={products}
               branches={branches}
             />

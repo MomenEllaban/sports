@@ -17,6 +17,7 @@ interface OrderItem {
 }
 
 interface OrderRow {
+  kind: 'ORDER' | 'POS';
   id: string;
   orderNumber: string;
   orderSource: string;
@@ -217,6 +218,11 @@ export default function OrdersManager({
                 <tr className="hover:bg-slate-900/50 transition-colors">
                   <td className="p-3 font-bold text-amber-400">
                     <div>{ord.orderNumber}</div>
+                    {ord.kind === 'POS' && (
+                      <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px] font-black border border-purple-500/30">
+                        {isAr ? 'كاشير POS' : 'POS'}
+                      </span>
+                    )}
                     <div className="text-[10px] text-slate-500">{new Date(ord.createdAt).toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</div>
                   </td>
                   <td className="p-3 font-semibold text-slate-300"><SourceLabel value={ord.orderSource} /></td>
@@ -255,16 +261,22 @@ export default function OrdersManager({
                   <td className="p-3 font-black text-slate-100">{ord.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>
                   <td className="p-3"><StatusBadge value={ord.orderStatus} /></td>
                   <td className="p-3">
-                    <select
-                      value={ord.orderStatus}
-                      disabled={updatingId === ord.id}
-                      onChange={(e) => changeStatus(ord.id, e.target.value)}
-                      className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs disabled:opacity-60"
-                    >
-                      {ORDER_STATUSES.map((s) => (
-                        <option key={s} value={s}>{t(`status_${s}`)}</option>
-                      ))}
-                    </select>
+                    {ord.kind === 'ORDER' ? (
+                      <select
+                        value={ord.orderStatus}
+                        disabled={updatingId === ord.id}
+                        onChange={(e) => changeStatus(ord.id, e.target.value)}
+                        className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs disabled:opacity-60"
+                      >
+                        {ORDER_STATUSES.map((s) => (
+                          <option key={s} value={s}>{t(`status_${s}`)}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-[11px] text-slate-500 font-bold" title={isAr ? 'بيع كاشير مكتمل ومدفوع' : 'Completed paid POS sale'}>
+                        {isAr ? 'بيع مكتمل' : 'Completed'}
+                      </span>
+                    )}
                   </td>
                 </tr>
                 {/* Expanded Items Row */}
