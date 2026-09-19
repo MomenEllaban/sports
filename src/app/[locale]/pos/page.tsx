@@ -27,6 +27,13 @@ export default function PosTerminalPage() {
     vat: number;
     discount: number;
     total: number;
+    paymentMethod: 'CASH' | 'CARD' | 'INSTAPAY';
+    tendered: number;
+    change: number;
+    reference: string | null;
+    customerName: string | null;
+    customerPhone: string | null;
+    loyaltyEarned: number;
     qrCodeUrl: string;
     timestamp: string;
   } | null>(null);
@@ -34,6 +41,12 @@ export default function PosTerminalPage() {
   const [managerPin, setManagerPin] = useState('');
   const [discountInput, setDiscountInput] = useState('');
   const [pinError, setPinError] = useState(false);
+
+  // Payment step state: method tabs + tendered/change + confirm
+  const [payMethod, setPayMethod] = useState<'CASH' | 'CARD' | 'INSTAPAY'>('CASH');
+  const [tenderedInput, setTenderedInput] = useState('');
+  const [referenceInput, setReferenceInput] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   // Customer lookup state
   const [customerPhone, setCustomerPhone] = useState('');
@@ -64,6 +77,12 @@ export default function PosTerminalPage() {
   const [loadError, setLoadError] = useState('');
   const [saleError, setSaleError] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [lastChange, setLastChange] = useState(0);
+
+  const total = getTotalAmount();
+  const tendered = Number(tenderedInput) || 0;
+  const change = payMethod === 'CASH' && tenderedInput !== '' ? Math.max(0, Math.round((tendered - total) * 100) / 100) : 0;
+  const tenderedShort = payMethod === 'CASH' && tenderedInput !== '' && tendered < total;
 
   useEffect(() => {
     fetchPosProducts();
@@ -162,9 +181,19 @@ export default function PosTerminalPage() {
     }
   };
 
-  const handleCompleteSale = async (payMethod: 'CASH' | 'CARD' | 'INSTAPAY') => {
-    if (ticketItems.length === 0) return;
+  const handleCompleteSale = async () => {
+    if (ticketItems.length === 0 || processing) return;
     setSaleError('');
+
+    // Cash validation: tendered must cover total
+    if (payMethod === 'CASH' && tenderedInput !== '' && tendered < total) {
+      setSaleError(`المبلغ المستلم (${tendered.toLocaleString()}) أقل من الإجمالي (${total.toLocaleString()})`);
+      return;
+    }
+
+    setProcessing(true);
+    const paidTendered = payMethod === 'CASH' ? (tenderedInput === '' ? total : tendered) : total;
+    const paidChange = payMethod === 'CASH' ? Math.max(0, Math.round((paidTendered - total) * 100) / 100) : 0;
 
     const payload = {
       paymentMethod: payMethod,
@@ -186,6 +215,7 @@ export default function PosTerminalPage() {
 
       const data = await res.json();
       if (data.success) {
+        setLastChange(paidChange);
         setReceiptData({
           saleNumber: data.saleNumber,
           items: ticketItems.map((i) => ({
@@ -194,16 +224,25 @@ export default function PosTerminalPage() {
             price: i.unitPrice,
             total: i.unitPrice * i.quantity,
           })),
-          subtotal: getSubtotal(),
-          vat: getVatAmount(),
-          discount: discountAmount,
-          total: getTotalAmount(),
+          subtotal: data.subtotal ?? getSubtotal(),
+          vat: data.vatAmount ?? getVatAmount(),
+          discount: data.discountAmount ?? discountAmount,
+          total: data.totalAmount,
+          paymentMethod: payMethod,
+          tendered: paidTendered,
+          change: paidChange,
+          reference: referenceInput.trim() || null,
+          customerName: customer?.name || null,
+          customerPhone: customer?.phone || null,
+          loyaltyEarned: data.loyaltyEarned ?? 0,
           qrCodeUrl: data.qrCodeDataUrl,
           timestamp: new Date().toLocaleString('ar-EG'),
         });
 
         setShowReceiptModal(true);
         clearTicket();
+        setTenderedInput('');
+        setReferenceInput('');
         fetchPosProducts(); // Refresh stock
       } else {
         setSaleError(data.error || 'حدث خطأ أثناء حفظ الفاتورة.');
@@ -215,6 +254,7 @@ export default function PosTerminalPage() {
         saleNumber: `OFFLINE-${Date.now()}`,
         branchId: '',
         cashierId: '',
+        customerPhone: customer?.phone,
         items: ticketItems.map((i) => ({ ...i })),
         subtotal: getSubtotal(),
         taxAmount: getVatAmount(),
@@ -224,6 +264,8 @@ export default function PosTerminalPage() {
         timestamp: new Date().toISOString(),
       });
       clearTicket();
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -240,6 +282,7 @@ export default function PosTerminalPage() {
           body: JSON.stringify({
             paymentMethod: sale.paymentMethod,
             discountAmount: sale.discountAmount,
+            customerPhone: sale.customerPhone || undefined,
             items: sale.items.map((i) => ({ productId: i.id, quantity: i.quantity, unitPrice: i.unitPrice })),
           }),
         });
@@ -301,6 +344,18 @@ export default function PosTerminalPage() {
       <div className="flex-1 grid grid-cols-12 overflow-hidden">
         {/* Left Side: Product Selector & Barcode Scanner */}
         <div className="col-span-7 border-l border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 overflow-hidden">
+          {/* Steps indicator */}
+          <div className="flex items-center gap-2 text-[11px] font-bold" aria-label="خطوات البيع">
+            <span className={`px-3 py-1.5 rounded-full border ${customer ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+              1. العميل {customer ? '✓' : '(اختياري)'}
+            </span>
+            <span className={`px-3 py-1.5 rounded-full border ${ticketItems.length > 0 ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+              2. الأصناف ({ticketItems.reduce((s, i) => s + i.quantity, 0)})
+            </span>
+            <span className={`px-3 py-1.5 rounded-full border ${ticketItems.length > 0 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+              3. الدفع والتأكيد
+            </span>
+          </div>
           {/* Barcode Search Input */}
           <div className="relative">
             <label htmlFor="pos-search" className="block text-[11px] font-bold text-slate-400 mb-1">
@@ -334,9 +389,13 @@ export default function PosTerminalPage() {
               <div className="grid grid-cols-3 gap-3">
                 {filteredProducts.map((prod) => {
                   const stock = prod.inventories?.[0]?.stockQuantity || 0;
+                  const outOfStock = stock <= 0;
+                  const inTicket = ticketItems.find((i) => i.id === prod.id)?.quantity || 0;
+                  const reachedCap = inTicket >= stock && stock > 0;
                   return (
                     <button
                       key={prod.id}
+                      disabled={outOfStock}
                       onClick={() =>
                         addItemToTicket({
                           id: prod.id,
@@ -348,17 +407,26 @@ export default function PosTerminalPage() {
                           stockQuantity: stock,
                         })
                       }
-                      className="glass-card p-3 rounded-2xl text-right flex flex-col justify-between h-32 hover:border-amber-500/50 transition-all border border-slate-800/80 active:scale-95"
+                      className="glass-card p-3 rounded-2xl text-right flex flex-col justify-between h-32 hover:border-amber-500/50 transition-all border border-slate-800/80 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                     >
                       <div className="space-y-1">
-                        <div className="text-[10px] text-amber-400 font-bold">SKU: {prod.sku}</div>
+                        <div className="flex justify-between items-center">
+                          <div className="text-[10px] text-amber-400 font-bold">SKU: {prod.sku}</div>
+                          {outOfStock ? (
+                            <span className="text-[9px] font-black bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded">نفد</span>
+                          ) : reachedCap ? (
+                            <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">الحد الأقصى</span>
+                          ) : null}
+                        </div>
                         <h3 className="font-bold text-xs text-slate-100 line-clamp-2 leading-snug">
                           {prod.nameAr}
                         </h3>
                       </div>
 
                       <div className="flex items-baseline justify-between border-t border-slate-800/80 pt-2">
-                        <span className="text-xs text-slate-400">مخزن: {stock}</span>
+                        <span className={`text-xs ${stock <= 5 && !outOfStock ? 'text-rose-400 font-bold' : 'text-slate-400'}`}>
+                          مخزن: {stock}{inTicket > 0 ? ` (${inTicket} بالفاتورة)` : ''}
+                        </span>
                         <span className="font-black text-sm text-blue-400">
                           {prod.price.toLocaleString()} ج.م
                         </span>
@@ -575,25 +643,109 @@ export default function PosTerminalPage() {
               </div>
             </div>
 
-            {/* Payment Touch Buttons */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Step 3: Payment & Confirm */}
+            <div className="p-3 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black text-[11px] flex items-center justify-center">3</span>
+                <span className="font-black text-slate-100 text-sm">الدفع وإنهاء البيع</span>
+              </div>
+
+              {/* Method tabs */}
+              <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="طريقة الدفع">
+                {(
+                  [
+                    { key: 'CASH', label: 'نقداً (كاش)', cls: 'emerald' },
+                    { key: 'CARD', label: 'فيزا / بطاقة', cls: 'blue' },
+                    { key: 'INSTAPAY', label: 'انستا باي', cls: 'purple' },
+                  ] as const
+                ).map((m) => (
+                  <button
+                    key={m.key}
+                    role="tab"
+                    aria-selected={payMethod === m.key}
+                    onClick={() => { setPayMethod(m.key); setSaleError(''); }}
+                    className={`py-2.5 rounded-xl font-extrabold text-xs transition-all border-2 ${
+                      payMethod === m.key
+                        ? m.cls === 'emerald'
+                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
+                          : m.cls === 'blue'
+                            ? 'bg-blue-600 text-white border-blue-400 shadow-lg'
+                            : 'bg-purple-600 text-white border-purple-400 shadow-lg'
+                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Cash: tendered + change */}
+              {payMethod === 'CASH' && (
+                <div className="space-y-2 animate-fade-in">
+                  <div>
+                    <label htmlFor="pos-tendered" className="block text-[11px] font-bold text-slate-300 mb-1">
+                      المبلغ المستلم من العميل (ج.م)
+                    </label>
+                    <input
+                      id="pos-tendered"
+                      type="number"
+                      min={0}
+                      inputMode="decimal"
+                      placeholder={`مثال: ${Math.ceil(total).toLocaleString()}`}
+                      value={tenderedInput}
+                      onChange={(e) => setTenderedInput(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-black text-slate-100 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500 placeholder:font-normal"
+                    />
+                  </div>
+                  <div className={`flex justify-between items-center p-2.5 rounded-xl font-black ${tenderedShort ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+                    <span>الباقي للعميل:</span>
+                    <span className="text-base">{tenderedShort ? 'المبلغ ناقص!' : `${change.toLocaleString()} ج.م`}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[total, Math.ceil(total / 10) * 10, Math.ceil(total / 50) * 50, Math.ceil(total / 100) * 100]
+                      .filter((v, i, a) => a.indexOf(v) === i)
+                      .map((v) => (
+                        <button
+                          key={v}
+                          onClick={() => setTenderedInput(String(v))}
+                          className="py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-bold text-slate-300 hover:border-emerald-500"
+                        >
+                          {v.toLocaleString()}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Card / InstaPay: reference */}
+              {payMethod !== 'CASH' && (
+                <div className="animate-fade-in">
+                  <label htmlFor="pos-reference" className="block text-[11px] font-bold text-slate-300 mb-1">
+                    {payMethod === 'CARD' ? 'رقم الموافقة / آخر 4 أرقام (اختياري)' : 'رقم مرجع التحويل (اختياري)'}
+                  </label>
+                  <input
+                    id="pos-reference"
+                    type="text"
+                    dir="ltr"
+                    placeholder={payMethod === 'CARD' ? 'e.g. 4821' : 'e.g. TRX-123456'}
+                    value={referenceInput}
+                    onChange={(e) => setReferenceInput(e.target.value)}
+                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
+                  />
+                </div>
+              )}
+
+              {/* Big confirm */}
               <button
-                onClick={() => handleCompleteSale('CASH')}
-                className="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white shadow-lg"
+                onClick={handleCompleteSale}
+                disabled={ticketItems.length === 0 || processing || tenderedShort}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-slate-950 font-black text-base shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2"
               >
-                نقداً (كاش)
-              </button>
-              <button
-                onClick={() => handleCompleteSale('CARD')}
-                className="py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-extrabold text-xs text-white shadow-lg"
-              >
-                فيزا / بطاقة
-              </button>
-              <button
-                onClick={() => handleCompleteSale('INSTAPAY')}
-                className="py-3 rounded-xl bg-purple-600 hover:bg-purple-500 font-extrabold text-xs text-white shadow-lg"
-              >
-                انستا باي
+                {processing ? (
+                  'جاري حفظ الفاتورة...'
+                ) : (
+                  <>تأكيد البيع • {total.toLocaleString()} ج.م</>
+                )}
               </button>
             </div>
           </div>
@@ -602,45 +754,105 @@ export default function PosTerminalPage() {
 
       {/* Printable Receipt Modal with ETA QR Code */}
       {showReceiptModal && receiptData && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl dir-rtl">
-            <div className="text-center space-y-1 border-b border-slate-200 pb-3">
-              <h2 className="font-black text-lg text-slate-900">ابطال الرياضة الإبراهيمية</h2>
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 print:p-0 print:bg-white print:static print:block">
+          <div id="pos-receipt" className="bg-white text-slate-900 p-6 rounded-2xl max-w-sm w-full space-y-3 shadow-2xl dir-rtl max-h-[90vh] overflow-y-auto print:max-h-none print:shadow-none print:rounded-none print:w-full print:max-w-none">
+            {/* Store header */}
+            <div className="text-center space-y-1 border-b-2 border-dashed border-slate-300 pb-3">
+              <h2 className="font-black text-xl text-slate-900">ابطال الرياضة الإبراهيمية</h2>
+              <p className="text-[11px] text-slate-600">92 شارع عمر لطفى - الإبراهيمية - الإسكندرية</p>
               <p className="text-[11px] text-slate-600">
                 هاتف: <span dir="ltr" className="tabular-nums font-bold">03 5926908</span> | واتساب: <span dir="ltr" className="tabular-nums font-bold">0122 422 6876</span>
               </p>
-              <p className="text-[10px] text-slate-500">ر.ض: <span dir="ltr" className="tabular-nums font-medium">123-456-789</span></p>
-              <div className="text-xs font-bold text-slate-800 pt-1">فاتورة بيع / إيصال إلكتروني ETA</div>
-              <div className="text-[10px] text-slate-500">رقم الفاتورة: {receiptData.saleNumber}</div>
+              <p className="text-[10px] text-slate-500">سجل تجاري / ر.ض: <span dir="ltr" className="tabular-nums font-medium">123-456-789</span></p>
             </div>
 
-            <div className="space-y-1 text-xs border-b border-slate-200 pb-3">
+            {/* Sale meta */}
+            <div className="text-[11px] text-slate-700 space-y-0.5 border-b border-dashed border-slate-200 pb-2">
+              <div className="flex justify-between">
+                <span>رقم الفاتورة:</span>
+                <span className="font-black" dir="ltr">{receiptData.saleNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>التاريخ:</span>
+                <span className="font-bold">{receiptData.timestamp}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>الكاشير:</span>
+                <span className="font-bold">سارة فهمي</span>
+              </div>
+              <div className="flex justify-between">
+                <span>طريقة الدفع:</span>
+                <span className="font-bold">
+                  {receiptData.paymentMethod === 'CASH' ? 'نقداً' : receiptData.paymentMethod === 'CARD' ? 'فيزا / بطاقة' : 'انستا باي'}
+                  {receiptData.reference ? ` (${receiptData.reference})` : ''}
+                </span>
+              </div>
+              {receiptData.customerName && (
+                <div className="flex justify-between">
+                  <span>العميل:</span>
+                  <span className="font-bold">{receiptData.customerName} <span dir="ltr" className="tabular-nums">({receiptData.customerPhone})</span></span>
+                </div>
+              )}
+            </div>
+
+            {/* Items with unit prices */}
+            <div className="space-y-1.5 text-xs border-b border-dashed border-slate-200 pb-2">
               {receiptData.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between">
-                  <span>{item.name} x{item.qty}</span>
-                  <span className="font-bold">{item.total.toLocaleString()} ج.م</span>
+                <div key={idx}>
+                  <div className="flex justify-between font-bold text-slate-900">
+                    <span className="line-clamp-1">{item.name}</span>
+                    <span className="shrink-0 tabular-nums">{item.total.toLocaleString()} ج.م</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 tabular-nums" dir="ltr">
+                    {item.qty} x {item.price.toLocaleString()} EGP
+                  </div>
                 </div>
               ))}
             </div>
 
+            {/* Totals */}
             <div className="space-y-1 text-xs font-semibold">
               <div className="flex justify-between text-slate-600">
                 <span>المجموع الفرعي:</span>
-                <span>{receiptData.subtotal.toLocaleString()} ج.م</span>
+                <span className="tabular-nums">{receiptData.subtotal.toLocaleString()} ج.م</span>
               </div>
+              {receiptData.discount > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span>خصم المدير:</span>
+                  <span className="tabular-nums">- {receiptData.discount.toLocaleString()} ج.م</span>
+                </div>
+              )}
               <div className="flex justify-between text-slate-600">
                 <span>ضريبة القيمة المضافة (14%):</span>
-                <span>{receiptData.vat.toLocaleString()} ج.م</span>
+                <span className="tabular-nums">{receiptData.vat.toLocaleString()} ج.م</span>
               </div>
-              <div className="flex justify-between text-sm font-black text-slate-900 pt-1 border-t border-slate-200">
+              <div className="flex justify-between text-base font-black text-slate-900 pt-1 border-t-2 border-slate-900">
                 <span>الإجمالي:</span>
-                <span>{receiptData.total.toLocaleString()} ج.م</span>
+                <span className="tabular-nums">{receiptData.total.toLocaleString()} ج.م</span>
               </div>
+              {receiptData.paymentMethod === 'CASH' && (
+                <>
+                  <div className="flex justify-between text-slate-600">
+                    <span>المستلم:</span>
+                    <span className="tabular-nums">{receiptData.tendered.toLocaleString()} ج.م</span>
+                  </div>
+                  <div className="flex justify-between font-black text-slate-900">
+                    <span>الباقي:</span>
+                    <span className="tabular-nums">{receiptData.change.toLocaleString()} ج.م</span>
+                  </div>
+                </>
+              )}
+              {receiptData.loyaltyEarned > 0 && (
+                <div className="flex justify-between text-amber-700 font-bold">
+                  <span>نقاط الولاء المكتسبة:</span>
+                  <span>+{receiptData.loyaltyEarned} نقطة</span>
+                </div>
+              )}
             </div>
 
             {/* ETA Verification QR Code */}
             {receiptData.qrCodeUrl && (
-              <div className="text-center space-y-1 pt-2 border-t border-slate-200">
+              <div className="text-center space-y-1 pt-2 border-t border-dashed border-slate-200">
                 <Image
                   src={receiptData.qrCodeUrl}
                   alt="ETA QR Code"
@@ -652,18 +864,20 @@ export default function PosTerminalPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
+            <p className="text-center text-[10px] text-slate-500 pt-1">شكراً لتسوقكم معنا — نراكم قريباً!</p>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 print:hidden">
               <button
                 onClick={() => window.print()}
-                className="py-2.5 rounded-xl bg-slate-900 text-slate-100 font-bold text-xs flex items-center justify-center gap-1"
+                className="py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1"
               >
                 <Printer className="w-4 h-4" /> طباعة
               </button>
               <button
-                onClick={() => setShowReceiptModal(false)}
+                onClick={() => { setShowReceiptModal(false); setLastChange(0); }}
                 className="py-2.5 rounded-xl bg-slate-200 text-slate-800 font-bold text-xs"
               >
-                إغلاق
+                بيع جديد
               </button>
             </div>
           </div>

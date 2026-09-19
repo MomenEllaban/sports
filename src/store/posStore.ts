@@ -73,14 +73,18 @@ export const usePosStore = create<PosState>((set, get) => ({
   addItemToTicket: (product) => {
     const items = get().ticketItems;
     const existing = items.find((i) => i.id === product.id);
+    const cap = Math.max(0, product.stockQuantity);
 
     if (existing) {
+      const nextQty = Math.min(existing.quantity + 1, cap);
+      if (nextQty === existing.quantity) return; // stock cap reached
       set({
         ticketItems: items.map((i) =>
-          i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.id === product.id ? { ...i, quantity: nextQty } : i
         ),
       });
     } else {
+      if (cap <= 0) return; // out of stock: do not add
       set({
         ticketItems: [
           ...items,
@@ -106,7 +110,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     } else {
       set({
         ticketItems: get().ticketItems.map((i) =>
-          i.id === id ? { ...i, quantity: qty } : i
+          i.id === id ? { ...i, quantity: Math.min(qty, Math.max(1, i.stockQuantity)) } : i
         ),
       });
     }
