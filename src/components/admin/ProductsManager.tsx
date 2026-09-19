@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
-import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package } from 'lucide-react';
+import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package, Upload, Image as ImageIcon, Loader2, Cloud, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import Pagination from './Pagination';
 
@@ -18,6 +18,7 @@ interface ProductRow {
   size: string | null;
   color: string | null;
   isActive: boolean;
+  images: string[];
   category: { id: string; nameAr: string; nameEn: string };
   brand: { id: string; nameAr: string; nameEn: string } | null;
   inventories: Array<{ stockQuantity: number; branch: { name: string } }>;
@@ -35,6 +36,7 @@ const EMPTY_PRODUCT = {
   size: '',
   color: '',
   initialStock: '',
+  images: [] as string[],
 };
 
 const EMPTY_CAT = { nameAr: '', nameEn: '', description: '' };
@@ -70,6 +72,9 @@ export default function ProductsManager({
   const [deleteProductError, setDeleteProductError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [productForm, setProductForm] = useState(EMPTY_PRODUCT);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   // Category modals
   const [showAddCat, setShowAddCat] = useState(false);
@@ -136,6 +141,97 @@ export default function ProductsManager({
     } catch { /* silently fail */ }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setImageUploadError(isAr ? 'يرجى اختيار ملف صورة صالح' : 'Please select a valid image file');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setImageUploadError(isAr ? 'حجم الصورة يجب ألا يتجاوز 10 ميجابايت' : 'Image must be under 10MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    setImageUploadError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || (isAr ? 'فشل رفع الصورة' : 'Failed to upload image'));
+      }
+
+      setProductForm((prev) => ({
+        ...prev,
+        images: [...prev.images, data.url],
+      }));
+    } catch (err: unknown) {
+      setImageUploadError(err instanceof Error ? err.message : (isAr ? 'فشل رفع الصورة' : 'Upload failed'));
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddUrlImage = async (rawUrl: string) => {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return;
+
+    setUploadingImage(true);
+    setImageUploadError('');
+    try {
+      if (trimmed.includes('res.cloudinary.com')) {
+        setProductForm((prev) => ({ ...prev, images: [...prev.images, trimmed] }));
+        setImageUrlInput('');
+        return;
+      }
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setProductForm((prev) => ({ ...prev, images: [...prev.images, trimmed] }));
+      } else {
+        setProductForm((prev) => ({ ...prev, images: [...prev.images, data.url] }));
+      }
+      setImageUrlInput('');
+    } catch {
+      setProductForm((prev) => ({ ...prev, images: [...prev.images, trimmed] }));
+      setImageUrlInput('');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setProductForm((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  const handleSetPrimaryImage = (indexToPrimary: number) => {
+    setProductForm((prev) => {
+      const selected = prev.images[indexToPrimary];
+      const rest = prev.images.filter((_, idx) => idx !== indexToPrimary);
+      return {
+        ...prev,
+        images: [selected, ...rest],
+      };
+    });
+  };
+
   const openEditProduct = (p: ProductRow) => {
     setProductForm({
       sku: p.sku,
@@ -149,8 +245,11 @@ export default function ProductsManager({
       size: p.size || '',
       color: p.color || '',
       initialStock: '',
+      images: Array.isArray(p.images) ? [...p.images] : [],
     });
     setFormError('');
+    setImageUploadError('');
+    setImageUrlInput('');
     setEditProduct(p);
   };
 
@@ -168,6 +267,7 @@ export default function ProductsManager({
         barcode: productForm.barcode || undefined,
         size: productForm.size || undefined,
         color: productForm.color || undefined,
+        images: productForm.images,
       });
       setShowAddProduct(false);
       setProductForm(EMPTY_PRODUCT);
@@ -193,6 +293,7 @@ export default function ProductsManager({
         barcode: productForm.barcode || null,
         size: productForm.size || null,
         color: productForm.color || null,
+        images: productForm.images,
       });
       setEditProduct(null);
       router.refresh();
@@ -416,6 +517,118 @@ export default function ProductsManager({
           />
         </div>
       </div>
+
+      {/* Product Images Management with Cloudinary */}
+      <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Cloud className="w-4 h-4 text-blue-400" />
+            <span className="text-xs font-bold text-slate-200">
+              {isAr ? 'صور المنتج (Cloudinary)' : 'Product Images (Cloudinary)'}
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
+              {productForm.images.length}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400">
+            {isAr ? 'الصورة الأولى هي المعروضة كصورة رئيسية للمنتج' : 'First image is the primary photo'}
+          </span>
+        </div>
+
+        {imageUploadError && (
+          <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[11px] font-bold">
+            {imageUploadError}
+          </div>
+        )}
+
+        {/* Existing Images Gallery */}
+        {productForm.images.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+            {productForm.images.map((imgUrl, idx) => (
+              <div
+                key={idx}
+                className="relative group rounded-xl overflow-hidden border border-slate-700 bg-slate-950 aspect-square flex items-center justify-center shadow"
+              >
+                <img
+                  src={imgUrl}
+                  alt={`Product ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                {idx === 0 ? (
+                  <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[9px] font-black flex items-center gap-0.5 shadow">
+                    <Star className="w-2.5 h-2.5 fill-current" />
+                    {isAr ? 'رئيسية' : 'Main'}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleSetPrimaryImage(idx)}
+                    title={isAr ? 'تعيين كرئيسية' : 'Set as primary'}
+                    className="absolute top-1.5 right-1.5 p-1 rounded-md bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-slate-300 text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    {isAr ? 'رئيسية' : 'Main'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(idx)}
+                  title={isAr ? 'حذف الصورة' : 'Remove image'}
+                  className="absolute bottom-1.5 left-1.5 p-1 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Upload Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          {/* Direct File Upload to Cloudinary */}
+          <div>
+            <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-blue-500/40 hover:border-blue-500 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 font-bold text-xs cursor-pointer transition-all">
+              {uploadingImage ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{isAr ? 'جاري الرفع لـ Cloudinary...' : 'Uploading...'}</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  <span>{isAr ? 'رفع صورة من الجهاز' : 'Upload Image'}</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingImage}
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {/* External URL with Cloudinary Upload */}
+          <div className="flex gap-1.5">
+            <input
+              placeholder={isAr ? 'أو ضع رابط صورة خارجي...' : 'Or paste image URL...'}
+              value={imageUrlInput}
+              onChange={(e) => setImageUrlInput(e.target.value)}
+              disabled={uploadingImage}
+              className={inputCls}
+              dir="ltr"
+            />
+            <button
+              type="button"
+              disabled={uploadingImage || !imageUrlInput.trim()}
+              onClick={() => handleAddUrlImage(imageUrlInput)}
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-bold shrink-0 transition-colors"
+            >
+              {isAr ? 'إضافة' : 'Add'}
+            </button>
+          </div>
+        </div>
+      </div>
     </>
   );
 
@@ -471,7 +684,13 @@ export default function ProductsManager({
                 {isAr ? 'تصدير CSV' : 'Export CSV'}
               </button>
               <button
-                onClick={() => { setProductForm(EMPTY_PRODUCT); setFormError(''); setShowAddProduct(true); }}
+                onClick={() => {
+                  setProductForm(EMPTY_PRODUCT);
+                  setFormError('');
+                  setImageUploadError('');
+                  setImageUrlInput('');
+                  setShowAddProduct(true);
+                }}
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
               >
                 <Plus className="w-4 h-4" />
@@ -484,6 +703,7 @@ export default function ProductsManager({
             <table className="w-full text-xs text-right">
               <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                 <tr>
+                  <th className="p-3 w-14">{isAr ? 'الصورة' : 'Image'}</th>
                   <th className="p-3">SKU</th>
                   <th className="p-3">{isAr ? 'اسم المنتج' : 'Product'}</th>
                   <th className="p-3">{isAr ? 'التصنيف' : 'Category'}</th>
@@ -497,6 +717,27 @@ export default function ProductsManager({
               <tbody className="divide-y divide-slate-800">
                 {pagedRows.map((prod) => (
                   <tr key={prod.id} className="hover:bg-slate-900/50 transition-colors">
+                    <td className="p-3">
+                      {prod.images && prod.images.length > 0 ? (
+                        <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/80 shadow-sm flex items-center justify-center group/img">
+                          <img
+                            src={prod.images[0]}
+                            alt={isAr ? prod.nameAr : prod.nameEn}
+                            className="w-full h-full object-cover transition-transform group-hover/img:scale-110 duration-200"
+                            loading="lazy"
+                          />
+                          {prod.images.length > 1 && (
+                            <span className="absolute bottom-0.5 right-0.5 bg-slate-950/90 text-[8px] px-1 rounded text-amber-400 font-bold border border-slate-800">
+                              +{prod.images.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl bg-slate-900/60 border border-dashed border-slate-800 flex items-center justify-center text-slate-600">
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 font-bold text-amber-400">{prod.sku}</td>
                     <td className="p-3 font-bold text-slate-100">
                       <div>{isAr ? prod.nameAr : prod.nameEn}</div>

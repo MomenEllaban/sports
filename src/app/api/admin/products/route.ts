@@ -8,7 +8,20 @@ export async function POST(req: Request) {
     if (error) return error;
 
     const body = await req.json();
-    const { sku, nameAr, nameEn, price, costPrice = 0, categoryId, brandId, initialStock = 0 } = body;
+    const {
+      sku,
+      nameAr,
+      nameEn,
+      price,
+      costPrice = 0,
+      categoryId,
+      brandId,
+      initialStock = 0,
+      images = [],
+      size,
+      color,
+      barcode,
+    } = body;
 
     if (!sku || !nameAr || !nameEn || price === undefined || !categoryId) {
       return NextResponse.json({ success: false, error: 'SKU, names, price and category are required' }, { status: 400 });
@@ -22,6 +35,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'No active branch' }, { status: 500 });
     }
 
+    const formattedImages = Array.isArray(images)
+      ? images.map((img: unknown) => String(img).trim()).filter(Boolean)
+      : typeof images === 'string' && images.trim()
+      ? [images.trim()]
+      : [];
+
     const product = await prisma.product.create({
       data: {
         sku: String(sku).trim(),
@@ -31,8 +50,11 @@ export async function POST(req: Request) {
         costPrice: Number(costPrice),
         categoryId,
         brandId: brandId || null,
+        barcode: barcode ? String(barcode).trim() : null,
+        size: size ? String(size).trim() : null,
+        color: color ? String(color).trim() : null,
         isActive: true,
-        images: [],
+        images: formattedImages,
       },
     });
 

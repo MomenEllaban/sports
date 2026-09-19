@@ -59,9 +59,10 @@ export default function ProductCard({ product }: { product: ProductWithInventory
       {/* Top Image Container */}
       <div className="relative aspect-square w-full bg-slate-900 overflow-hidden">
         <Image
-          src={product.images[0] || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80'}
+          src={product.images[0] || 'https://res.cloudinary.com/djseokhow/image/upload/v1789820962/sports-champions/products/bmxe8ldv89v1lwf3vi4v.jpg'}
           alt={name}
           fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
 

@@ -26,6 +26,13 @@ export async function PATCH(
     if (body.size !== undefined) data.size = body.size || null;
     if (body.color !== undefined) data.color = body.color || null;
     if (body.barcode !== undefined) data.barcode = body.barcode || null;
+    if (body.images !== undefined) {
+      data.images = Array.isArray(body.images)
+        ? body.images.map((img: unknown) => String(img).trim()).filter(Boolean)
+        : typeof body.images === 'string' && body.images.trim()
+        ? [body.images.trim()]
+        : [];
+    }
 
     const product = await prisma.product.update({ where: { id }, data });
     return NextResponse.json({ success: true, product });
