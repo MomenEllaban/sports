@@ -4,10 +4,12 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import UsersManager from '@/components/admin/UsersManager';
 import { prisma } from '@/lib/db';
 import { ShieldCheck } from 'lucide-react';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminUsersPage() {
+  await requirePageRole('SUPER_ADMIN');
   const [users, branches] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: 'desc' },

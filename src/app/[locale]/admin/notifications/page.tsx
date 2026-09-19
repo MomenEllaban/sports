@@ -4,10 +4,12 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import NotificationsManager from '@/components/admin/NotificationsManager';
 import { prisma } from '@/lib/db';
 import { Bell } from 'lucide-react';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminNotificationsPage() {
+  await requirePageRole('SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER', 'CASHIER', 'STAFF');
   const notifications = await prisma.notification.findMany({
     orderBy: { createdAt: 'desc' },
     take: 50,

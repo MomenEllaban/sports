@@ -3,10 +3,12 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import EmployeesManager from '@/components/admin/EmployeesManager';
 import { prisma } from '@/lib/db';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminEmployeesPage() {
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const [employees, branches] = await Promise.all([
     prisma.employee.findMany({
       orderBy: { createdAt: 'desc' },

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 import { ExpenseCategory } from '@prisma/client';
 
 export async function POST(req: Request) {
   try {
-    const { session, error } = await requireAdminSession();
+    const { session, error } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const body = await req.json();

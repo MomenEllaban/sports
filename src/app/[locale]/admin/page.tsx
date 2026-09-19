@@ -5,10 +5,12 @@ import { StatusBadge, PayLabel } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
 import { DollarSign, ShoppingBag, Layers, MapPin, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 

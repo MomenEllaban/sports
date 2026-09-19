@@ -5,10 +5,12 @@ import ExpensesManager from '@/components/admin/ExpensesManager';
 import { StatusBadge } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
 import { DollarSign, ShieldCheck } from 'lucide-react';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminAccountingPage() {
+  await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const [orders, sales, expenses, branches, taxInvoices] = await Promise.all([
     prisma.order.findMany(),
     prisma.sale.findMany(),

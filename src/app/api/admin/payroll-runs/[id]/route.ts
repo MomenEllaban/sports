@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 
 // Approve or mark a payroll run as paid
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireAdminSession();
+    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const { id } = await params;

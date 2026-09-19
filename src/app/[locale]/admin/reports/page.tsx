@@ -3,10 +3,12 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { prisma } from '@/lib/db';
 import { BarChart3, TrendingUp, Award, Layers } from 'lucide-react';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminReportsPage() {
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const [orderItems, saleItems, inventories] = await Promise.all([
     prisma.orderItem.findMany({ include: { product: true } }),
     prisma.saleItem.findMany({ include: { product: true } }),

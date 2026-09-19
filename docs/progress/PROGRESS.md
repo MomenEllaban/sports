@@ -6,6 +6,7 @@
 | 01 | Test foundation | DONE | (this commit) | vitest 7/7, e2e 4+4, lint 0 err | env-guard, migrations baseline, CI, docs/testing.md |
 | 02 | Seeder v1 | DONE | (this commit) | seed idempotent, login e2e, smoke 57 | 41 models/141 SKUs, docs/seed.md |
 | 03 | Protect POS | DONE | (this commit) | pos-guard 5/5, e2e POS redirect | guards.ts, middleware, test-DB incident fixed |
+| 04 | Server-side RBAC | DONE | (this commit) | matrix meta + enforcement 6/6, all 22/22 | guards, matrix, page guards, escalation blocks |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.

@@ -3,10 +3,12 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import PayrollManager from '@/components/admin/PayrollManager';
 import { prisma } from '@/lib/db';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPayrollPage() {
+  await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const [employees, runs] = await Promise.all([
     prisma.employee.findMany({ include: { branch: true } }),
     prisma.payrollRun.findMany({

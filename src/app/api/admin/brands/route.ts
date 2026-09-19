@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 
 export async function GET() {
   try {
@@ -13,7 +13,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireAdminSession();
+    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { nameAr, nameEn } = await req.json();

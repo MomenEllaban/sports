@@ -2,6 +2,7 @@ import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import CustomersManager from '@/components/admin/CustomersManager';
+import { requirePageRole } from '@/lib/auth/require-page';
 import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,7 @@ export default async function AdminCustomersPage({
 }: {
   searchParams: Promise<{ phone?: string }>;
 }) {
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const { phone } = await searchParams;
   const customers = await prisma.customer.findMany({
     orderBy: { createdAt: 'desc' },

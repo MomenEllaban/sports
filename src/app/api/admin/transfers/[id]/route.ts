@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 
 // Approve (COMPLETED: moves stock) or reject a transfer
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { session, error } = await requireAdminSession();
+    const { session, error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { id } = await params;

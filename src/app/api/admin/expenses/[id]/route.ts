@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 import { ExpenseCategory } from '@prisma/client';
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireAdminSession();
+    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const { id } = await params;
@@ -45,7 +45,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireAdminSession();
+    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const { id } = await params;

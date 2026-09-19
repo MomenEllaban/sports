@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 import { uploadBufferToCloudinary, uploadImageToCloudinary } from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireAdminSession();
+    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const contentType = req.headers.get('content-type') || '';

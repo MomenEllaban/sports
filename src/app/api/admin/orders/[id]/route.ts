@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 const ORDER_STATUSES = Object.values(OrderStatus);
@@ -8,7 +8,7 @@ const PAYMENT_STATUSES = Object.values(PaymentStatus);
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireAdminSession();
+    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { id } = await params;

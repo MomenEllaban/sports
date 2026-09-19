@@ -3,10 +3,12 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import ProductsManager from '@/components/admin/ProductsManager';
 import { prisma } from '@/lib/db';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminProductsPage() {
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const [products, categories, brands] = await Promise.all([
     prisma.product.findMany({
       orderBy: { createdAt: 'desc' },

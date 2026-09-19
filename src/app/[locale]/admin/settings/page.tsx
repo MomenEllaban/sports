@@ -5,10 +5,12 @@ import BranchManager from '@/components/admin/BranchManager';
 import { prisma } from '@/lib/db';
 import { Settings, ShieldCheck, CreditCard, Truck } from 'lucide-react';
 import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminSettingsPage() {
+  await requirePageRole('SUPER_ADMIN');
   const branches = await prisma.branch.findMany();
 
   return (

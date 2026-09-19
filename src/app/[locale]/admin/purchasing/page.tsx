@@ -4,10 +4,12 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import PurchasingManager from '@/components/admin/PurchasingManager';
 import SuppliersManager from '@/components/admin/SuppliersManager';
 import { prisma } from '@/lib/db';
+import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPurchasingPage() {
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const [suppliers, branches, products, purchaseOrders] = await Promise.all([
     prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
     prisma.branch.findMany({ select: { id: true, name: true, nameEn: true } }),

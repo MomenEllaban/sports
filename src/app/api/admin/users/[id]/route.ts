@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireAdminSession } from '@/lib/admin-guard';
+import { requireRole } from '@/lib/auth/guards.js';
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 
@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error, session } = await requireAdminSession();
+    const { error, session } = await requireRole('SUPER_ADMIN');
     if (error) return error;
 
     const { id } = await params;
@@ -28,12 +28,26 @@ export async function PATCH(
     if (body.name) updateData.name = body.name.trim();
     if (body.email) updateData.email = body.email.trim().toLowerCase();
     if (typeof body.phone !== 'undefined') updateData.phone = body.phone ? body.phone.trim() : null;
-    if (body.role) updateData.role = body.role as Role;
+    if (body.role) {
+      if (!Object.values(Role).includes(body.role)) {
+        return NextResponse.json({ success: false, error: 'دور غير صالح' }, { status: 400 });
+      }
+      updateData.role = body.role as Role;
+    }
     if (Array.isArray(body.branchIds)) updateData.branchIds = body.branchIds;
     if (typeof body.isActive === 'boolean') updateData.isActive = body.isActive;
 
     if (body.password && body.password.length >= 6) {
       updateData.passwordHash = await bcrypt.hash(body.password, 10);
+    }
+
+    // Nobody may change their own role or deactivate themselves (anti lock-out).
+    const selfId = (session?.user as { id?: string } | undefined)?.id;
+    if (selfId && selfId === id && (updateData.role || updateData.isActive === false)) {
+      return NextResponse.json(
+        { success: false, error: 'لا يمكنك تغيير دورك أو تعطيل حسابك بنفسك' },
+        { status: 403 }
+      );
     }
 
     // Check email uniqueness if email changed
@@ -78,7 +92,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error, session } = await requireAdminSession();
+    const { error, session } = await requireRole('SUPER_ADMIN');
     if (error) return error;
 
     const { id } = await params;
