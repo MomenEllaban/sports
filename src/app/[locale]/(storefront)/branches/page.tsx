@@ -4,6 +4,7 @@ import Footer from '@/components/storefront/Footer';
 import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
 import { MapPin, Phone, Clock, Navigation } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/storefront/WhatsAppButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,19 @@ export default async function BranchesPage({
                 <MapPin className="w-10 h-10 text-amber-400 mx-auto" />
                 <h2 className="font-extrabold text-lg">فرع الإبراهيمية الرئيسي</h2>
                 <p className="text-xs text-slate-400">92 شارع عمر لطفى، الإبراهيمية بحري، سيدي جابر، باب شرقي، الإسكندرية</p>
-                <p className="text-xs text-slate-300 font-bold" dir="ltr">03 5926908</p>
+                <div className="flex items-center justify-center gap-3 pt-1">
+                  <a href="tel:035926908" className="text-xs text-slate-300 hover:text-white font-bold tabular-nums" dir="ltr">03 5926908</a>
+                  <span className="text-slate-600">|</span>
+                  <a
+                    href="https://wa.me/201224226876"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-xs hover:bg-emerald-500/25 transition-all"
+                  >
+                    <WhatsAppIcon className="w-3.5 h-3.5" />
+                    <span dir="ltr" className="tabular-nums">0122 422 6876</span>
+                  </a>
+                </div>
                 <p className="text-[11px] text-slate-500">السبت – الأربعاء 10ص – 10م | الخميس والجمعة 10ص – 11م</p>
                 <a
                   href="https://www.google.com/maps/search/?api=1&query=92+Omar+Lotfy+St+Ibrahimeyah+Alexandria"
@@ -81,9 +94,21 @@ export default async function BranchesPage({
                   </p>
                 </div>
                 <div className="space-y-2 text-xs text-slate-300 border-t border-slate-800/80 pt-3">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-blue-400" />
-                    <span dir="ltr" className="font-bold">{branch.phone}</span>
+                  <div className="flex items-center justify-between">
+                    <a href={`tel:${branch.phone.replace(/\s+/g, '')}`} className="flex items-center gap-2 hover:text-blue-400 transition-colors">
+                      <Phone className="w-4 h-4 text-blue-400" />
+                      <span dir="ltr" className="font-bold tabular-nums">{branch.phone}</span>
+                    </a>
+                    <a
+                      href="https://wa.me/201224226876"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 transition-all font-bold text-[11px]"
+                      title={isAr ? 'مراسلة واتساب: 01224226876' : 'Chat on WhatsApp'}
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                      <span>{isAr ? 'واتساب' : 'WhatsApp'}</span>
+                    </a>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-amber-400" />

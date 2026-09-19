@@ -7,6 +7,7 @@ import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X 
 import { useCartStore } from '@/store/cartStore';
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import Image from 'next/image';
+import { WhatsAppIcon } from './WhatsAppButton';
 
 export default function Header() {
   const t = useTranslations('common');
@@ -29,21 +30,45 @@ export default function Header() {
       {/* Top Announcement Bar */}
       <div className="bg-gradient-to-r from-blue-900 via-slate-900 to-amber-950 px-4 py-1.5 text-xs text-slate-300 border-b border-slate-800/60">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
             <span className="flex items-center gap-1 text-amber-400 font-medium">
-              <MapPin className="w-3.5 h-3.5" />
-              {t('flagshipAddress')}
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span>{t('flagshipAddress')}</span>
             </span>
-            <span className="hidden sm:inline-block text-slate-500">|</span>
-            <span className="hidden md:flex items-center gap-1 text-slate-300">
-              <Phone className="w-3.5 h-3.5 text-blue-400" />
-              {t('phone')}
-            </span>
+            <span className="hidden md:inline-block text-slate-600">|</span>
+            {/* Phone Number with strict LTR and tabular-nums */}
+            <a
+              href="tel:035926908"
+              className="hidden md:flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors"
+              title={locale === 'ar' ? 'اتصل بفرع الإبراهيمية: 03 5926908' : 'Call store: 03 5926908'}
+            >
+              <Phone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span dir="ltr" className="tabular-nums font-semibold tracking-wider text-slate-200">
+                03 5926908
+              </span>
+            </a>
+
+            <span className="hidden sm:inline-block text-slate-600">|</span>
+
+            {/* Direct WhatsApp Contact in Header */}
+            <a
+              href="https://wa.me/201224226876"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-all font-bold text-[11px] group"
+              title={locale === 'ar' ? 'تواصل معنا واتساب: 01224226876' : 'WhatsApp Us: 01224226876'}
+            >
+              <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="hidden sm:inline font-semibold">{locale === 'ar' ? 'واتساب:' : 'WhatsApp:'}</span>
+              <span dir="ltr" className="tabular-nums font-extrabold tracking-wider">
+                0122 422 6876
+              </span>
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-emerald-400 flex items-center gap-1 font-semibold text-[11px]">
-              <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="text-emerald-400 hidden lg:flex items-center gap-1 font-semibold text-[11px]">
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               {t('workingHours')}
             </span>
             <button
@@ -167,6 +192,32 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+
+            {/* Direct Contact in Mobile Menu */}
+            <div className="pt-2 mt-2 border-t border-slate-800/80 grid grid-cols-1 gap-2 text-xs">
+              <a
+                href="https://wa.me/201224226876"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold"
+              >
+                <span className="flex items-center gap-2">
+                  <WhatsAppIcon className="w-4 h-4 text-emerald-400" />
+                  <span>{locale === 'ar' ? 'تواصل واتساب مباشر' : 'Direct WhatsApp'}</span>
+                </span>
+                <span dir="ltr" className="tabular-nums font-black">0122 422 6876</span>
+              </a>
+              <a
+                href="tel:035926908"
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold"
+              >
+                <span className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-blue-400" />
+                  <span>{locale === 'ar' ? 'هاتف فرع الإبراهيمية' : 'Call Flagship Store'}</span>
+                </span>
+                <span dir="ltr" className="tabular-nums font-black">03 5926908</span>
+              </a>
+            </div>
           </div>
         </nav>
       )}

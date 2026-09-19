@@ -98,9 +98,13 @@ export default function HeroBanner() {
                 <span className="text-slate-400">الخميس والجمعة:</span>
                 <span className="font-semibold text-amber-400">10ص–11م</span>
               </div>
-              <div className="flex justify-between pt-1 border-t border-slate-800">
+              <div className="flex justify-between items-center pt-1 border-t border-slate-800">
                 <span className="text-slate-400">هاتف الفرع:</span>
-                <span className="font-bold text-blue-400" dir="ltr">03 5926908</span>
+                <a href="tel:035926908" className="font-bold text-blue-400 hover:underline tabular-nums" dir="ltr">03 5926908</a>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">واتساب مباشر:</span>
+                <a href="https://wa.me/201224226876" target="_blank" rel="noopener noreferrer" className="font-bold text-emerald-400 hover:underline tabular-nums" dir="ltr">0122 422 6876</a>
               </div>
             </div>
 

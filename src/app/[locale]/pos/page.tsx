@@ -606,8 +606,10 @@ export default function PosTerminalPage() {
           <div className="bg-white text-slate-900 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl dir-rtl">
             <div className="text-center space-y-1 border-b border-slate-200 pb-3">
               <h2 className="font-black text-lg text-slate-900">ابطال الرياضة الإبراهيمية</h2>
-              <p className="text-[11px] text-slate-600">92 شارع عمر لطفى - الإبراهيمية - الإسكندرية</p>
-              <p className="text-[11px] text-slate-600">هاتف: 03 5926908 | ر.ض: 123-456-789</p>
+              <p className="text-[11px] text-slate-600">
+                هاتف: <span dir="ltr" className="tabular-nums font-bold">03 5926908</span> | واتساب: <span dir="ltr" className="tabular-nums font-bold">0122 422 6876</span>
+              </p>
+              <p className="text-[10px] text-slate-500">ر.ض: <span dir="ltr" className="tabular-nums font-medium">123-456-789</span></p>
               <div className="text-xs font-bold text-slate-800 pt-1">فاتورة بيع / إيصال إلكتروني ETA</div>
               <div className="text-[10px] text-slate-500">رقم الفاتورة: {receiptData.saleNumber}</div>
             </div>

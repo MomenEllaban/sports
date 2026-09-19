@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { MapPin, Phone, Clock, ShieldCheck, CreditCard, Heart } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import WhatsAppButton, { WhatsAppIcon } from './WhatsAppButton';
 
 export default function Footer() {
   const tCommon = useTranslations('common');
@@ -43,7 +44,21 @@ export default function Footer() {
             </div>
             <div className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-blue-400 shrink-0" />
-              <span dir="ltr">{tCommon('phone')}</span>
+              <a href="tel:035926908" className="hover:text-blue-400 transition-colors">
+                <span dir="ltr" className="tabular-nums font-semibold tracking-wide">{tCommon('phone')}</span>
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <WhatsAppIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+              <a
+                href="https://wa.me/201224226876"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-400 hover:text-emerald-300 font-bold transition-colors flex items-center gap-1.5"
+              >
+                <span dir="ltr" className="tabular-nums font-bold">0122 422 6876</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">واتساب</span>
+              </a>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -150,6 +165,9 @@ export default function Footer() {
           مصمم بالإسكندرية <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
         </p>
       </div>
+
+      {/* Floating WhatsApp Quick Contact Button */}
+      <WhatsAppButton />
     </footer>
   );
 }
