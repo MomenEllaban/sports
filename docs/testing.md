@@ -18,6 +18,8 @@
 - `DIRECT_URL` (non-pooler host) exists for migrations per mission section 2.
 - Clean state: `resetTestDb()` truncates all app tables (`CASCADE`) in `beforeAll` of each
   integration file. Strategy: per-file reset (fast enough at this scale; revisit if slow).
+  Integration tests must be ORDER-INDEPENDENT (files can share workers): never assert global
+  emptiness — create and clean up your own rows.
 
 ## Mocking sessions (`callAs` pattern)
 - `tests/setup-mocks.ts` (vitest setupFiles) mocks `next-auth` `getServerSession` to resolve

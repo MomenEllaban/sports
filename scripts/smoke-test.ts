@@ -144,26 +144,20 @@ try {
   const { prisma } = await import('../src/lib/db.js');
   await prisma.$queryRaw`SELECT 1`;
   ok('db connection SELECT 1');
-  const [branches, products, categories] = await Promise.all([
+  const [branches, products, categories, settings, users, customers] = await Promise.all([
     prisma.branch.count(),
     prisma.product.count(),
     prisma.category.count(),
+    prisma.setting.count(),
+    prisma.user.count(),
+    prisma.customer.count(),
   ]);
-  ok(`db counts branches=${branches} products=${products} categories=${categories}`);
-  const [orders, sales, pos, expenses, runs, transfers, notifs] = await Promise.all([
-    prisma.order.count(),
-    prisma.sale.count(),
-    prisma.purchaseOrder.count(),
-    prisma.expense.count(),
-    prisma.payrollRun.count(),
-    prisma.stockTransfer.count(),
-    prisma.notification.count(),
-  ]);
-  if (orders >= 5 && sales >= 3 && pos >= 2 && expenses >= 4 && runs >= 1 && transfers >= 1 && notifs >= 4) {
-    ok(`rich seed orders=${orders} sales=${sales} pos=${pos} expenses=${expenses} payrollRuns=${runs} transfers=${transfers} notifications=${notifs}`);
+  if (branches === 2 && categories === 6 && products >= 100 && settings >= 10 && users >= 7 && customers >= 30) {
+    ok(`seed v1 branches=${branches} products=${products} categories=${categories} settings=${settings} users=${users} customers=${customers}`);
   } else {
-    fail('rich seed data', `orders=${orders} sales=${sales} pos=${pos} expenses=${expenses} runs=${runs} transfers=${transfers} notifs=${notifs}`);
+    fail('seed v1 counts', `branches=${branches} products=${products} categories=${categories} settings=${settings} users=${users} customers=${customers}`);
   }
+  // NOTE (T02): transactional history (orders/sales/POs/payroll) is seeded in T37 via real services.
   await prisma.$disconnect();
 } catch (e) {
   fail('db connection', String(e).slice(0, 300));

@@ -514,3 +514,11 @@ model TaxInvoice {
   order  Order? @relation(fields: [orderId], references: [id])
   sale   Sale?  @relation(fields: [saleId], references: [id])
 }
+
+// T02: generic key/value store for all configurable business values (T12 builds service + UI).
+// Values are JSON-encoded strings; seed fills defaults, admins edit them.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

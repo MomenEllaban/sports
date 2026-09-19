@@ -4,6 +4,7 @@
 |---|---|---|---|---|---|
 | 00 | Recon and verification | DONE | (this commit) | baseline tsc0/build0 | docs/audit-verification.md + route-inventory.md |
 | 01 | Test foundation | DONE | (this commit) | vitest 7/7, e2e 4+4, lint 0 err | env-guard, migrations baseline, CI, docs/testing.md |
+| 02 | Seeder v1 | DONE | (this commit) | seed idempotent, login e2e, smoke 57 | 41 models/141 SKUs, docs/seed.md |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.
