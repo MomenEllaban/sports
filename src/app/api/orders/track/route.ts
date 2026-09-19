@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
       orderStatus: order.orderStatus,
       shippingProvider: order.shippingProvider,
       trackingNumber: order.trackingNumber,
-      totalAmount: order.totalAmount,
+      totalAmount: num(order.totalAmount),
       guestName: order.guestName,
       guestPhone: order.guestPhone,
       deliveryAddress: order.deliveryAddress,
@@ -47,7 +48,7 @@ export async function GET(req: Request) {
       items: order.items.map((i) => ({
         name: i.product.nameAr,
         quantity: i.quantity,
-        price: i.unitPrice,
+        price: num(i.unitPrice),
       })),
     },
   });

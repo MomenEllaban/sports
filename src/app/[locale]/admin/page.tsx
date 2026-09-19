@@ -3,6 +3,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { StatusBadge, PayLabel } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { DollarSign, ShoppingBag, Layers, MapPin, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { requirePageRole } from '@/lib/auth/require-page';
@@ -30,7 +31,7 @@ export default async function AdminDashboardPage() {
   ]);
 
   const todayRevenue =
-    todayOrders.reduce((s, o) => s + o.totalAmount, 0) + todaySales.reduce((s, x) => s + x.totalAmount, 0);
+    todayOrders.reduce((s, o) => s + num(o.totalAmount), 0) + todaySales.reduce((s, x) => s + num(x.totalAmount), 0);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex">
@@ -118,7 +119,7 @@ export default async function AdminDashboardPage() {
                         <td className="py-3 font-bold text-amber-400">{ord.orderNumber}</td>
                         <td className="py-3 font-medium text-slate-200">{ord.guestName || ord.guestPhone}</td>
                         <td className="py-3 text-slate-300"><PayLabel value={ord.paymentMethod} /></td>
-                        <td className="py-3 font-bold text-slate-100">{ord.totalAmount.toLocaleString()} ج.م</td>
+                        <td className="py-3 font-bold text-slate-100">{num(ord.totalAmount).toLocaleString()} ج.م</td>
                         <td className="py-3"><StatusBadge value={ord.orderStatus} /></td>
                       </tr>
                     ))}

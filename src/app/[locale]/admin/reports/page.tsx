@@ -2,6 +2,7 @@ import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { BarChart3, TrendingUp, Award, Layers } from 'lucide-react';
 import { requirePageRole } from '@/lib/auth/require-page';
 
@@ -20,7 +21,7 @@ export default async function AdminReportsPage() {
   for (const it of [...orderItems, ...saleItems]) {
     const cur = qtyByProduct.get(it.productId) || { nameAr: it.product.nameAr, nameEn: it.product.nameEn, qty: 0, revenue: 0 };
     cur.qty += it.quantity;
-    cur.revenue += it.totalPrice;
+    cur.revenue += num(it.totalPrice);
     qtyByProduct.set(it.productId, cur);
   }
   const bestSellers = [...qtyByProduct.values()].sort((a, b) => b.qty - a.qty).slice(0, 5);
@@ -30,7 +31,7 @@ export default async function AdminReportsPage() {
   let costValue = 0;
   const productCache = new Map<string, { price: number; costPrice: number }>();
   const allProducts = await prisma.product.findMany({ select: { id: true, price: true, costPrice: true } });
-  for (const p of allProducts) productCache.set(p.id, p);
+  for (const p of allProducts) productCache.set(p.id, { price: num(p.price), costPrice: num(p.costPrice) });
   for (const inv of inventories) {
     const p = productCache.get(inv.productId);
     if (!p) continue;
@@ -41,8 +42,8 @@ export default async function AdminReportsPage() {
   const marginPct = sellValue > 0 ? Math.round((margin / sellValue) * 100) : 0;
 
   // Revenue by source
-  const orderRevenue = orderItems.reduce((s, i) => s + i.totalPrice, 0);
-  const posRevenue = saleItems.reduce((s, i) => s + i.totalPrice, 0);
+  const orderRevenue = orderItems.reduce((s, i) => s + num(i.totalPrice), 0);
+  const posRevenue = saleItems.reduce((s, i) => s + num(i.totalPrice), 0);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex">

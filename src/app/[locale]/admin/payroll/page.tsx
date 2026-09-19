@@ -3,6 +3,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import PayrollManager from '@/components/admin/PayrollManager';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,7 @@ export default async function AdminPayrollPage() {
                       <td className="p-3 font-bold text-slate-100">{emp.name}</td>
                       <td className="p-3 text-slate-300">{emp.roleTitle}</td>
                       <td className="p-3 text-slate-400">{emp.branch.name}</td>
-                      <td className="p-3 font-black text-emerald-400">{emp.salary.toLocaleString()} ج.م</td>
+                      <td className="p-3 font-black text-emerald-400">{num(emp.salary).toLocaleString()} ج.م</td>
                       <td className="p-3 font-bold text-amber-400">{(emp.commissionRate * 100).toFixed(0)}% من المبيعات</td>
                       <td className="p-3">
                         <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">نشط</span>
@@ -64,7 +65,20 @@ export default async function AdminPayrollPage() {
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-            <PayrollManager runs={runs} />
+            <PayrollManager
+              runs={runs.map((r) => ({
+                ...r,
+                totalAmount: num(r.totalAmount),
+                items: r.items.map((i) => ({
+                  ...i,
+                  baseSalary: num(i.baseSalary),
+                  bonus: num(i.bonus),
+                  deductions: num(i.deductions),
+                  commissionAmount: num(i.commissionAmount),
+                  netSalary: num(i.netSalary),
+                })),
+              }))}
+            />
           </div>
         </main>
       </div>

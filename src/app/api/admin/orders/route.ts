@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
-import { computeTotals } from '@/lib/pricing';
+import { computeTotals, num } from '@/lib/pricing';
 
 export async function POST(req: Request) {
   try {
@@ -43,10 +43,11 @@ export async function POST(req: Request) {
       if (!product || !product.isActive) {
         return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
       }
-      const totalPrice = product.price * item.quantity;
+      const price = num(product.price);
+      const totalPrice = price * item.quantity;
       orderItemsData.push({
         productId: product.id,
-        unitPrice: product.price,
+        unitPrice: price,
         quantity: item.quantity,
         totalPrice,
       });

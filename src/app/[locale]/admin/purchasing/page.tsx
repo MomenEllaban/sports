@@ -4,6 +4,7 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import PurchasingManager from '@/components/admin/PurchasingManager';
 import SuppliersManager from '@/components/admin/SuppliersManager';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
@@ -53,7 +54,11 @@ export default async function AdminPurchasingPage() {
                 suppliers={suppliers}
                 branches={branches}
                 products={products}
-                purchaseOrders={purchaseOrders}
+                purchaseOrders={purchaseOrders.map((po) => ({
+                  ...po,
+                  totalAmount: num(po.totalAmount),
+                  items: po.items.map((i) => ({ ...i, unitCost: num(i.unitCost) })),
+                }))}
               />
             </div>
           </div>

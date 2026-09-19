@@ -3,6 +3,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import OrdersManager from '@/components/admin/OrdersManager';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
@@ -34,8 +35,13 @@ export default async function AdminOrdersPage() {
   const orderRows = orders.map((o) => ({
     kind: 'ORDER' as const,
     ...o,
+    totalAmount: num(o.totalAmount),
+    subtotal: num(o.subtotal),
+    discountAmount: num(o.discountAmount),
+    taxAmount: num(o.taxAmount),
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
+    items: o.items.map((i) => ({ ...i, unitPrice: num(i.unitPrice), totalPrice: num(i.totalPrice) })),
   }));
 
   const posRows = sales.map((s) => ({
@@ -49,10 +55,10 @@ export default async function AdminOrdersPage() {
     shippingProvider: 'PICKUP',
     trackingNumber: s.saleNumber,
     paymentMethod: s.paymentMethod,
-    totalAmount: s.totalAmount,
-    subtotal: s.subtotal,
-    discountAmount: s.discountAmount,
-    taxAmount: s.taxAmount,
+    totalAmount: num(s.totalAmount),
+    subtotal: num(s.subtotal),
+    discountAmount: num(s.discountAmount),
+    taxAmount: num(s.taxAmount),
     orderStatus: 'DELIVERED',
     paymentStatus: 'PAID',
     createdAt: s.createdAt.toISOString(),
@@ -60,8 +66,8 @@ export default async function AdminOrdersPage() {
     items: s.items.map((i) => ({
       id: i.id,
       quantity: i.quantity,
-      unitPrice: i.unitPrice,
-      totalPrice: i.totalPrice,
+      unitPrice: num(i.unitPrice),
+      totalPrice: num(i.totalPrice),
       product: i.product,
     })),
     customer: s.customer,
@@ -90,7 +96,7 @@ export default async function AdminOrdersPage() {
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden animate-fade-up">
             <OrdersManager
               orders={rows}
-              products={products}
+              products={products.map((p) => ({ ...p, price: num(p.price) }))}
               branches={branches}
             />
           </div>

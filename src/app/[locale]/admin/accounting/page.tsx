@@ -4,6 +4,7 @@ import AdminHeader from '@/components/admin/AdminHeader';
 import ExpensesManager from '@/components/admin/ExpensesManager';
 import { StatusBadge } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { DollarSign, ShieldCheck } from 'lucide-react';
 import { requirePageRole } from '@/lib/auth/require-page';
 
@@ -19,17 +20,17 @@ export default async function AdminAccountingPage() {
     prisma.taxInvoice.findMany({ take: 10, orderBy: { createdAt: 'desc' } }),
   ]);
 
-  const totalOnlineRevenue = orders.reduce((acc, o) => acc + o.totalAmount, 0);
-  const totalPosRevenue = sales.reduce((acc, s) => acc + s.totalAmount, 0);
+  const totalOnlineRevenue = orders.reduce((acc, o) => acc + num(o.totalAmount), 0);
+  const totalPosRevenue = sales.reduce((acc, s) => acc + num(s.totalAmount), 0);
   const totalGrossRevenue = totalOnlineRevenue + totalPosRevenue;
-  const totalVatCollected = orders.reduce((acc, o) => acc + o.taxAmount, 0) + sales.reduce((acc, s) => acc + s.taxAmount, 0);
-  const totalExpensesAmount = expenses.reduce((acc, e) => acc + e.amount, 0);
+  const totalVatCollected = orders.reduce((acc, o) => acc + num(o.taxAmount), 0) + sales.reduce((acc, s) => acc + num(s.taxAmount), 0);
+  const totalExpensesAmount = expenses.reduce((acc, e) => acc + num(e.amount), 0);
   const netProfit = totalGrossRevenue - totalExpensesAmount;
 
   // Real COD reconciliation computed from data
   const codOrders = orders.filter((o) => o.paymentMethod === 'COD');
-  const codCollected = codOrders.filter((o) => o.paymentStatus === 'PAID').reduce((s, o) => s + o.totalAmount, 0);
-  const codPending = codOrders.filter((o) => o.paymentStatus !== 'PAID').reduce((s, o) => s + o.totalAmount, 0);
+  const codCollected = codOrders.filter((o) => o.paymentStatus === 'PAID').reduce((s, o) => s + num(o.totalAmount), 0);
+  const codPending = codOrders.filter((o) => o.paymentStatus !== 'PAID').reduce((s, o) => s + num(o.totalAmount), 0);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex">
@@ -77,7 +78,10 @@ export default async function AdminAccountingPage() {
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-            <ExpensesManager expenses={expenses} branches={branches} />
+            <ExpensesManager
+              expenses={expenses.map((e) => ({ ...e, amount: num(e.amount) }))}
+              branches={branches}
+            />
           </div>
 
           {/* ETA E-Invoices Submission Log */}
@@ -106,8 +110,8 @@ export default async function AdminAccountingPage() {
                     <tr key={tax.id} className="hover:bg-slate-900/50">
                       <td className="p-3 font-bold text-amber-400">{tax.invoiceNumber}</td>
                       <td className="p-3 font-mono text-[11px] text-slate-400">{tax.etaUuid}</td>
-                      <td className="p-3 font-black text-slate-100">{tax.totalAmount.toLocaleString()} ج.م</td>
-                      <td className="p-3 text-emerald-400">{tax.vatAmount.toLocaleString()} ج.م</td>
+                      <td className="p-3 font-black text-slate-100">{num(tax.totalAmount).toLocaleString()} ج.م</td>
+                      <td className="p-3 text-emerald-400">{num(tax.vatAmount).toLocaleString()} ج.م</td>
                       <td className="p-3"><StatusBadge value={tax.status} /></td>
                       <td className="p-3 text-slate-400">{tax.createdAt.toLocaleString('ar-EG')}</td>
                     </tr>

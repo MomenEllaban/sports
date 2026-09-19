@@ -215,7 +215,7 @@ model Employee {
   name           String
   phone          String
   roleTitle      String
-  salary         Float
+  salary         Decimal @db.Decimal(12, 2)
   salaryType     SalaryType @default(MONTHLY)
   commissionRate Float      @default(0.0)
   branchId       String
@@ -233,7 +233,7 @@ model PayrollRun {
   periodMonth Int
   periodYear  Int
   status      PayrollStatus @default(DRAFT)
-  totalAmount Float         @default(0.0)
+  totalAmount Decimal @db.Decimal(12, 2)         @default(0.0)
   createdById String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -245,11 +245,11 @@ model PayrollItem {
   id               String        @id @default(cuid())
   payrollRunId     String
   employeeId       String
-  baseSalary       Float
-  bonus            Float         @default(0.0)
-  deductions       Float         @default(0.0)
-  commissionAmount Float         @default(0.0)
-  netSalary        Float
+  baseSalary       Decimal @db.Decimal(12, 2)
+  bonus            Decimal @db.Decimal(12, 2)         @default(0.0)
+  deductions       Decimal @db.Decimal(12, 2)         @default(0.0)
+  commissionAmount Decimal @db.Decimal(12, 2)         @default(0.0)
+  netSalary        Decimal @db.Decimal(12, 2)
   status           PayrollStatus @default(DRAFT)
 
   payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
@@ -311,8 +311,8 @@ model Product {
   nameEn        String
   descriptionAr String?
   descriptionEn String?
-  price         Float
-  costPrice     Float    @default(0.0)
+  price         Decimal @db.Decimal(12, 2)
+  costPrice     Decimal @db.Decimal(12, 2)    @default(0.0)
   categoryId    String
   brandId       String?
   size          String?
@@ -343,16 +343,16 @@ model Order {
   deliveryAddress  String
   branchId         String
   deliveryZone     String           @default("Alexandria Central")
-  deliveryFee      Float            @default(30.0)
+  deliveryFee      Decimal @db.Decimal(12, 2)            @default(30.0)
   shippingProvider ShippingProvider @default(BOSTA)
   trackingNumber   String?
   paymentMethod    PaymentMethod    @default(COD)
   paymentStatus    PaymentStatus    @default(PENDING)
   orderStatus      OrderStatus      @default(PENDING)
-  subtotal         Float
-  taxAmount        Float            @default(0.0)
-  discountAmount   Float            @default(0.0)
-  totalAmount      Float
+  subtotal         Decimal @db.Decimal(12, 2)
+  taxAmount        Decimal @db.Decimal(12, 2)            @default(0.0)
+  discountAmount   Decimal @db.Decimal(12, 2)            @default(0.0)
+  totalAmount      Decimal @db.Decimal(12, 2)
   codReconciled    Boolean          @default(false)
   etaReceiptId     String?
   notes            String?
@@ -369,9 +369,9 @@ model OrderItem {
   id         String @id @default(cuid())
   orderId    String
   productId  String
-  unitPrice  Float
+  unitPrice  Decimal @db.Decimal(12, 2)
   quantity   Int
-  totalPrice Float
+  totalPrice Decimal @db.Decimal(12, 2)
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -383,10 +383,10 @@ model Sale {
   branchId       String
   cashierId      String
   customerId     String?
-  subtotal       Float
-  taxAmount      Float         @default(0.0)
-  discountAmount Float         @default(0.0)
-  totalAmount    Float
+  subtotal       Decimal @db.Decimal(12, 2)
+  taxAmount      Decimal @db.Decimal(12, 2)         @default(0.0)
+  discountAmount Decimal @db.Decimal(12, 2)         @default(0.0)
+  totalAmount    Decimal @db.Decimal(12, 2)
   paymentMethod  PaymentMethod @default(CASH)
   paymentStatus  PaymentStatus @default(PAID)
   status         String        @default("COMPLETED")
@@ -407,10 +407,10 @@ model SaleItem {
   id         String @id @default(cuid())
   saleId     String
   productId  String
-  unitPrice  Float
+  unitPrice  Decimal @db.Decimal(12, 2)
   quantity   Int
-  discount   Float  @default(0.0)
-  totalPrice Float
+  discount   Decimal @db.Decimal(12, 2)  @default(0.0)
+  totalPrice Decimal @db.Decimal(12, 2)
 
   sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -453,7 +453,7 @@ model PurchaseOrder {
   supplierId  String
   branchId    String
   status      PurchaseOrderStatus @default(DRAFT)
-  totalAmount Float               @default(0.0)
+  totalAmount Decimal @db.Decimal(12, 2)               @default(0.0)
   notes       String?
   createdById String
   createdAt   DateTime            @default(now())
@@ -468,7 +468,7 @@ model PurchaseOrderItem {
   id               String @id @default(cuid())
   purchaseOrderId  String
   productId        String
-  unitCost         Float
+  unitCost         Decimal @db.Decimal(12, 2)
   quantityOrdered  Int
   quantityReceived Int    @default(0)
 
@@ -482,7 +482,7 @@ model Expense {
   branchId      String
   category      ExpenseCategory @default(OTHER)
   description   String
-  amount        Float
+  amount        Decimal @db.Decimal(12, 2)
   receiptImage  String?
   date          DateTime        @default(now())
   createdById   String
@@ -513,8 +513,8 @@ model TaxInvoice {
   orderId         String?          @unique
   saleId          String?          @unique
   branchId        String
-  totalAmount     Float
-  vatAmount       Float
+  totalAmount     Decimal @db.Decimal(12, 2)
+  vatAmount       Decimal @db.Decimal(12, 2)
   qrCodeData      String?
   status          TaxInvoiceStatus @default(SUBMITTED)
   etaResponseText String?

@@ -21,6 +21,18 @@ export function money(x: number): number {
   return Math.round(x * 100) / 100;
 }
 
+/**
+ * API boundary rule (T10): money leaves Prisma as Decimal. Convert to plain
+ * number at the boundary (JSON responses, client props, arithmetic). Never do
+ * arithmetic directly on Decimal values.
+ */
+export function num(v: unknown): number {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (v === null || v === undefined) return 0;
+  const n = Number(String(v));
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function lineTotal(unitPrice: number, quantity: number): number {
   return money(unitPrice * quantity);
 }

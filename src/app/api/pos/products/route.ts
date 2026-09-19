@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 import { resolvePosContext, PosContextError } from '@/lib/pos/context';
+import { num } from '@/lib/pricing';
 
 export async function GET(req: Request) {
   try {
@@ -34,7 +35,13 @@ export async function GET(req: Request) {
         ? await prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true, nameEn: true } })
         : [];
 
-    return NextResponse.json({ success: true, products, branch: ctx.branch, branches });
+    return NextResponse.json({
+      success: true,
+      // T10: Decimal -> number at the API boundary.
+      products: products.map((p) => ({ ...p, price: num(p.price), costPrice: num(p.costPrice) })),
+      branch: ctx.branch,
+      branches,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ success: false, products: [] }, { status: 500 });

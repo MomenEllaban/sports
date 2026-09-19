@@ -12,6 +12,7 @@
 | 07 | Atomic inventory | DONE | (this commit) | pos-atomic 5/5, all 37/37 | inventory service, tx, idempotency |
 | 08 | Order state machine | DONE | (this commit) | order-status 5/5 | transitions, exactly-once restock |
 | 09 | Central money math | DONE | (this commit) | pricing 5/5 + props, all 47/47 | pricing.ts, all call sites migrated |
+| 10 | Float to Decimal | DONE | (this commit) | all 47/47, build+smoke green | 28 cols Decimal(12,2), num() boundary |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.

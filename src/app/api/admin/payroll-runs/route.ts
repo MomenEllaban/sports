@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { money, num } from '@/lib/pricing';
 
 // Create a payroll run for a month with items auto-built from active employees
 export async function POST(req: Request) {
@@ -28,14 +29,15 @@ export async function POST(req: Request) {
     }
 
     const items = employees.map((e) => {
-      const commission = Math.round(e.salary * e.commissionRate * 100) / 100;
+      const salary = num(e.salary);
+      const commission = money(salary * e.commissionRate);
       return {
         employeeId: e.id,
-        baseSalary: e.salary,
+        baseSalary: salary,
         bonus: 0,
         deductions: 0,
         commissionAmount: commission,
-        netSalary: Math.round((e.salary + commission) * 100) / 100,
+        netSalary: money(salary + commission),
         status: 'DRAFT' as const,
       };
     });

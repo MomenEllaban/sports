@@ -80,7 +80,7 @@ describe('server-authoritative pricing and discounts (T06, RED first)', () => {
     const body = await res.json();
     const sale = await testPrisma().sale.findUniqueOrThrow({ where: { id: body.saleId } });
     expect(sale.approvedById).toBe(manager.id);
-    expect(sale.discountAmount).toBe(150);
+    expect(Number(sale.discountAmount)).toBe(150);
   });
 
   it('BRANCH_MANAGER session needs no PIN and is recorded as approver', async () => {

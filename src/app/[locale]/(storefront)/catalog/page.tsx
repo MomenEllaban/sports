@@ -3,6 +3,7 @@ import Header from '@/components/storefront/Header';
 import Footer from '@/components/storefront/Footer';
 import ProductCard from '@/components/storefront/ProductCard';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { Search } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
@@ -121,7 +122,7 @@ export default async function CatalogPage({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={{ ...product, price: num(product.price) }} />
             ))}
           </div>
         )}

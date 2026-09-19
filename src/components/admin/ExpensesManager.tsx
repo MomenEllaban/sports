@@ -15,7 +15,6 @@ interface ExpenseRow {
   category: string;
   description: string;
   amount: number;
-  date: Date;
   branch: { name: string; nameEn: string };
 }
 

@@ -5,6 +5,7 @@ import Footer from '@/components/storefront/Footer';
 import ProductCard from '@/components/storefront/ProductCard';
 import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { Link } from '@/i18n/routing';
 import { Trophy, Activity, Waves, Dumbbell, Shield, MapPin, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
@@ -117,7 +118,7 @@ export default async function StorefrontHomePage({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {products.map((product, index) => (
               <Reveal key={product.id} delay={Math.min(index * 70, 280)}>
-                <ProductCard product={product} />
+                <ProductCard product={{ ...product, price: num(product.price) }} />
               </Reveal>
             ))}
           </div>

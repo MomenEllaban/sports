@@ -5,7 +5,7 @@ import { buildEtaReceipt } from '@/lib/eta';
 import { initializePayment } from '@/lib/payments';
 import { dispatchNotification } from '@/lib/notifications';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
-import { computeTotals } from '@/lib/pricing';
+import { computeTotals, num } from '@/lib/pricing';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
 
 const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -65,11 +65,12 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const itemTotal = dbProduct.price * item.quantity;
+      const price = num(dbProduct.price);
+      const itemTotal = price * item.quantity;
 
       orderItemsData.push({
         productId: dbProduct.id,
-        unitPrice: dbProduct.price,
+        unitPrice: price,
         quantity: item.quantity,
         totalPrice: itemTotal,
       });

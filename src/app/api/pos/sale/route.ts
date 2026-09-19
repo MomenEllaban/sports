@@ -6,7 +6,7 @@ import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
-import { computeTotals, loyaltyEarned as loyaltyRule } from '@/lib/pricing';
+import { computeTotals, loyaltyEarned as loyaltyRule, num } from '@/lib/pricing';
 import { dispatchNotification } from '@/lib/notifications';
 
 const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -93,9 +93,10 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      const totalPrice = dbProduct.price * line.quantity;
+      const price = num(dbProduct.price);
+      const totalPrice = price * line.quantity;
       subtotal += totalPrice;
-      priced.push({ productId: dbProduct.id, unitPrice: dbProduct.price, quantity: line.quantity, totalPrice });
+      priced.push({ productId: dbProduct.id, unitPrice: price, quantity: line.quantity, totalPrice });
     }
 
     // Strict discount validation + manager authorization (T06), before any write.

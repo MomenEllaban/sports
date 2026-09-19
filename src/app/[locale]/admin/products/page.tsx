@@ -3,6 +3,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import ProductsManager from '@/components/admin/ProductsManager';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,11 @@ export default async function AdminProductsPage() {
           </div>
 
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden p-4 animate-fade-up">
-            <ProductsManager products={products} categories={categories} brands={brands} />
+            <ProductsManager
+              products={products.map((p) => ({ ...p, price: num(p.price), costPrice: num(p.costPrice) }))}
+              categories={categories}
+              brands={brands}
+            />
           </div>
         </main>
       </div>
