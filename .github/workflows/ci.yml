@@ -1,0 +1,68 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sports_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-retries=10
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sports_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sports_test?schema=sports_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/sports_test
+      NEXTAUTH_SECRET: ci-secret
+      NEXTAUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma db push --accept-data-loss
+      - run: npm run test:int
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [quality, integration]
+    env:
+      APP_ENV: development
+      DATABASE_URL: postgresql://u:p@localhost/db
+      NEXTAUTH_SECRET: ci-secret
+      NEXTAUTH_URL: http://localhost:3102
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run test:e2e

@@ -3,6 +3,7 @@
 | Task | Title | Status | Commit | Tests | Notes |
 |---|---|---|---|---|---|
 | 00 | Recon and verification | DONE | (this commit) | baseline tsc0/build0 | docs/audit-verification.md + route-inventory.md |
+| 01 | Test foundation | DONE | (this commit) | vitest 7/7, e2e 4+4, lint 0 err | env-guard, migrations baseline, CI, docs/testing.md |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.
