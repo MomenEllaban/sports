@@ -6,6 +6,7 @@ import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
+import { computeTotals, loyaltyEarned as loyaltyRule } from '@/lib/pricing';
 import { dispatchNotification } from '@/lib/notifications';
 
 const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -117,9 +118,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
     }
 
-    const netAmount = Math.max(0, subtotal - discount);
-    const vatAmount = Math.round(netAmount * 0.14 * 100) / 100;
-    const totalAmount = netAmount + vatAmount;
+    // T09: totals via the central pricing module (same exclusive-VAT semantics).
+    const totals = computeTotals({ lines: priced, discount });
+    const vatAmount = totals.vat;
+    const totalAmount = totals.total;
 
     let resolvedCustomerId: string | null = null;
     if (customerId) {
@@ -225,7 +227,7 @@ export async function POST(req: Request) {
     // AFTER commit only: loyalty + notifications never roll back or fail the sale.
     let loyaltyEarned = 0;
     if (resolvedCustomerId) {
-      loyaltyEarned = Math.floor(totalAmount / 10);
+      loyaltyEarned = loyaltyRule(totalAmount);
       if (loyaltyEarned > 0) {
         await prisma.customer.update({
           where: { id: resolvedCustomerId },

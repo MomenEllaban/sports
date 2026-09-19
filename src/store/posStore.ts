@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PaymentMethod } from '@prisma/client';
+import { computeTotals } from '@/lib/pricing';
 
 export interface PosCartItem {
   id: string;
@@ -147,19 +148,24 @@ export const usePosStore = create<PosState>((set, get) => ({
   clearOfflineQueue: () => set({ offlineQueue: [] }),
 
   getSubtotal: () => {
-    return get().ticketItems.reduce(
-      (sum, i) => sum + i.unitPrice * i.quantity - i.discount,
-      0
-    );
+    return computeTotals({
+      lines: get().ticketItems.map((i) => ({ unitPrice: i.unitPrice, quantity: i.quantity })),
+    }).subtotal;
   },
 
   getVatAmount: () => {
-    const afterDiscount = get().getSubtotal() - get().discountAmount;
-    return Math.max(0, Math.round(afterDiscount * 0.14 * 100) / 100);
+    const s = get();
+    return computeTotals({
+      lines: s.ticketItems.map((i) => ({ unitPrice: i.unitPrice, quantity: i.quantity })),
+      discount: s.discountAmount,
+    }).vat;
   },
 
   getTotalAmount: () => {
-    const net = get().getSubtotal() - get().discountAmount;
-    return Math.max(0, net + get().getVatAmount());
+    const s = get();
+    return computeTotals({
+      lines: s.ticketItems.map((i) => ({ unitPrice: i.unitPrice, quantity: i.quantity })),
+      discount: s.discountAmount,
+    }).total;
   },
 }));

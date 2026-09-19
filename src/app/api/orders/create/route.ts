@@ -5,6 +5,7 @@ import { buildEtaReceipt } from '@/lib/eta';
 import { initializePayment } from '@/lib/payments';
 import { dispatchNotification } from '@/lib/notifications';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
+import { computeTotals } from '@/lib/pricing';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
 
 const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -42,7 +43,6 @@ export async function POST(req: Request) {
     }
 
     // 3. Validate items + compute totals from DB prices (T06 semantics). No writes yet.
-    let subtotal = 0;
     const orderItemsData: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number }> = [];
     const shortages: Array<{ productId: string; sku: string; available: number; requested: number }> = [];
 
@@ -66,7 +66,6 @@ export async function POST(req: Request) {
       }
 
       const itemTotal = dbProduct.price * item.quantity;
-      subtotal += itemTotal;
 
       orderItemsData.push({
         productId: dbProduct.id,
@@ -88,8 +87,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const vatAmount = Math.round(subtotal * 0.14 * 100) / 100;
-    const totalAmount = subtotal + vatAmount + Number(deliveryFee || 0);
+    // T09: totals via the central pricing module (same exclusive-VAT semantics).
+    const totals = computeTotals({
+      lines: orderItemsData,
+      deliveryFee: Number(deliveryFee || 0),
+    });
+    const vatAmount = totals.vat;
+    const totalAmount = totals.total;
 
     const receipt = await buildEtaReceipt({
       branchId: flagshipBranch.id,
@@ -148,7 +152,7 @@ export async function POST(req: Request) {
               paymentMethod: paymentMethod as PaymentMethod,
               paymentStatus: PaymentStatus.PENDING,
               orderStatus: OrderStatus.CONFIRMED,
-              subtotal,
+              subtotal: totals.subtotal,
               taxAmount: vatAmount,
               totalAmount,
               items: { create: orderItemsData },

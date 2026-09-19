@@ -11,6 +11,7 @@
 | 06 | Server pricing+discounts | DONE | (this commit) | pos-discount 7/7, all 32/32 | discount auth, PIN lockout, approver recorded |
 | 07 | Atomic inventory | DONE | (this commit) | pos-atomic 5/5, all 37/37 | inventory service, tx, idempotency |
 | 08 | Order state machine | DONE | (this commit) | order-status 5/5 | transitions, exactly-once restock |
+| 09 | Central money math | DONE | (this commit) | pricing 5/5 + props, all 47/47 | pricing.ts, all call sites migrated |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.

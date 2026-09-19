@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { incrementStock } from '@/lib/inventory/service.js';
+import { incrementStock } from '@/lib/inventory/service';
 import type { OrderStatus } from '@prisma/client';
 
 type S = OrderStatus;

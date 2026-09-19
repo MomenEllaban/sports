@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { computeTotals } from '@/lib/pricing';
 
 export async function POST(req: Request) {
   try {
@@ -26,26 +27,37 @@ export async function POST(req: Request) {
       );
     }
 
-    let subtotal = 0;
-    const orderItemsData = [];
+    const branch = await prisma.branch.findFirst({ where: { id: branchId, isActive: true } });
+    if (!branch) {
+      return NextResponse.json({ success: false, error: 'الفرع غير صالح' }, { status: 400 });
+    }
+
+    const orderItemsData: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number }> = [];
 
     for (const item of items) {
+      // T06/T09: server recomputes from DB; client prices ignored. Strict integer qty.
+      if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
+        return NextResponse.json({ success: false, error: 'كمية غير صالحة في الطلب' }, { status: 400 });
+      }
       const product = await prisma.product.findUnique({ where: { id: item.productId } });
-      if (!product) continue;
-      const unitPrice = item.unitPrice || product.price;
-      const totalPrice = unitPrice * item.quantity;
-      subtotal += totalPrice;
+      if (!product || !product.isActive) {
+        return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
+      }
+      const totalPrice = product.price * item.quantity;
       orderItemsData.push({
         productId: product.id,
-        unitPrice,
+        unitPrice: product.price,
         quantity: item.quantity,
         totalPrice,
       });
     }
 
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
-    const taxAmount = Math.round(subtotal * 0.14 * 100) / 100;
-    const totalAmount = subtotal + taxAmount;
+    // T09: central pricing (exclusive VAT).
+    const totals = computeTotals({ lines: orderItemsData });
+    const subtotal = totals.subtotal;
+    const taxAmount = totals.vat;
+    const totalAmount = totals.total;
 
     const order = await prisma.order.create({
       data: {

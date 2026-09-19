@@ -46,6 +46,7 @@
     "@types/react-dom": "^19.0.3",
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.25",
+    "fast-check": "^4.10.1",
     "msw": "^2.15.0",
     "postcss": "^8.5.1",
     "prisma": "^6.3.0",

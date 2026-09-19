@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { computeTotals } from '@/lib/pricing';
 import { persist } from 'zustand/middleware';
 
 export interface CartItem {
@@ -83,15 +84,19 @@ export const useCartStore = create<CartState>()(
       },
 
       getSubtotal: () => {
-        return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        return computeTotals({ lines: get().items.map((i) => ({ unitPrice: i.price, quantity: i.quantity })) }).subtotal;
       },
 
       getVatAmount: () => {
-        return Math.round(get().getSubtotal() * 0.14 * 100) / 100;
+        return computeTotals({ lines: get().items.map((i) => ({ unitPrice: i.price, quantity: i.quantity })) }).vat;
       },
 
       getTotalAmount: () => {
-        return get().getSubtotal() + get().getVatAmount() + get().deliveryFee;
+        const s = get();
+        return computeTotals({
+          lines: s.items.map((i) => ({ unitPrice: i.price, quantity: i.quantity })),
+          deliveryFee: s.deliveryFee,
+        }).total;
       },
     }),
     {
