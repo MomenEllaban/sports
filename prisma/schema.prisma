@@ -196,6 +196,8 @@ model User {
   phone        String?
   role         Role     @default(STAFF)
   branchIds    String[] @default([])
+  // T05: home branch for branch-scoped roles (CASHIER sells only here).
+  branchId     String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

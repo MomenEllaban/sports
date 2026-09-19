@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           role: user.role,
           branchIds: user.branchIds,
+          branchId: (user as unknown as { branchId?: string | null }).branchId ?? null,
         };
       },
     }),
@@ -46,6 +47,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as unknown as { role: Role }).role;
         token.branchIds = (user as unknown as { branchIds: string[] }).branchIds;
+        token.branchId = (user as unknown as { branchId?: string | null }).branchId ?? null;
       }
       return token;
     },
@@ -54,6 +56,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as unknown as { id: string }).id = token.id as string;
         (session.user as unknown as { role: Role }).role = token.role as Role;
         (session.user as unknown as { branchIds: string[] }).branchIds = token.branchIds as string[];
+        (session.user as unknown as { branchId: string | null }).branchId = (token.branchId as string) ?? null;
       }
       return session;
     },

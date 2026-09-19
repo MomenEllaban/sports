@@ -3,26 +3,25 @@ import { prisma } from '@/lib/db';
 import { submitToEta } from '@/lib/eta';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
+import { resolvePosContext, PosContextError } from '@/lib/pos/context.js';
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireRole(...POS_ROLES);
+    const { error, session } = await requireRole(...POS_ROLES);
     if (error) return error;
 
     const body = await req.json();
-    const { paymentMethod, discountAmount = 0, items, customerId } = body;
+    const { paymentMethod, discountAmount = 0, items, customerId, branchId } = body;
 
-    const flagshipBranch = await prisma.branch.findFirst({
-      where: { isActive: true },
-    });
-
-    const cashierUser = await prisma.user.findFirst({
-      where: { role: 'CASHIER' },
-    });
-
-    if (!flagshipBranch || !cashierUser) {
-      return NextResponse.json({ success: false, error: 'الفرع أو الكاشير غير متاح' }, { status: 500 });
+    let ctx;
+    try {
+      ctx = await resolvePosContext(session!, branchId ?? null);
+    } catch (e) {
+      const err = e as PosContextError;
+      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
     }
+    const flagshipBranch = { id: ctx.branch.id };
+    const cashierUser = { id: ctx.cashierId };
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, error: 'الفاتورة فارغة: أضف صنفاً واحداً على الأقل' }, { status: 400 });
@@ -154,6 +153,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      saleId: sale.id,
       saleNumber,
       totalAmount,
       subtotal,

@@ -79,6 +79,6 @@ export async function makeCustomer(phone?: string) {
   });
 }
 
-export function sessionFor(user: { id: string; name: string; email: string; role: string; branchIds: string[] }) {
-  return { user: { id: user.id, name: user.name, email: user.email, role: user.role, branchIds: user.branchIds } };
+export function sessionFor(user: { id: string; name: string; email: string; role: string; branchIds: string[]; branchId?: string | null }) {
+  return { user: { id: user.id, name: user.name, email: user.email, role: user.role, branchIds: user.branchIds, branchId: user.branchId ?? null } };
 }

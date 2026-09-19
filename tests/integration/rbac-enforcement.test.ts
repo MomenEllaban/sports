@@ -59,9 +59,10 @@ describe('RBAC enforcement (T04)', () => {
 
   it('CASHIER is blocked from expenses (403) but allowed on POS (200)', async () => {
     const c = await makeUser('CASHIER', [branchId]);
+    await testPrisma().user.update({ where: { id: c.id }, data: { branchId } });
     setMockSession(sessionFor(c));
     expect((await expensesPost(req({}))).status).toBe(403);
-    expect((await posProducts()).status).toBe(200);
+    expect((await posProducts(new Request('http://t/api/pos/products'))).status).toBe(200);
   });
 
   it('SUPER_ADMIN cannot change their own role (403) nor deactivate self', async () => {

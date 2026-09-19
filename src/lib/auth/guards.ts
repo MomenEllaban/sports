@@ -13,6 +13,7 @@ export interface AppSession {
     email?: string | null;
     role?: Role;
     branchIds?: string[];
+    branchId?: string | null;
   };
 }
 

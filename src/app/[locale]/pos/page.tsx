@@ -90,16 +90,26 @@ export default function PosTerminalPage() {
     fetchPosProducts();
   }, []);
 
-  const fetchPosProducts = async () => {
+  const [activeBranch, setActiveBranch] = useState<{ id: string; name: string; nameEn: string } | null>(null);
+  const [branchOptions, setBranchOptions] = useState<Array<{ id: string; name: string; nameEn: string }>>([]);
+  const [posBranchId, setBranchIdState] = useState('');
+
+  const fetchPosProducts = async (branchId?: string) => {
     try {
       setLoading(true);
       setLoadError('');
-      const res = await fetch('/api/pos/products');
+      const url = branchId ? `/api/pos/products?branchId=${encodeURIComponent(branchId)}` : '/api/pos/products';
+      const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
         setProducts(data.products);
+        if (data.branch) {
+          setActiveBranch(data.branch);
+          if (!branchId) setBranchIdState(data.branch.id);
+        }
+        if (Array.isArray(data.branches)) setBranchOptions(data.branches);
       } else {
-        setLoadError('تعذر تحميل المنتجات من السيرفر.');
+        setLoadError(data.error || 'تعذر تحميل المنتجات من السيرفر.');
       }
     } catch {
       setLoadError('تعذر الاتصال بالسيرفر. تحقق من الإنترنت وحاول مجدداً.');
@@ -203,6 +213,7 @@ export default function PosTerminalPage() {
       paymentMethod: payMethod,
       discountAmount,
       customerId: customer?.id || null,
+      branchId: posBranchId || undefined,
       items: ticketItems.map((i) => ({
         productId: i.id,
         quantity: i.quantity,
@@ -259,7 +270,7 @@ export default function PosTerminalPage() {
       queueOfflineSale({
         id: `offline-${Date.now()}`,
         saleNumber: `OFFLINE-${Date.now()}`,
-        branchId: '',
+        branchId: posBranchId,
         cashierId: '',
         customerPhone: customer?.phone,
         items: ticketItems.map((i) => ({ ...i })),
@@ -290,6 +301,7 @@ export default function PosTerminalPage() {
             paymentMethod: sale.paymentMethod,
             discountAmount: sale.discountAmount,
             customerPhone: sale.customerPhone || undefined,
+            branchId: sale.branchId || undefined,
             items: sale.items.map((i) => ({ productId: i.id, quantity: i.quantity, unitPrice: i.unitPrice })),
           }),
         });
@@ -329,13 +341,26 @@ export default function PosTerminalPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-sm text-slate-100 leading-tight">
-                كاشير - فرع الإبراهيمية الرئيسي
+                كاشير - {activeBranch ? activeBranch.name : '...'}
               </h1>
               <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-black text-[10px] border border-amber-500/30">
                 POS
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">92 شارع عمر لطفى - الإسكندرية</p>
+            {branchOptions.length > 1 ? (
+              <select
+                value={posBranchId}
+                onChange={(e) => { setBranchIdState(e.target.value); fetchPosProducts(e.target.value); }}
+                aria-label="اختيار الفرع"
+                className="mt-1 text-[11px] font-bold bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-amber-300 focus:outline-none focus:border-amber-500"
+              >
+                {branchOptions.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-[10px] text-slate-400">92 شارع عمر لطفى - الإسكندرية</p>
+            )}
           </div>
         </div>
 
@@ -392,7 +417,7 @@ export default function PosTerminalPage() {
             ) : loadError ? (
               <div className="text-center text-xs py-12 space-y-3">
                 <p className="text-rose-400 font-bold">{loadError}</p>
-                <button onClick={fetchPosProducts} className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
+                <button onClick={() => fetchPosProducts(posBranchId || undefined)} className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
                   إعادة المحاولة
                 </button>
               </div>

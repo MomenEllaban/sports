@@ -32,7 +32,7 @@ describe('POS protection (T03, RED first)', () => {
 
   it('anonymous GET /api/pos/products is rejected (401)', async () => {
     anon();
-    const res = await posProducts();
+    const res = await posProducts(new Request('http://t/api/pos/products'));
     expect(res.status).toBe(401);
   });
 
@@ -67,8 +67,9 @@ describe('POS protection (T03, RED first)', () => {
 
   it('CASHIER can list products and sell', async () => {
     const u = await makeUser('CASHIER', [branchId]);
+    await testPrisma().user.update({ where: { id: u.id }, data: { branchId } });
     asRole(u);
-    const list = await posProducts();
+    const list = await posProducts(new Request('http://t/api/pos/products'));
     expect(list.status).toBe(200);
     const sale = await posSale(new Request('http://t/api/pos/sale', {
       method: 'POST',
