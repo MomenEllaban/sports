@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { ArrowLeftRight } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
 interface ProductOpt { id: string; nameAr: string; nameEn: string }
@@ -38,6 +39,12 @@ export default function TransfersManager({
   const [fromBranchId, setFromBranchId] = useState(branches[0]?.id || '');
   const [toBranchId, setToBranchId] = useState(branches[1]?.id || branches[0]?.id || '');
   const [lines, setLines] = useState<Array<{ productId: string; quantity: number }>>([{ productId: products[0]?.id || '', quantity: 1 }]);
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(transfers.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = transfers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const bName = (b: BranchOpt) => (isAr ? b.name : b.nameEn);
   const pName = (p: ProductOpt) => (isAr ? p.nameAr : p.nameEn);
@@ -75,7 +82,7 @@ export default function TransfersManager({
 
       <div className="space-y-3">
         {transfers.length === 0 && <div className="text-center text-xs text-slate-500 py-8">{t('noData')}</div>}
-        {transfers.map((tr) => (
+        {pagedRows.map((tr) => (
           <div key={tr.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs space-y-2">
             <div className="flex flex-wrap justify-between items-center gap-2">
               <span className="font-extrabold text-amber-400">{tr.transferNumber}</span>
@@ -106,6 +113,15 @@ export default function TransfersManager({
           </div>
         ))}
       </div>
+
+      {transfers.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${transfers.length} تحويل` : `${transfers.length} transfers`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {showModal && (
         <Modal title={t('newTransfer')} onClose={() => setShowModal(false)}>

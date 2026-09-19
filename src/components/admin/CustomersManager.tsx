@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Award, Plus, Pencil, Trash2, Search, Phone, Mail, FileText, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface CustomerRow {
   id: string;
@@ -41,12 +42,23 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+
   const filtered = customers.filter(
     (c) =>
       (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
       c.phone.includes(search) ||
       (c.email || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const inputCls =
     'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500 transition-colors';
@@ -269,7 +281,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {filtered.map((c) => (
+            {pagedRows.map((c) => (
               <tr key={c.id} className="hover:bg-slate-900/50 transition-colors">
                 <td className="p-3 font-bold text-slate-100">
                   {c.name || <span className="text-slate-500 italic">{isAr ? 'بدون اسم' : 'No name'}</span>}
@@ -315,6 +327,15 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
           </div>
         )}
       </div>
+
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${filtered.length} عميل` : `${filtered.length} customers`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {/* Add Modal */}
       {showAddModal && (

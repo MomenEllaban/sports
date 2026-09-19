@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { StatusBadge, ActionButton, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface RunRow {
   id: string;
@@ -29,6 +30,12 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
   const router = useRouter();
   const isAr = locale === 'ar';
   const [error, setError] = useState('');
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 6;
+  const totalPages = Math.max(1, Math.ceil(runs.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRuns = runs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const runPayroll = async () => {
     setError('');
@@ -59,7 +66,7 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
 
       {runs.length === 0 && <div className="text-center text-xs text-slate-500 py-8">{t('noData')}</div>}
 
-      {runs.map((run) => (
+      {pagedRuns.map((run) => (
         <div key={run.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
           <div className="flex flex-wrap justify-between items-center gap-2">
             <span className="font-extrabold text-slate-100">
@@ -106,6 +113,15 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
           </div>
         </div>
       ))}
+
+      {runs.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${runs.length} مسير` : `${runs.length} payroll runs`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
     </div>
   );
 }

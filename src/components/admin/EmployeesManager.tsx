@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus, Pencil, Trash2, UserCheck, UserX, Phone, Briefcase, DollarSign, Building2 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
 interface EmployeeRow {
@@ -61,6 +62,16 @@ export default function EmployeesManager({
     if (filterActive === 'inactive') return !e.isActive;
     return true;
   });
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterActive]);
 
   const openAdd = () => {
     setForm({ ...EMPTY_FORM, branchId: branches[0]?.id || '' });
@@ -317,7 +328,7 @@ export default function EmployeesManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {filtered.map((emp) => (
+            {pagedRows.map((emp) => (
               <tr key={emp.id} className="hover:bg-slate-900/50 transition-colors">
                 <td className="p-3 font-bold text-slate-100">{emp.name}</td>
                 <td className="p-3 text-amber-400 font-bold" dir="ltr">{emp.phone}</td>
@@ -361,6 +372,15 @@ export default function EmployeesManager({
           </div>
         )}
       </div>
+
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${filtered.length} موظف` : `${filtered.length} employees`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {/* Add Modal */}
       {showAdd && (

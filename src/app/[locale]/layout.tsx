@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Cairo } from 'next/font/google';
 import SessionProviderWrapper from '@/components/SessionProviderWrapper';
+import Preloader from '@/components/Preloader';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -45,6 +46,7 @@ export default async function LocaleLayout({
       <body className="bg-slate-950 text-slate-100 antialiased min-h-screen flex flex-col font-sans">
         <SessionProviderWrapper>
           <NextIntlClientProvider messages={messages} locale={locale}>
+            <Preloader />
             {children}
           </NextIntlClientProvider>
         </SessionProviderWrapper>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface NotifRow {
   id: string;
@@ -22,6 +23,12 @@ export default function NotificationsManager({ notifications }: { notifications:
   const router = useRouter();
   const isAr = locale === 'ar';
   const [error, setError] = useState('');
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(notifications.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = notifications.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const markOne = async (id: string) => {
     setError('');
@@ -68,7 +75,7 @@ export default function NotificationsManager({ notifications }: { notifications:
         <div className="text-center text-xs text-slate-500 py-12">{t('noData')}</div>
       ) : (
         <div className="space-y-3">
-          {notifications.map((n) => (
+          {pagedRows.map((n) => (
             <div key={n.id} className={`p-4 rounded-2xl border flex justify-between items-center gap-3 text-xs ${n.isRead ? 'bg-slate-900/50 border-slate-800/60' : 'bg-slate-900 border-blue-500/40'}`}>
               <div className="space-y-1">
                 <div className="font-bold text-slate-100 flex items-center gap-2">
@@ -87,6 +94,15 @@ export default function NotificationsManager({ notifications }: { notifications:
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {notifications.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${notifications.length} إشعار` : `${notifications.length} notifications`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
     </div>

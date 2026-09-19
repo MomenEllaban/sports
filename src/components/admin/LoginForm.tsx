@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Lock, Mail } from 'lucide-react';
+import Image from 'next/image';
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const t = useTranslations('auth');
@@ -41,9 +42,16 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   return (
     <div className="max-w-md w-full glass-panel p-8 rounded-3xl border border-slate-800 space-y-6 animate-fade-up">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-blue-600 flex items-center justify-center font-black text-white text-2xl mx-auto shadow-lg shadow-blue-500/20">
-          أ
-        </div>
+        <Image
+          src="/logo.avif"
+          alt="أبطال الرياضة الإبراهيمية"
+          width={960}
+          height={822}
+          priority
+          quality={85}
+          sizes="64px"
+          className="h-16 w-auto rounded-xl object-contain mx-auto drop-shadow-[0_0_16px_rgba(245,166,35,0.35)]"
+        />
         <h1 className="text-2xl font-black text-slate-100">{t('title')}</h1>
         <p className="text-xs text-slate-400">{t('subtitle')}</p>
       </div>

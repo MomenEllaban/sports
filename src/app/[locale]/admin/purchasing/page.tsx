@@ -1,11 +1,11 @@
-import React from 'react';
+﻿import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import PurchasingManager from '@/components/admin/PurchasingManager';
 import SuppliersManager from '@/components/admin/SuppliersManager';
 import { prisma } from '@/lib/db';
 
-export const revalidate = 10;
+export const dynamic = 'force-dynamic';
 
 export default async function AdminPurchasingPage() {
   const [suppliers, branches, products, purchaseOrders] = await Promise.all([
@@ -27,9 +27,9 @@ export default async function AdminPurchasingPage() {
 
         <main className="p-6 space-y-6 overflow-y-auto">
           <div>
-            <h1 className="text-2xl font-black text-slate-100">المشتريات والموردون</h1>
+            <h1 className="text-2xl font-black text-slate-100">Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª ÙˆØ§Ù„Ù…ÙˆØ±Ø¯ÙˆÙ†</h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              سجل الموردين المعتمَدين وأوامر توريد البضائع والمستلزمات الرياضية
+              Ø³Ø¬Ù„ Ø§Ù„Ù…ÙˆØ±Ø¯ÙŠÙ† Ø§Ù„Ù…Ø¹ØªÙ…ÙŽØ¯ÙŠÙ† ÙˆØ£ÙˆØ§Ù…Ø± ØªÙˆØ±ÙŠØ¯ Ø§Ù„Ø¨Ø¶Ø§Ø¦Ø¹ ÙˆØ§Ù„Ù…Ø³ØªÙ„Ø²Ù…Ø§Øª Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ©
             </p>
           </div>
 
@@ -37,7 +37,7 @@ export default async function AdminPurchasingPage() {
             {/* Suppliers Management */}
             <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
               <h3 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">
-                دليل الموردين والشركات ({suppliers.length})
+                Ø¯Ù„ÙŠÙ„ Ø§Ù„Ù…ÙˆØ±Ø¯ÙŠÙ† ÙˆØ§Ù„Ø´Ø±ÙƒØ§Øª ({suppliers.length})
               </h3>
               <SuppliersManager suppliers={suppliers} />
             </div>
@@ -45,7 +45,7 @@ export default async function AdminPurchasingPage() {
             {/* Purchase Orders Management */}
             <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
               <h3 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">
-                أوامر الشراء والتوريد (Purchase Orders)
+                Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø´Ø±Ø§Ø¡ ÙˆØ§Ù„ØªÙˆØ±ÙŠØ¯ (Purchase Orders)
               </h3>
               <PurchasingManager
                 suppliers={suppliers}

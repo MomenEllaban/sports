@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, Field, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface ExpenseRow {
   id: string;
@@ -37,6 +38,12 @@ export default function ExpensesManager({
   const [rowError, setRowError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({ branchId: branches[0]?.id || '', category: 'OTHER', description: '', amount: '' });
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(expenses.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = expenses.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const inputCls = 'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-emerald-500';
 
@@ -118,7 +125,7 @@ export default function ExpensesManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {expenses.map((e) => (
+            {pagedRows.map((e) => (
               <tr key={e.id} className="hover:bg-slate-900/50">
                 <td className="py-2.5 font-bold text-amber-400">{e.expenseNumber}</td>
                 <td className="py-2.5 text-slate-300">{isAr ? e.branch.name : e.branch.nameEn}</td>
@@ -141,6 +148,15 @@ export default function ExpensesManager({
         </table>
         {expenses.length === 0 && <div className="text-center text-xs text-slate-500 py-8">{t('noData')}</div>}
       </div>
+
+      {expenses.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${expenses.length} مصروف` : `${expenses.length} expenses`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {showModal && (
         <Modal title={editing ? t('edit') : t('newExpense')} onClose={() => { setShowModal(false); setEditing(null); }}>

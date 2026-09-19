@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
 import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface ProductRow {
   id: string;
@@ -59,6 +60,9 @@ export default function ProductsManager({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+
   // Product modals
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editProduct, setEditProduct] = useState<ProductRow | null>(null);
@@ -90,6 +94,14 @@ export default function ProductsManager({
       p.sku.toLowerCase().includes(search.toLowerCase()) ||
       (p.barcode || '').includes(search)
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, activeTab]);
 
   const exportCsv = () => {
     const header = 'sku,barcode,nameAr,nameEn,price,costPrice,category,brand,isActive';
@@ -483,7 +495,7 @@ export default function ProductsManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {filtered.map((prod) => (
+                {pagedRows.map((prod) => (
                   <tr key={prod.id} className="hover:bg-slate-900/50 transition-colors">
                     <td className="p-3 font-bold text-amber-400">{prod.sku}</td>
                     <td className="p-3 font-bold text-slate-100">
@@ -540,6 +552,15 @@ export default function ProductsManager({
               </div>
             )}
           </div>
+
+          {filtered.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <span className="text-[11px] font-bold text-slate-400">
+                {isAr ? `${filtered.length} منتج` : `${filtered.length} products`}
+              </span>
+              <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
         </div>
       )}
 

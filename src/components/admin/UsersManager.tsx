@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import Pagination from './Pagination';
 import {
   Plus,
   Edit2,
@@ -188,6 +189,16 @@ export default function UsersManager({
     return matchSearch && matchRole;
   });
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, roleFilter]);
+
   return (
     <div className="space-y-4">
       {deleteError && (
@@ -254,7 +265,7 @@ export default function UsersManager({
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((u) => {
+              pagedUsers.map((u) => {
                 const roleConfig = ROLE_LABELS[u.role] || ROLE_LABELS.STAFF;
                 return (
                   <tr key={u.id} className="hover:bg-slate-900/80 transition-colors">
@@ -341,6 +352,15 @@ export default function UsersManager({
           </tbody>
         </table>
       </div>
+
+      {filteredUsers.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${filteredUsers.length} مستخدم` : `${filteredUsers.length} users`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {/* Add / Edit User Modal */}
       {showModal && (

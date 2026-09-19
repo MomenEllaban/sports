@@ -21,6 +21,7 @@ import {
   Monitor,
 } from 'lucide-react';
 import { Role } from '@prisma/client';
+import Image from 'next/image';
 
 export interface SidebarItem {
   key: string;
@@ -150,9 +151,16 @@ export default function AdminSidebar() {
       <div className="p-4 space-y-6">
         {/* Brand Header */}
         <Link href="/admin" className="flex items-center gap-3 border-b border-slate-800 pb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-blue-600 flex items-center justify-center font-black text-white text-xl">
-            أ
-          </div>
+          <Image
+            src="/logo.avif"
+            alt="أبطال الرياضة الإبراهيمية"
+            width={960}
+            height={822}
+            priority
+            quality={80}
+            sizes="48px"
+            className="h-11 w-auto rounded-lg object-contain drop-shadow-[0_0_10px_rgba(245,166,35,0.35)]"
+          />
           <div>
             <h2 className="font-extrabold text-sm text-slate-100">ابطال الرياضة</h2>
             <p className="text-[10px] text-amber-400 font-semibold">ERP الإسكندرية</p>

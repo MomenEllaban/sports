@@ -1,11 +1,11 @@
-import React from 'react';
+﻿import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import UsersManager from '@/components/admin/UsersManager';
 import { prisma } from '@/lib/db';
 import { ShieldCheck } from 'lucide-react';
 
-export const revalidate = 10;
+export const dynamic = 'force-dynamic';
 
 export default async function AdminUsersPage() {
   const [users, branches] = await Promise.all([
@@ -42,14 +42,14 @@ export default async function AdminUsersPage() {
             <div>
               <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2.5">
                 <ShieldCheck className="w-7 h-7 text-blue-500" />
-                المستخدمين وإدارة الصلاحيات
+                Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† ÙˆØ¥Ø¯Ø§Ø±Ø© Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                إدارة حسابات موظفي الفروع، الكاشير، المحاسبين، والمديرين وتوزيع الأدوار
+                Ø¥Ø¯Ø§Ø±Ø© Ø­Ø³Ø§Ø¨Ø§Øª Ù…ÙˆØ¸ÙÙŠ Ø§Ù„ÙØ±ÙˆØ¹ØŒ Ø§Ù„ÙƒØ§Ø´ÙŠØ±ØŒ Ø§Ù„Ù…Ø­Ø§Ø³Ø¨ÙŠÙ†ØŒ ÙˆØ§Ù„Ù…Ø¯ÙŠØ±ÙŠÙ† ÙˆØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø£Ø¯ÙˆØ§Ø±
               </p>
             </div>
             <span className="px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs">
-              إجمالي الحسابات: {users.length}
+              Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª: {users.length}
             </span>
           </div>
 

@@ -263,7 +263,54 @@
 .stagger-4 { animation-delay: 0.32s; }
 .stagger-5 { animation-delay: 0.4s; }
 
+/* ============================================================
+   PRELOADER — أبطال الرياضة loading screen
+   GPU-friendly: only transform / opacity (no width/top reflow).
+   ============================================================ */
+
+@keyframes champ-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+@keyframes champ-glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes champ-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes champ-exit {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.08); opacity: 0; }
+}
+
+.champ-logo {
+  animation: champ-pulse 2.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.champ-logo-exit {
+  animation: champ-exit 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.champ-ring {
+  animation: champ-spin 1.15s linear infinite;
+  will-change: transform;
+}
+
+.champ-glow {
+  animation: champ-glow 2.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .champ-logo,
+  .champ-logo-exit,
+  .champ-ring,
+  .champ-glow,
   .animate-fade-up,
   .animate-fade-in,
   .animate-float-slow,

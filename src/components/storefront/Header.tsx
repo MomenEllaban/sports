@@ -6,6 +6,7 @@ import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import ThemeToggle from '@/components/admin/ThemeToggle';
+import Image from 'next/image';
 
 export default function Header() {
   const t = useTranslations('common');
@@ -60,9 +61,16 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-blue-600 flex items-center justify-center font-extrabold text-white text-xl shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-            أ
-          </div>
+          <Image
+            src="/logo.avif"
+            alt={t('appName')}
+            width={960}
+            height={822}
+            priority
+            quality={80}
+            sizes="48px"
+            className="h-11 w-auto rounded-lg object-contain drop-shadow-[0_0_10px_rgba(245,166,35,0.35)] group-hover:scale-105 transition-transform"
+          />
           <div>
             <h1 className="text-lg md:text-xl font-extrabold text-slate-100 tracking-tight leading-tight group-hover:text-blue-400 transition-colors">
               {t('appName')}

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface OrderItem {
   id: string;
@@ -67,6 +68,9 @@ export default function OrdersManager({
   const [saving, setSaving] = useState(false);
   const [newOrderError, setNewOrderError] = useState('');
 
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
   const [newOrderForm, setNewOrderForm] = useState({
     guestName: '',
     guestPhone: '',
@@ -85,6 +89,14 @@ export default function OrdersManager({
       (statusFilter === 'ALL' || o.orderStatus === statusFilter) &&
       (sourceFilter === 'ALL' || o.orderSource === sourceFilter)
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, sourceFilter]);
 
   const changeStatus = async (id: string, orderStatus: string) => {
     setUpdatingId(id);
@@ -200,7 +212,7 @@ export default function OrdersManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {filtered.map((ord) => (
+            {pagedRows.map((ord) => (
               <React.Fragment key={ord.id}>
                 <tr className="hover:bg-slate-900/50 transition-colors">
                   <td className="p-3 font-bold text-amber-400">
@@ -293,6 +305,15 @@ export default function OrdersManager({
           <div className="text-center text-xs text-slate-500 py-12">{t('noData')}</div>
         )}
       </div>
+
+      {filtered.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${filtered.length} طلب` : `${filtered.length} orders`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {/* New Manual Order Modal */}
       {showNewOrder && (

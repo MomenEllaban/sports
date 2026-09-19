@@ -1,10 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import ProductsManager from '@/components/admin/ProductsManager';
 import { prisma } from '@/lib/db';
 
-export const revalidate = 10;
+export const dynamic = 'force-dynamic';
 
 export default async function AdminProductsPage() {
   const [products, categories, brands] = await Promise.all([
@@ -25,8 +25,8 @@ export default async function AdminProductsPage() {
 
         <main className="p-6 space-y-6 overflow-y-auto">
           <div>
-            <h1 className="text-2xl font-black text-slate-100">كتالوج المنتجات والمعدات</h1>
-            <p className="text-xs text-slate-400 mt-0.5">إدارة الأصناف، الأسعار، البار كود، واستيراد وتصدير CSV</p>
+            <h1 className="text-2xl font-black text-slate-100">ÙƒØªØ§Ù„ÙˆØ¬ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª ÙˆØ§Ù„Ù…Ø¹Ø¯Ø§Øª</h1>
+            <p className="text-xs text-slate-400 mt-0.5">Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø£ØµÙ†Ø§ÙØŒ Ø§Ù„Ø£Ø³Ø¹Ø§Ø±ØŒ Ø§Ù„Ø¨Ø§Ø± ÙƒÙˆØ¯ØŒ ÙˆØ§Ø³ØªÙŠØ±Ø§Ø¯ ÙˆØªØµØ¯ÙŠØ± CSV</p>
           </div>
 
           <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden p-4 animate-fade-up">

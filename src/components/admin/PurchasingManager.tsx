@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
+import Pagination from './Pagination';
 
 interface SupplierOpt { id: string; name: string; code: string }
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -44,6 +45,12 @@ export default function PurchasingManager({
     { productId: products[0]?.id || '', quantityOrdered: 10, unitCost: 0 },
   ]);
   const [receiveQty, setReceiveQty] = useState<Record<string, number>>({});
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+  const totalPages = Math.max(1, Math.ceil(purchaseOrders.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedPOs = purchaseOrders.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const pName = (p: ProductOpt) => (isAr ? p.nameAr : p.nameEn);
   const inputCls = 'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500';
@@ -92,7 +99,7 @@ export default function PurchasingManager({
 
       <div className="space-y-3">
         {purchaseOrders.length === 0 && <div className="text-center text-xs text-slate-500 py-8">{t('noData')}</div>}
-        {purchaseOrders.map((po) => (
+        {pagedPOs.map((po) => (
           <div key={po.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs space-y-2">
             <div className="flex flex-wrap justify-between items-center gap-2">
               <span className="font-extrabold text-amber-400">{po.poNumber}</span>
@@ -132,6 +139,15 @@ export default function PurchasingManager({
           </div>
         ))}
       </div>
+
+      {purchaseOrders.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] font-bold text-slate-400">
+            {isAr ? `${purchaseOrders.length} أمر توريد` : `${purchaseOrders.length} purchase orders`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
 
       {showNew && (
         <Modal title={t('newPurchaseOrder')} onClose={() => setShowNew(false)}>
