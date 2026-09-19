@@ -81,7 +81,7 @@ export default async function CatalogPage({
               aria-label="بحث باسم المنتج أو SKU أو الماركة"
               className="w-full pl-4 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
             />
-            <button type="submit" aria-label="بحث" className="absolute right-3 top-2.5 text-slate-400 hover:text-white">
+            <button type="submit" aria-label="بحث" className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-100">
               <Search className="w-4 h-4" />
             </button>
           </form>

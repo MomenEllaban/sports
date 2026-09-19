@@ -44,7 +44,7 @@ export default function AdminHeader() {
         {/* Notifications Bell */}
         <Link
           href="/admin/notifications"
-          className="relative p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition-colors"
+          className="relative p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-slate-100 transition-colors"
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (

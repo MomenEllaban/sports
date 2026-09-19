@@ -331,7 +331,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={isSubmitting || items.length === 0}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:bg-slate-800 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:bg-slate-800 disabled:text-slate-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? 'جاري التأكيد...' : tCheckout('placeOrder')}
               </button>

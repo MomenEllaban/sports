@@ -356,7 +356,7 @@ export default function UsersManager({
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-white text-xs font-bold"
+                className="text-slate-400 hover:text-slate-100 text-xs font-bold"
               >
                 ✕
               </button>

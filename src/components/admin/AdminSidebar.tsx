@@ -178,7 +178,7 @@ export default function AdminSidebar() {
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100'
                 }`}
               >
                 {item.icon}

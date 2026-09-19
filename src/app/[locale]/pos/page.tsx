@@ -642,7 +642,7 @@ export default function PosTerminalPage() {
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button
                 onClick={() => window.print()}
-                className="py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1"
+                className="py-2.5 rounded-xl bg-slate-900 text-slate-100 font-bold text-xs flex items-center justify-center gap-1"
               >
                 <Printer className="w-4 h-4" /> طباعة
               </button>
@@ -668,7 +668,7 @@ export default function PosTerminalPage() {
               </h3>
               <button
                 onClick={() => setShowQuickCustomerModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-slate-100"
               >
                 <X className="w-4 h-4" />
               </button>

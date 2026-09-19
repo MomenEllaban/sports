@@ -99,7 +99,7 @@ export default function CartPage() {
                   <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-slate-400 hover:text-slate-100"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
@@ -108,7 +108,7 @@ export default function CartPage() {
                     </span>
                     <button
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="text-slate-400 hover:text-white"
+                      className="text-slate-400 hover:text-slate-100"
                     >
                       <Plus className="w-4 h-4" />
                     </button>

@@ -62,19 +62,24 @@
   }
 }
 
-/* ===== THEME-AWARE OVERRIDES ===== */
+/* ============================================================
+   THEME-AWARE SURFACES
+   Dark mode is the authored default. The overrides below remap
+   slate surfaces to the value of the theme variables so the two
+   themes stay in sync regardless of where a class is used.
+   ============================================================ */
 
-/* Dark mode specifics */
 .bg-slate-950 { background-color: var(--bg-base) !important; }
 .bg-slate-900 { background-color: var(--bg-surface) !important; }
 .text-slate-100 { color: var(--text-primary) !important; }
 .text-slate-200 { color: var(--text-secondary) !important; }
 .text-slate-300 { color: var(--text-secondary) !important; }
 .text-slate-400 { color: var(--text-muted) !important; }
+.text-slate-500 { color: var(--text-muted) !important; }
 .border-slate-800 { border-color: var(--border-subtle) !important; }
 .border-slate-700 { border-color: var(--input-border) !important; }
 
-/* Input fields */
+/* Inputs (both themes) */
 [data-theme="light"] input,
 [data-theme="light"] select,
 [data-theme="light"] textarea {
@@ -84,19 +89,96 @@
 }
 
 [data-theme="light"] input::placeholder,
-[data-theme="light"] textarea::placeholder {
+[data-theme="light"] textarea::placeholder,
+[data-theme="light"] .placeholder\:text-slate-500::placeholder {
   color: #94a3b8 !important;
 }
 
-/* Sidebar in light mode */
-[data-theme="light"] aside {
-  background-color: var(--sidebar-bg) !important;
-  border-color: var(--sidebar-border) !important;
+@layer base {
+  /* Sidebar in light mode */
+  [data-theme="light"] aside {
+    background-color: var(--sidebar-bg) !important;
+    border-color: var(--sidebar-border) !important;
+  }
 }
 
-[data-theme="light"] .bg-slate-950\/80 {
-  background-color: rgba(15, 23, 42, 0.7) !important;
+/* ============================================================
+   LIGHT MODE — full remap
+   Slate backgrounds become the light palette, all opacity
+   variants included. Colored brand surfaces (blue/amber/emerald/
+   rose/gradients) keep their color and white text in both themes.
+   ============================================================ */
+
+/* --- Surfaces: solid --- */
+[data-theme="light"] [class~="bg-slate-950"] { background-color: #f8fafc !important; }
+[data-theme="light"] [class~="bg-slate-900"] { background-color: #ffffff !important; }
+[data-theme="light"] [class~="bg-slate-800"] { background-color: #e2e8f0 !important; }
+[data-theme="light"] [class~="bg-slate-700"] { background-color: #cbd5e1 !important; }
+
+/* --- Surfaces: opacity variants --- */
+[data-theme="light"] [class~="bg-slate-950/85"] { background-color: rgba(248, 250, 252, 0.85) !important; }
+[data-theme="light"] [class~="bg-slate-950/90"] { background-color: rgba(248, 250, 252, 0.9) !important; }
+[data-theme="light"] [class~="bg-slate-950/95"] { background-color: rgba(248, 250, 252, 0.95) !important; }
+[data-theme="light"] [class~="bg-slate-900/50"] { background-color: rgba(255, 255, 255, 0.55) !important; }
+[data-theme="light"] [class~="bg-slate-900/60"] { background-color: rgba(255, 255, 255, 0.65) !important; }
+[data-theme="light"] [class~="bg-slate-900/90"] { background-color: rgba(255, 255, 255, 0.92) !important; }
+[data-theme="light"] [class~="bg-slate-800/80"] { background-color: rgba(226, 232, 240, 0.9) !important; }
+
+/* Modal / dialog scrims keep a dark overlay in light mode for contrast.
+   The product image tag (nested in a slate-900 image panel) becomes a
+   light chip instead so its label stays readable. */
+[data-theme="light"] [class~="bg-slate-950/80"] { background-color: rgba(15, 23, 42, 0.7) !important; }
+[data-theme="light"] [class~="bg-slate-900"] [class~="bg-slate-950/80"] {
+  background-color: rgba(248, 250, 252, 0.92) !important;
 }
+
+/* --- Hover fills --- */
+[data-theme="light"] [class~="hover:bg-slate-700"]:hover { background-color: #cbd5e1 !important; }
+[data-theme="light"] [class~="hover:bg-slate-800"]:hover { background-color: #e2e8f0 !important; }
+[data-theme="light"] [class~="hover:bg-slate-800/80"]:hover { background-color: #e2e8f0 !important; }
+[data-theme="light"] [class~="hover:bg-slate-900"]:hover { background-color: #f1f5f9 !important; }
+[data-theme="light"] [class~="hover:bg-slate-900/50"]:hover { background-color: rgba(241, 245, 249, 0.7) !important; }
+[data-theme="light"] [class~="hover:bg-slate-900/80"]:hover { background-color: rgba(241, 245, 249, 0.85) !important; }
+
+/* --- Text on light surfaces --- */
+[data-theme="light"] [class~="text-slate-50"],
+[data-theme="light"] [class~="text-slate-100"],
+[data-theme="light"] [class~="text-slate-200"] { color: #0f172a !important; }
+[data-theme="light"] [class~="text-slate-300"] { color: #334155 !important; }
+[data-theme="light"] [class~="text-slate-400"] { color: #475569 !important; }
+[data-theme="light"] [class~="text-slate-500"] { color: #64748b !important; }
+[data-theme="light"] [class~="text-slate-600"] { color: #475569 !important; }
+
+/* hover variants follow the same mapping */
+[data-theme="light"] [class~="hover:text-slate-100"]:hover,
+[data-theme="light"] [class~="hover:text-slate-200"]:hover { color: #0f172a !important; }
+[data-theme="light"] [class~="hover:text-slate-300"]:hover { color: #334155 !important; }
+[data-theme="light"] [class~="hover:text-slate-400"]:hover { color: #475569 !important; }
+
+/* White text is only used ON colored/gradient brand surfaces, so it
+   never needs remapping. Gray-surface hovers use text-slate-100. */
+
+/* --- Borders & dividers --- */
+[data-theme="light"] [class~="border-slate-800"],
+[data-theme="light"] [class~="border-slate-700"],
+[data-theme="light"] [class~="border-slate-900"] { border-color: #e2e8f0 !important; }
+[data-theme="light"] [class~="border-slate-800/60"],
+[data-theme="light"] [class~="border-slate-800/80"] { border-color: rgba(226, 232, 240, 0.9) !important; }
+[data-theme="light"] [class~="border-slate-950"] { border-color: #0f172a !important; }
+[data-theme="light"] [class~="divide-slate-800"] > * + *,
+[data-theme="light"] [class~="divide-slate-800/60"] > * + * { border-color: #e2e8f0 !important; }
+
+/* Announcement bar: keep it as a warm brand accent optimized for light
+   mode instead of the dark navy used on the dark theme. */
+[data-theme="light"] [class~="from-blue-900"] {
+  background-image: linear-gradient(to right, #e0e7ff, #f8fafc, #fef3c7) !important;
+}
+
+/* Subtle blue shadows read softer on light backgrounds */
+[data-theme="light"] .shadow-blue-600\/25,
+[data-theme="light"] .shadow-blue-600\/30,
+[data-theme="light"] .shadow-blue-500\/20,
+[data-theme="light"] .shadow-amber-500\/20 { --tw-shadow-color: rgba(15, 23, 42, 0.12); }
 
 /* Custom Glassmorphism & Micro-animations */
 .glass-panel {
@@ -189,47 +271,3 @@
     animation: none;
   }
 }
-
-/* ============ LIGHT MODE: map the app's dark slate utilities to light surfaces ============
-   Components are written with dark slate classes; under [data-theme="light"] these
-   overrides remap them so the whole system (storefront + admin + POS) renders light. */
-[data-theme="light"] .bg-slate-950 { background-color: #f8fafc; }
-[data-theme="light"] .bg-slate-900 { background-color: #ffffff; }
-[data-theme="light"] .bg-slate-800 { background-color: #e2e8f0; }
-[data-theme="light"] .bg-slate-700 { background-color: #cbd5e1; }
-
-[data-theme="light"] .bg-slate-950\/80 { background-color: rgb(248 250 252 / 0.85); }
-[data-theme="light"] .bg-slate-900\/90 { background-color: rgb(255 255 255 / 0.92); }
-[data-theme="light"] .bg-slate-900\/60 { background-color: rgb(241 245 249 / 0.9); }
-[data-theme="light"] .bg-slate-900\/50 { background-color: rgb(241 245 249 / 0.7); }
-[data-theme="light"] .bg-slate-800\/80 { background-color: rgb(226 232 240 / 0.9); }
-
-[data-theme="light"] .text-slate-100,
-[data-theme="light"] .text-slate-200 { color: #0f172a; }
-[data-theme="light"] .text-slate-300 { color: #334155; }
-[data-theme="light"] .text-slate-400 { color: #64748b; }
-[data-theme="light"] .text-white { color: #0f172a; }
-
-[data-theme="light"] .border-slate-800,
-[data-theme="light"] .border-slate-700 { border-color: #e2e8f0; }
-[data-theme="light"] .border-slate-800\/80 { border-color: rgb(226 232 240 / 0.8); }
-[data-theme="light"] .divide-slate-800 > * + *,
-[data-theme="light"] .divide-slate-800\/60 > * + * { border-color: #e2e8f0; }
-
-[data-theme="light"] .hover\:bg-slate-800:hover { background-color: #e2e8f0; }
-[data-theme="light"] .hover\:bg-slate-700:hover { background-color: #cbd5e1; }
-[data-theme="light"] .hover\:bg-slate-900:hover { background-color: #f1f5f9; }
-[data-theme="light"] .hover\:text-white:hover { color: #0f172a; }
-
-[data-theme="light"] .placeholder\:text-slate-500::placeholder { color: #94a3b3; }
-
-[data-theme="light"] input,
-[data-theme="light"] select,
-[data-theme="light"] textarea {
-  background-color: #ffffff;
-  border-color: #cbd5e1;
-  color: #0f172a;
-}
-
-[data-theme="light"] .shadow-blue-600\/25,
-[data-theme="light"] .shadow-blue-600\/30 { --tw-shadow-color: rgb(37 99 235 / 0.15); }
