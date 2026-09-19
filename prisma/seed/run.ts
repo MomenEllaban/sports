@@ -53,7 +53,7 @@ export function printSummary(counts: Record<string, number>, users: Array<{ emai
   console.log('\n==== DEV CREDENTIALS (development only) ====');
   console.log(`  password for ALL seed users: ${process.env.SEED_DEFAULT_PASSWORD ? '(from SEED_DEFAULT_PASSWORD)' : SEED_PASSWORD}`);
   for (const u of users) console.log(`  ${u.role}: ${u.email}`);
-  console.log(`  manager discount PINs: ${MANAGER_PINS.primary} / ${MANAGER_PINS.secondary} (plaintext until T06 hashes them)`);
+  console.log(`  manager discount PINs: ${MANAGER_PINS.primary} (ibrahimeyah) / ${MANAGER_PINS.secondary} (smouha) — bcrypt-hashed in DB`);
 }
 
 async function main() {

@@ -44,7 +44,7 @@ interface PosState {
   addItemToTicket: (product: { id: string; sku: string; barcode?: string | null; nameAr: string; nameEn: string; price: number; stockQuantity: number }) => void;
   updateItemQuantity: (id: string, qty: number) => void;
   removeItemFromTicket: (id: string) => void;
-  applyDiscount: (amount: number, pin: string) => boolean;
+  applyDiscount: (amount: number) => boolean;
   setCustomer: (phone: string, name: string) => void;
   clearTicket: () => void;
   queueOfflineSale: (sale: OfflineSaleQueue) => void;
@@ -120,12 +120,13 @@ export const usePosStore = create<PosState>((set, get) => ({
     set({ ticketItems: get().ticketItems.filter((i) => i.id !== id) });
   },
 
-  applyDiscount: (amount, pin) => {
-    // Valid Manager PINs for high discounts: "1234" or "9999"
-    if (amount > 100 && pin !== '1234' && pin !== '9999') {
+  // Client-side staging only: the SERVER re-validates the amount and the manager
+  // PIN at sale time (T06). Never trust this flag for authorization.
+  applyDiscount: (amount) => {
+    if (!Number.isFinite(amount) || amount < 0) {
       return false;
     }
-    set({ discountAmount: amount, managerPinApproved: true });
+    set({ discountAmount: Math.round(amount * 100) / 100, managerPinApproved: false });
     return true;
   },
 

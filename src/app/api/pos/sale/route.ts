@@ -4,6 +4,7 @@ import { submitToEta } from '@/lib/eta';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
 import { resolvePosContext, PosContextError } from '@/lib/pos/context.js';
+import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount.js';
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
     if (error) return error;
 
     const body = await req.json();
-    const { paymentMethod, discountAmount = 0, items, customerId, branchId } = body;
+    const { paymentMethod, items, customerId, branchId } = body;
 
     let ctx;
     try {
@@ -31,14 +32,15 @@ export async function POST(req: Request) {
     }
 
     let subtotal = 0;
-    const saleItemsData = [];
+    const saleItemsData: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number; currentStock: number }> = [];
     const saleNumber = `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
+    // Pass 1 — validate everything (products, integer qty, stock). No writes.
     for (const item of items) {
-      const qty = Math.floor(Number(item.quantity) || 0);
-      if (qty <= 0) {
+      if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
         return NextResponse.json({ success: false, error: 'كمية غير صالحة في الفاتورة' }, { status: 400 });
       }
+      const qty = item.quantity;
       const dbProduct = await prisma.product.findUnique({
         where: { id: item.productId },
         include: { inventories: { where: { branchId: flagshipBranch.id } } },
@@ -57,6 +59,7 @@ export async function POST(req: Request) {
         );
       }
 
+      // NOTE: client unitPrice is IGNORED — server recomputes from DB (T06).
       const itemTotal = dbProduct.price * qty;
       subtotal += itemTotal;
 
@@ -65,13 +68,36 @@ export async function POST(req: Request) {
         unitPrice: dbProduct.price,
         quantity: qty,
         totalPrice: itemTotal,
+        currentStock,
       });
+    }
 
-      // Deduct stock in branch
-      const newStock = currentStock - qty;
+    // Pass 2 — strict discount validation + manager authorization (T06), before any write.
+    const rawDiscount = (body as { discountAmount?: unknown }).discountAmount ?? 0;
+    if (typeof rawDiscount !== 'number' || !Number.isFinite(rawDiscount) || rawDiscount < 0 || rawDiscount > subtotal) {
+      return NextResponse.json({ success: false, error: 'مبلغ الخصم غير صالح' }, { status: 400 });
+    }
+    const discount = Math.round(rawDiscount * 100) / 100;
+    let approvedById: string | null = null;
+    try {
+      const decision = await authorizeDiscount(
+        ctx.cashierId,
+        ctx.role,
+        discount,
+        typeof body.managerPin === 'string' ? body.managerPin : null
+      );
+      approvedById = decision.approvedById;
+    } catch (e) {
+      const err = e as DiscountAuthError;
+      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+    }
+
+    // Pass 3 — writes: deduct stock + logs.
+    for (const line of saleItemsData) {
+      const newStock = line.currentStock - line.quantity;
 
       await prisma.branchInventory.updateMany({
-        where: { branchId: flagshipBranch.id, productId: dbProduct.id },
+        where: { branchId: flagshipBranch.id, productId: line.productId },
         data: { stockQuantity: newStock },
       });
 
@@ -79,10 +105,10 @@ export async function POST(req: Request) {
       await prisma.inventoryLog.create({
         data: {
           branchId: flagshipBranch.id,
-          productId: dbProduct.id,
+          productId: line.productId,
           type: 'SALE',
-          changeQuantity: -qty,
-          previousQuantity: currentStock,
+          changeQuantity: -line.quantity,
+          previousQuantity: line.currentStock,
           newQuantity: newStock,
           referenceId: saleNumber,
           createdById: cashierUser.id,
@@ -90,7 +116,6 @@ export async function POST(req: Request) {
       });
     }
 
-    const discount = Math.max(0, Number(discountAmount) || 0);
     const netAmount = Math.max(0, subtotal - discount);
     const vatAmount = Math.round(netAmount * 0.14 * 100) / 100;
     const totalAmount = netAmount + vatAmount;
@@ -117,8 +142,14 @@ export async function POST(req: Request) {
         totalAmount,
         paymentMethod: paymentMethod as PaymentMethod,
         paymentStatus: PaymentStatus.PAID,
+        approvedById,
         items: {
-          create: saleItemsData,
+          create: saleItemsData.map((l) => ({
+            productId: l.productId,
+            unitPrice: l.unitPrice,
+            quantity: l.quantity,
+            totalPrice: l.totalPrice,
+          })),
         },
       },
     });

@@ -23,6 +23,9 @@ export async function PATCH(
       branchIds?: string[];
       isActive?: boolean;
       passwordHash?: string;
+      managerPinHash?: string;
+      pinFailedAttempts?: number;
+      pinLockedUntil?: Date | null;
     } = {};
 
     if (body.name) updateData.name = body.name.trim();
@@ -39,6 +42,16 @@ export async function PATCH(
 
     if (body.password && body.password.length >= 6) {
       updateData.passwordHash = await bcrypt.hash(body.password, 10);
+    }
+
+    // Manager discount PIN (SUPER_ADMIN only, 4-8 digits, stored as bcrypt hash).
+    if (typeof body.managerPin !== 'undefined' && body.managerPin !== '') {
+      if (!/^\d{4,8}$/.test(String(body.managerPin))) {
+        return NextResponse.json({ success: false, error: 'PIN must be 4-8 digits' }, { status: 400 });
+      }
+      updateData.managerPinHash = await bcrypt.hash(String(body.managerPin), 10);
+      updateData.pinFailedAttempts = 0;
+      updateData.pinLockedUntil = null;
     }
 
     // Nobody may change their own role or deactivate themselves (anti lock-out).

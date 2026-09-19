@@ -129,15 +129,14 @@ export default function PosTerminalPage() {
     const val = Number(discountInput);
     if (isNaN(val) || val <= 0) return;
 
-    const ok = applyDiscount(val, managerPin);
+    // Staged locally; the SERVER validates the amount + manager PIN at sale time.
+    const ok = applyDiscount(val);
     if (!ok) {
       setPinError(true);
-      toast('كلمة سر المدير خاطئة', 'error');
     } else {
       setPinError(false);
       setDiscountInput('');
-      setManagerPin('');
-      toast(`تم تطبيق خصم ${val.toLocaleString()} ج.م`, 'success');
+      toast(`تم تسجيل خصم ${val.toLocaleString()} ج.م — يُعتمد عند التأكيد`, 'info');
     }
   };
 
@@ -212,6 +211,7 @@ export default function PosTerminalPage() {
     const payload = {
       paymentMethod: payMethod,
       discountAmount,
+      managerPin: managerPin || undefined,
       customerId: customer?.id || null,
       branchId: posBranchId || undefined,
       items: ticketItems.map((i) => ({
@@ -639,14 +639,14 @@ export default function PosTerminalPage() {
                   />
                 </div>
                 <div className="col-span-4">
-                  <label htmlFor="pos-pin" className="block text-[10px] font-bold text-slate-400 mb-1">PIN المدير</label>
+                  <label htmlFor="pos-pin" className="block text-[10px] font-bold text-slate-400 mb-1">PIN المدير (للخصم فوق 100)</label>
                   <input
                     id="pos-pin"
                     type="password"
                     inputMode="numeric"
-                    placeholder="1234"
+                    placeholder="••••"
                     value={managerPin}
-                    onChange={(e) => setManagerPin(e.target.value)}
+                    onChange={(e) => { setManagerPin(e.target.value); setPinError(false); }}
                     className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
                   />
                 </div>
@@ -660,7 +660,7 @@ export default function PosTerminalPage() {
                   </button>
                 </div>
               </div>
-              {pinError && <p className="text-[10px] text-rose-400">كلمة سر المدير خاطئة (جرب 1234)</p>}
+              {pinError && <p className="text-[10px] text-rose-400">مبلغ الخصم غير صالح</p>}
             </div>
 
             {/* Calculations Breakdown */}

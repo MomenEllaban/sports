@@ -71,6 +71,7 @@ export default function UsersManager({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [managerPin, setManagerPin] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<Role>(Role.STAFF);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
@@ -81,6 +82,7 @@ export default function UsersManager({
     setName('');
     setEmail('');
     setPassword('');
+    setManagerPin('');
     setPhone('');
     setRole(Role.STAFF);
     setSelectedBranches(branches.length > 0 ? [branches[0].id] : []);
@@ -94,6 +96,7 @@ export default function UsersManager({
     setName(u.name);
     setEmail(u.email);
     setPassword('');
+    setManagerPin('');
     setPhone(u.phone || '');
     setRole(u.role);
     setSelectedBranches(u.branchIds || []);
@@ -121,6 +124,7 @@ export default function UsersManager({
       branchIds: string[];
       isActive: boolean;
       password?: string;
+      managerPin?: string;
     } = {
       name,
       email,
@@ -132,6 +136,9 @@ export default function UsersManager({
 
     if (password) {
       payload.password = password;
+    }
+    if (managerPin) {
+      payload.managerPin = managerPin;
     }
 
     try {
@@ -150,6 +157,7 @@ export default function UsersManager({
       }
 
       setShowModal(false);
+      setManagerPin('');
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
@@ -443,6 +451,23 @@ export default function UsersManager({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">
+                  {isAr ? 'PIN اعتماد الخصومات (للمديرين، 4-8 أرقام — اتركه فارغاً للإبقاء)' : 'Discount approval PIN (managers, 4-8 digits — blank keeps current)'}
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  minLength={4}
+                  maxLength={8}
+                  placeholder="••••"
+                  value={managerPin}
+                  onChange={(e) => setManagerPin(e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 focus:border-blue-500 outline-none"
+                  dir="ltr"
                 />
               </div>
 

@@ -8,6 +8,7 @@
 | 03 | Protect POS | DONE | (this commit) | pos-guard 5/5, e2e POS redirect | guards.ts, middleware, test-DB incident fixed |
 | 04 | Server-side RBAC | DONE | (this commit) | matrix meta + enforcement 6/6, all 22/22 | guards, matrix, page guards, escalation blocks |
 | 05 | POS session branch | DONE | (this commit) | pos-branch 3/3, guards green | context resolver, cashierId, branch picker |
+| 06 | Server pricing+discounts | DONE | (this commit) | pos-discount 7/7, all 32/32 | discount auth, PIN lockout, approver recorded |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.

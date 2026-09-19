@@ -29,6 +29,17 @@ export async function seedUsers(db: PrismaClient, password: string) {
       update: { name: u.name, role: u.role, branchIds: u.branchIds, branchId: u.branchId, passwordHash: hash, isActive: true },
     });
   }
+  // Manager discount PINs (bcrypt-hashed; T06 server validates them).
+  const pins: Record<string, string> = {
+    'manager.ibrahimeyah@sports-champions.local': '1234',
+    'manager.smouha@sports-champions.local': '9999',
+  };
+  for (const [email, pin] of Object.entries(pins)) {
+    await db.user.update({
+      where: { email },
+      data: { managerPinHash: await bcrypt.hash(pin, 10), pinFailedAttempts: 0, pinLockedUntil: null },
+    });
+  }
   return users;
 }
 
