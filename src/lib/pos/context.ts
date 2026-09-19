@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import type { AppSession } from '@/lib/auth/guards.js';
+import type { AppSession } from '@/lib/auth/guards';
 import type { Role } from '@prisma/client';
 
 export class PosContextError extends Error {

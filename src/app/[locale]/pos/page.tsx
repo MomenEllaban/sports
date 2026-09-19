@@ -302,6 +302,7 @@ export default function PosTerminalPage() {
             discountAmount: sale.discountAmount,
             customerPhone: sale.customerPhone || undefined,
             branchId: sale.branchId || undefined,
+            clientSaleId: sale.id,
             items: sale.items.map((i) => ({ productId: i.id, quantity: i.quantity, unitPrice: i.unitPrice })),
           }),
         });

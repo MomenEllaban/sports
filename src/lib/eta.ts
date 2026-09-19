@@ -66,9 +66,12 @@ export async function generateEtaQrCode(invoiceNumber: string, etaUuid: string, 
 }
 
 /**
- * Submit B2C E-Receipt or B2B E-Invoice to ETA API (or queue when disabled)
+ * Pure receipt builder (no DB) so callers can persist the record inside their
+ * own transaction (T07). Use submitToEta() for the standalone path.
  */
-export async function submitToEta(receiptData: EtaReceiptData): Promise<EtaSubmitResult> {
+export async function buildEtaReceipt(
+  receiptData: EtaReceiptData
+): Promise<{ etaUuid: string; qrCodeDataUrl: string; status: TaxInvoiceStatus; message: string }> {
   const isEtaEnabled = process.env.ETA_ENABLED === 'true';
   const etaUuid = `ETA-EGY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -84,8 +87,7 @@ export async function submitToEta(receiptData: EtaReceiptData): Promise<EtaSubmi
 
   if (isEtaEnabled) {
     try {
-      // In production, call ETA API: process.env.ETA_API_BASE_URL + '/api/v1.0/receiptsubmission'
-      // Requires USB token or accredited signing service
+      // In production, call ETA API + signing service (T25)
       status = TaxInvoiceStatus.VALID;
       message = 'E-Receipt submitted and validated in real-time with ETA.';
     } catch (error) {
@@ -94,6 +96,15 @@ export async function submitToEta(receiptData: EtaReceiptData): Promise<EtaSubmi
       console.error('ETA submission error:', error);
     }
   }
+
+  return { etaUuid, qrCodeDataUrl, status, message };
+}
+
+/**
+ * Submit B2C E-Receipt or B2B E-Invoice to ETA API (or queue when disabled)
+ */
+export async function submitToEta(receiptData: EtaReceiptData): Promise<EtaSubmitResult> {
+  const { etaUuid, qrCodeDataUrl, status, message } = await buildEtaReceipt(receiptData);
 
   // Record TaxInvoice entry in database
   const taxRecord = await prisma.taxInvoice.create({

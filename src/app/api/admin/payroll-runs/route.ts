@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireRole } from '@/lib/auth/guards.js';
+import { requireRole } from '@/lib/auth/guards';
 
 // Create a payroll run for a month with items auto-built from active employees
 export async function POST(req: Request) {

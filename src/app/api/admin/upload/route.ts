@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireRole } from '@/lib/auth/guards.js';
+import { requireRole } from '@/lib/auth/guards';
 import { uploadBufferToCloudinary, uploadImageToCloudinary } from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';

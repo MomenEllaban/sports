@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
+import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 
 export async function GET(req: Request) {
   try {

@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '../auth.js';
+import { authOptions } from '../auth';
 import type { Role } from '@prisma/client';
 
 /** Roles allowed on POS terminals (pages + APIs). */

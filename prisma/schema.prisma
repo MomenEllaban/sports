@@ -393,6 +393,8 @@ model Sale {
   etaReceiptId   String?
   // T06: who approved a manager discount (manager PIN user or BM/SA session).
   approvedById   String?
+  // T07: offline-sync idempotency key (nullable unique).
+  clientSaleId   String?  @unique
   createdAt      DateTime      @default(now())
 
   branch     Branch      @relation(fields: [branchId], references: [id])

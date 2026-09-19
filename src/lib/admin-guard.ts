@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from './auth';
-import { requireRole } from './auth/guards.js';
+import { requireRole } from './auth/guards';
 
 /** @deprecated Use requireRole/requireSession from ./auth/guards. Kept for existing imports. */
 export async function requireAdminSession() {

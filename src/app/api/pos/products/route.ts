@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
-import { resolvePosContext, PosContextError } from '@/lib/pos/context.js';
+import { requireRole, POS_ROLES } from '@/lib/auth/guards';
+import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 
 export async function GET(req: Request) {
   try {

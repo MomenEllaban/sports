@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireRole } from '@/lib/auth/guards.js';
+import { requireRole } from '@/lib/auth/guards';
 
 export async function GET() {
   try {

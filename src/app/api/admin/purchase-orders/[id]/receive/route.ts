@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireRole } from '@/lib/auth/guards.js';
+import { requireRole } from '@/lib/auth/guards';
 
 // Receive goods for a PO: adds stock + audit logs, marks RECEIVED when fully received
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

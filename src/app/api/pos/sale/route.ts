@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { submitToEta } from '@/lib/eta';
+import { buildEtaReceipt } from '@/lib/eta';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
-import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
-import { resolvePosContext, PosContextError } from '@/lib/pos/context.js';
-import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount.js';
+import { requireRole, POS_ROLES } from '@/lib/auth/guards';
+import { resolvePosContext, PosContextError } from '@/lib/pos/context';
+import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
+import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
+import { dispatchNotification } from '@/lib/notifications';
+
+const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
 export async function POST(req: Request) {
   try {
@@ -21,8 +25,6 @@ export async function POST(req: Request) {
       const err = e as PosContextError;
       return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
     }
-    const flagshipBranch = { id: ctx.branch.id };
-    const cashierUser = { id: ctx.cashierId };
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, error: 'الفاتورة فارغة: أضف صنفاً واحداً على الأقل' }, { status: 400 });
@@ -31,48 +33,71 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'طريقة الدفع غير صالحة' }, { status: 400 });
     }
 
-    let subtotal = 0;
-    const saleItemsData: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number; currentStock: number }> = [];
-    const saleNumber = `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const clientSaleId =
+      typeof body.clientSaleId === 'string' && body.clientSaleId.trim() ? body.clientSaleId.trim() : null;
 
-    // Pass 1 — validate everything (products, integer qty, stock). No writes.
+    // Idempotency: same clientSaleId twice -> return the ORIGINAL result, no double decrement.
+    if (clientSaleId) {
+      const existing = await prisma.sale.findUnique({
+        where: { clientSaleId },
+        include: { taxInvoice: true },
+      });
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          idempotentReplay: true,
+          saleId: existing.id,
+          saleNumber: existing.saleNumber,
+          totalAmount: existing.totalAmount,
+          subtotal: existing.subtotal,
+          vatAmount: existing.taxAmount,
+          discountAmount: existing.discountAmount,
+          loyaltyEarned: 0,
+          qrCodeDataUrl: existing.taxInvoice?.qrCodeData || '',
+        });
+      }
+    }
+
+    // Validate items shape (integer qty). Prices ALWAYS recomputed from DB (T06).
+    const lines: Array<{ productId: string; quantity: number }> = [];
     for (const item of items) {
       if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
         return NextResponse.json({ success: false, error: 'كمية غير صالحة في الفاتورة' }, { status: 400 });
       }
-      const qty = item.quantity;
-      const dbProduct = await prisma.product.findUnique({
-        where: { id: item.productId },
-        include: { inventories: { where: { branchId: flagshipBranch.id } } },
-      });
+      if (typeof item.productId !== 'string' || !item.productId) {
+        return NextResponse.json({ success: false, error: 'صنف غير صالح في الفاتورة' }, { status: 400 });
+      }
+      lines.push({ productId: item.productId, quantity: item.quantity });
+    }
 
+    // Load products + pre-check stock for clear errors (the transaction re-checks atomically).
+    let subtotal = 0;
+    const priced: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number }> = [];
+    for (const line of lines) {
+      const dbProduct = await prisma.product.findUnique({
+        where: { id: line.productId },
+        include: { inventories: { where: { branchId: ctx.branch.id } } },
+      });
       if (!dbProduct || !dbProduct.isActive) {
         return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
       }
-
-      // Strict stock guard: never oversell
-      const currentStock = dbProduct.inventories[0]?.stockQuantity || 0;
-      if (currentStock < qty) {
+      const available = dbProduct.inventories[0]?.stockQuantity || 0;
+      if (available < line.quantity) {
         return NextResponse.json(
-          { success: false, error: `المخزون لا يكفي: ${dbProduct.nameAr} (المتاح ${currentStock})` },
+          {
+            success: false,
+            error: `المخزون لا يكفي: ${dbProduct.nameAr} (المتاح ${available})`,
+            items: [{ productId: dbProduct.id, sku: dbProduct.sku, available, requested: line.quantity }],
+          },
           { status: 400 }
         );
       }
-
-      // NOTE: client unitPrice is IGNORED — server recomputes from DB (T06).
-      const itemTotal = dbProduct.price * qty;
-      subtotal += itemTotal;
-
-      saleItemsData.push({
-        productId: dbProduct.id,
-        unitPrice: dbProduct.price,
-        quantity: qty,
-        totalPrice: itemTotal,
-        currentStock,
-      });
+      const totalPrice = dbProduct.price * line.quantity;
+      subtotal += totalPrice;
+      priced.push({ productId: dbProduct.id, unitPrice: dbProduct.price, quantity: line.quantity, totalPrice });
     }
 
-    // Pass 2 — strict discount validation + manager authorization (T06), before any write.
+    // Strict discount validation + manager authorization (T06), before any write.
     const rawDiscount = (body as { discountAmount?: unknown }).discountAmount ?? 0;
     if (typeof rawDiscount !== 'number' || !Number.isFinite(rawDiscount) || rawDiscount < 0 || rawDiscount > subtotal) {
       return NextResponse.json({ success: false, error: 'مبلغ الخصم غير صالح' }, { status: 400 });
@@ -92,35 +117,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
     }
 
-    // Pass 3 — writes: deduct stock + logs.
-    for (const line of saleItemsData) {
-      const newStock = line.currentStock - line.quantity;
-
-      await prisma.branchInventory.updateMany({
-        where: { branchId: flagshipBranch.id, productId: line.productId },
-        data: { stockQuantity: newStock },
-      });
-
-      // Log Inventory audit (linked to the sale via referenceId)
-      await prisma.inventoryLog.create({
-        data: {
-          branchId: flagshipBranch.id,
-          productId: line.productId,
-          type: 'SALE',
-          changeQuantity: -line.quantity,
-          previousQuantity: line.currentStock,
-          newQuantity: newStock,
-          referenceId: saleNumber,
-          createdById: cashierUser.id,
-        },
-      });
-    }
-
     const netAmount = Math.max(0, subtotal - discount);
     const vatAmount = Math.round(netAmount * 0.14 * 100) / 100;
     const totalAmount = netAmount + vatAmount;
 
-    // Validate customer if provided (by id, or phone fallback for offline-synced sales)
     let resolvedCustomerId: string | null = null;
     if (customerId) {
       const customer = await prisma.customer.findUnique({ where: { id: customerId } });
@@ -130,50 +130,12 @@ export async function POST(req: Request) {
       if (customer) resolvedCustomerId = customer.id;
     }
 
-    const sale = await prisma.sale.create({
-      data: {
-        saleNumber,
-        branchId: flagshipBranch.id,
-        cashierId: cashierUser.id,
-        customerId: resolvedCustomerId,
-        subtotal,
-        discountAmount: discount,
-        taxAmount: vatAmount,
-        totalAmount,
-        paymentMethod: paymentMethod as PaymentMethod,
-        paymentStatus: PaymentStatus.PAID,
-        approvedById,
-        items: {
-          create: saleItemsData.map((l) => ({
-            productId: l.productId,
-            unitPrice: l.unitPrice,
-            quantity: l.quantity,
-            totalPrice: l.totalPrice,
-          })),
-        },
-      },
-    });
-
-    // Add loyalty points to customer (1 point per 10 EGP spent)
-    let loyaltyEarned = 0;
-    if (resolvedCustomerId) {
-      loyaltyEarned = Math.floor(totalAmount / 10);
-      if (loyaltyEarned > 0) {
-        await prisma.customer.update({
-          where: { id: resolvedCustomerId },
-          data: { loyaltyPoints: { increment: loyaltyEarned } },
-        });
-      }
-    }
-
-    // Submit ETA e-receipt
-    const etaRes = await submitToEta({
-      branchId: flagshipBranch.id,
-      saleId: sale.id,
-      invoiceNumber: saleNumber,
+    const receipt = await buildEtaReceipt({
+      branchId: ctx.branch.id,
+      invoiceNumber: 'pending',
       totalAmount,
       vatAmount,
-      items: saleItemsData.map((i) => ({
+      items: priced.map((i) => ({
         name: 'منتج رياضي',
         quantity: i.quantity,
         unitPrice: i.unitPrice,
@@ -182,16 +144,114 @@ export async function POST(req: Request) {
       })),
     });
 
+    // ONE transaction: stock + logs + sale + invoice (T07). Number collisions retried.
+    let sale: { id: string; saleNumber: string } | null = null;
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const saleNumber = genSaleNumber();
+      try {
+        sale = await prisma.$transaction(async (tx) => {
+          for (const line of priced) {
+            await decrementStock(tx, {
+              branchId: ctx.branch.id,
+              productId: line.productId,
+              quantity: line.quantity,
+              type: 'SALE',
+              referenceId: saleNumber,
+              createdById: ctx.cashierId,
+            });
+          }
+          const created = await tx.sale.create({
+            data: {
+              saleNumber,
+              branchId: ctx.branch.id,
+              cashierId: ctx.cashierId,
+              customerId: resolvedCustomerId,
+              subtotal,
+              discountAmount: discount,
+              taxAmount: vatAmount,
+              totalAmount,
+              paymentMethod: paymentMethod as PaymentMethod,
+              paymentStatus: PaymentStatus.PAID,
+              approvedById,
+              clientSaleId,
+              items: {
+                create: priced.map((l) => ({
+                  productId: l.productId,
+                  unitPrice: l.unitPrice,
+                  quantity: l.quantity,
+                  totalPrice: l.totalPrice,
+                })),
+              },
+            },
+          });
+          await tx.taxInvoice.create({
+            data: {
+              invoiceNumber: saleNumber,
+              etaUuid: receipt.etaUuid,
+              saleId: created.id,
+              branchId: ctx.branch.id,
+              totalAmount,
+              vatAmount,
+              qrCodeData: receipt.qrCodeDataUrl,
+              status: receipt.status,
+              etaResponseText: receipt.message,
+            },
+          });
+          return { id: created.id, saleNumber };
+        });
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if ((e as { code?: string }).code === 'P2002') continue; // number/clientSaleId race: retry
+        if (e instanceof InsufficientStockError) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `المخزون لا يكفي (المتاح ${e.available})`,
+              items: [{ productId: e.productId, available: e.available }],
+            },
+            { status: 400 }
+          );
+        }
+        throw e;
+      }
+    }
+    if (lastErr || !sale) {
+      throw lastErr || new Error('Sale failed');
+    }
+
+    // AFTER commit only: loyalty + notifications never roll back or fail the sale.
+    let loyaltyEarned = 0;
+    if (resolvedCustomerId) {
+      loyaltyEarned = Math.floor(totalAmount / 10);
+      if (loyaltyEarned > 0) {
+        await prisma.customer.update({
+          where: { id: resolvedCustomerId },
+          data: { loyaltyPoints: { increment: loyaltyEarned } },
+        }).catch(() => null);
+      }
+    }
+    dispatchNotification({
+      type: 'NEW_ORDER',
+      titleAr: `بيع كاشير جديد: ${sale.saleNumber}`,
+      titleEn: `New POS sale: ${sale.saleNumber}`,
+      messageAr: `فاتورة ${sale.saleNumber} بمبلغ ${totalAmount} ج.م (${paymentMethod}).`,
+      messageEn: `POS sale ${sale.saleNumber} for ${totalAmount} EGP.`,
+      branchId: ctx.branch.id,
+    }).catch(() => null);
+
     return NextResponse.json({
       success: true,
       saleId: sale.id,
-      saleNumber,
+      saleNumber: sale.saleNumber,
       totalAmount,
       subtotal,
       vatAmount,
       discountAmount: discount,
       loyaltyEarned,
-      qrCodeDataUrl: etaRes.qrCodeDataUrl,
+      qrCodeDataUrl: receipt.qrCodeDataUrl,
     });
   } catch (error) {
     console.error('POS Sale API error:', error);
