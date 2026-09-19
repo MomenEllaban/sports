@@ -11,6 +11,9 @@ export default defineConfig({
     hookTimeout: 120000,
     pool: 'forks',
     maxWorkers: 1,
+    // Integration files share ONE test schema: never run them in parallel.
+    fileParallelism: false,
+    sequence: { shuffle: false },
     setupFiles: ['tests/setup-env.ts', 'tests/setup-mocks.ts'],
   },
 });

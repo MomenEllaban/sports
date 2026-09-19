@@ -9,7 +9,11 @@
 - Legacy ad-hoc checks: `npm run test:smoke` (tsx script, dev DB).
 
 ## Test database + refusal guard
-- `TEST_DATABASE_URL` = same Neon server, `&schema=sports_test` (see `.env.example`).
+- `TEST_DATABASE_URL` = **separate database** `sports_test_db` on the same Neon server (see `.env.example`).
+- LESSON LEARNED (T03): the first attempt used `?schema=sports_test` on the app DB, but Prisma
+  Client IGNORES the `schema` URL param at runtime (`search_path` stays `public`) — integration
+  runs truncated the MAIN dev database. Fixed by creating a real database + re-seeding.
+  Rule: isolation must be verified (`current_schema()` / row counts), never assumed.
 - `tests/helpers/test-db.ts` → `assertSafeTestDatabaseUrl()` REFUSES unless the URL
   contains `test`, differs from `DATABASE_URL`, and `APP_ENV=development`.
 - Schema sync for tests: `prisma db push` against `TEST_DATABASE_URL` (documented deviation:

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
 
 export async function GET(req: Request) {
   try {
+    const { error } = await requireRole(...POS_ROLES);
+    if (error) return error;
+
     const { searchParams } = new URL(req.url);
     const phone = searchParams.get('phone');
 
@@ -27,6 +31,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const { error } = await requireRole(...POS_ROLES);
+    if (error) return error;
+
     const body = await req.json();
     const { name, phone, email, address } = body;
 

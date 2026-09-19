@@ -35,6 +35,28 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
+  // 3. Protect POS terminal pages: CASHIER, BRANCH_MANAGER, SUPER_ADMIN only (T03).
+  const isPosRoute = /^(\/(ar|en))?\/pos(\/|$)/.test(pathname);
+  if (isPosRoute) {
+    const token = (await getToken({ req, secret: process.env.NEXTAUTH_SECRET })) as {
+      role?: string;
+    } | null;
+    const locale = pathname.startsWith('/en') ? 'en' : 'ar';
+    if (!token) {
+      const loginUrl = req.nextUrl.clone();
+      loginUrl.pathname = locale === 'en' ? '/en/admin/login' : '/admin/login';
+      const cleanCallback = pathname.replace(/^\/(?:ar|en)(?=\/|$)/, '') || '/pos';
+      loginUrl.searchParams.set('callbackUrl', cleanCallback);
+      return NextResponse.redirect(loginUrl);
+    }
+    const role = token.role;
+    if (role !== 'CASHIER' && role !== 'BRANCH_MANAGER' && role !== 'SUPER_ADMIN') {
+      const homeUrl = req.nextUrl.clone();
+      homeUrl.pathname = locale === 'en' ? '/en' : '/';
+      return NextResponse.redirect(homeUrl);
+    }
+  }
+
   return intlMiddleware(req);
 }
 

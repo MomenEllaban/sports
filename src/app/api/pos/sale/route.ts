@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { submitToEta } from '@/lib/eta';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
+import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
 
 export async function POST(req: Request) {
   try {
+    const { error } = await requireRole(...POS_ROLES);
+    if (error) return error;
+
     const body = await req.json();
     const { paymentMethod, discountAmount = 0, items, customerId } = body;
 

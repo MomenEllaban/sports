@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireRole, POS_ROLES } from '@/lib/auth/guards.js';
 
 export async function GET() {
   try {
+    const { error } = await requireRole(...POS_ROLES);
+    if (error) return error;
     const flagshipBranch = await prisma.branch.findFirst({
       where: { isActive: true },
     });

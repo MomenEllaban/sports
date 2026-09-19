@@ -21,4 +21,9 @@ test.describe('storefront smoke', () => {
     await page.goto('/admin/orders');
     await expect(page).toHaveURL(/admin\/login/);
   });
+
+  test('anonymous POS page redirects to login', async ({ page }) => {
+    await page.goto('/pos');
+    await expect(page).toHaveURL(/admin\/login/);
+  });
 });

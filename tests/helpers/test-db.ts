@@ -23,5 +23,5 @@ export function assertSafeTestDatabaseUrl(testUrl: string | undefined, appUrl: s
 }
 
 export function getTestDatabaseUrl(): string {
-  return assertSafeTestDatabaseUrl(process.env.TEST_DATABASE_URL, process.env.DATABASE_URL);
+  return assertSafeTestDatabaseUrl(process.env.TEST_DATABASE_URL, process.env.APP_DATABASE_URL || process.env.DATABASE_URL);
 }
