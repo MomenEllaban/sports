@@ -13,6 +13,7 @@
 | 08 | Order state machine | DONE | (this commit) | order-status 5/5 | transitions, exactly-once restock |
 | 09 | Central money math | DONE | (this commit) | pricing 5/5 + props, all 47/47 | pricing.ts, all call sites migrated |
 | 10 | Float to Decimal | DONE | (this commit) | all 47/47, build+smoke green | 28 cols Decimal(12,2), num() boundary |
+| 11 | Invariant checker | DONE | (this commit) | corruption test 2/2, dev CLEAN | runChecks, check:invariants |
 
 ## Conventions
 - One commit per task + tag `task-NN-done`. NEVER push.
