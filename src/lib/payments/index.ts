@@ -1,4 +1,6 @@
 import { PaymentMethod } from '@prisma/client';
+import { getPaymobConfig } from './paymob-config';
+import { createRealPaymobPayment } from './paymob';
 
 export interface PaymentInitializationResult {
   success: boolean;
@@ -10,18 +12,37 @@ export interface PaymentInitializationResult {
   instructionsEn?: string;
 }
 
-export interface CodReconciliationRecord {
-  courierId?: string;
-  branchId: string;
-  orderNumber: string;
-  collectedAmount: number;
-  remittedAmount: number;
-  discrepancy: number;
-  isReconciled: boolean;
+export class PaymentUnavailableError extends Error {
+  status = 503;
+  constructor(message: string) {
+    super(message);
+    this.status = 503;
+  }
 }
 
 /**
- * Primary Payment Engine for Egypt
+ * Which checkout methods are actually usable right now (T01):
+ * - COD/INSTAPAY/VODAFONE_CASH/CASH/CARD: from `payments.methods` settings.
+ * - PAYMOB: only when gateway ready (keys filled). Hidden otherwise.
+ * - FAWRY/KASHIER: T02/T15 (hidden until then).
+ */
+export async function availablePaymentMethods(): Promise<PaymentMethod[]> {
+  const { getSetting } = await import('../settings');
+  const configured = await getSetting<Array<{ id: string; enabled: boolean }>>('payments.methods', []).catch(() => []);
+  const enabled = new Set(configured.filter((m) => m.enabled).map((m) => m.id));
+  const out: PaymentMethod[] = [];
+  if (enabled.has('COD')) out.push(PaymentMethod.COD);
+  if (enabled.has('INSTAPAY')) out.push(PaymentMethod.INSTAPAY);
+  if (enabled.has('VODAFONE_CASH')) out.push(PaymentMethod.VODAFONE_CASH);
+  if (enabled.has('CASH')) out.push(PaymentMethod.CASH);
+  if (enabled.has('CARD')) out.push(PaymentMethod.CARD);
+  const paymob = await getPaymobConfig().catch(() => null);
+  if (paymob && (paymob.ready || paymob.mock)) out.push(PaymentMethod.PAYMOB);
+  return out;
+}
+
+/**
+ * Primary Payment Engine for Egypt (T01: real Paymob, mock only in dev/test).
  */
 export async function initializePayment(
   paymentMethod: PaymentMethod,
@@ -34,21 +55,39 @@ export async function initializePayment(
 
   switch (paymentMethod) {
     case PaymentMethod.PAYMOB: {
-      // Paymob API integration placeholder
-      // Step 1: Authentication Token -> Step 2: Order Registration -> Step 3: Payment Key Generation
-      const iframeId = process.env.PAYMOB_FRAMES_ID || '123456';
-      return {
-        success: true,
-        paymentMethod: PaymentMethod.PAYMOB,
-        transactionRef,
-        redirectUrl: `https://accept.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=sample_token_${transactionRef}`,
-        instructionsAr: 'سيتم تحويلك بأمان لشركة باي مب لإتمام الدفع بالبطاقة البنكية أو المحفظة الإلكترونية.',
-        instructionsEn: 'You will be redirected securely to Paymob to complete your card or mobile wallet payment.',
-      };
+      // DB failures degrade to "not ready" (never a fake success).
+      const cfg = await getPaymobConfig().catch(() => ({ ready: false, mock: false, iframeId: '', apiKey: '', integrationId: '', hmacSecret: '', missing: ['config'] }));
+      if (cfg.ready) {
+        const real = await createRealPaymobPayment(cfg, orderNumber, amountEgp, { phone: customerPhone, name: customerName });
+        return {
+          success: true,
+          paymentMethod: PaymentMethod.PAYMOB,
+          transactionRef: real.transactionRef,
+          redirectUrl: real.redirectUrl,
+          instructionsAr: 'سيتم تحويلك بأمان لشركة باي مب لإتمام الدفع بالبطاقة البنكية أو المحفظة الإلكترونية.',
+          instructionsEn: 'You will be redirected securely to Paymob to complete your card or mobile wallet payment.',
+        };
+      }
+      // Explicit mock only (test/dev with PAYMOB_PROVIDER=mock). Production: hide the method.
+      if (cfg.mock) {
+        return {
+          success: true,
+          paymentMethod: PaymentMethod.PAYMOB,
+          transactionRef,
+          redirectUrl: `https://accept.paymob.com/api/acceptance/iframes/${cfg.iframeId || '123456'}?payment_token=mock_${transactionRef}`,
+          instructionsAr: '(وضع تجريبي) سيتم تحويلك لصفحة دفع وهمية.',
+          instructionsEn: '(Mock mode) redirect to a fake payment page.',
+        };
+      }
+      throw new PaymentUnavailableError('الدفع بباي مب غير متاح حالياً — اختر طريقة أخرى');
     }
 
     case PaymentMethod.FAWRY: {
-      // Fawry Reference Number generation
+      // T02 lands the real Fawry reference; until then keep legacy placeholder
+      // ONLY in non-production so checkout never shows a fake code live.
+      if (process.env.NODE_ENV === 'production') {
+        throw new PaymentUnavailableError('الدفع بفوري غير متاح حالياً — اختر طريقة أخرى');
+      }
       const fawryRef = `${Math.floor(100000000 + Math.random() * 900000000)}`;
       return {
         success: true,
@@ -72,14 +111,7 @@ export async function initializePayment(
     }
 
     case PaymentMethod.KASHIER: {
-      return {
-        success: true,
-        paymentMethod: PaymentMethod.KASHIER,
-        transactionRef,
-        redirectUrl: `https://checkout.kashier.io/?merchantId=${process.env.KASHIER_MERCHANT_ID || 'test'}&orderId=${orderNumber}&amount=${amountEgp}&currency=EGP`,
-        instructionsAr: 'سيتم تحويلك لشركة كاشير للدفع الإلكتروني.',
-        instructionsEn: 'Redirecting to Kashier payment gateway.',
-      };
+      throw new PaymentUnavailableError('الدفع بكاشير غير متاح حالياً — اختر طريقة أخرى');
     }
 
     case PaymentMethod.COD:
@@ -105,4 +137,14 @@ export function calculateCodReconciliation(record: CodReconciliationRecord) {
     discrepancy,
     isReconciled: Math.abs(discrepancy) < 0.01,
   };
+}
+
+export interface CodReconciliationRecord {
+  courierId?: string;
+  branchId: string;
+  orderNumber: string;
+  collectedAmount: number;
+  remittedAmount: number;
+  discrepancy: number;
+  isReconciled: boolean;
 }

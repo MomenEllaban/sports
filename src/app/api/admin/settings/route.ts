@@ -74,7 +74,7 @@ export async function GET() {
         const { decryptSecret } = await import('@/lib/settings-secure');
         try {
           settings[r.key] = '';
-          masked[r.key] = maskSecret(decryptSecret(value));
+          masked[r.key] = maskSecret(await decryptSecret(value));
         } catch {
           settings[r.key] = '';
           masked[r.key] = '••••';
@@ -116,7 +116,8 @@ export async function PUT(req: Request) {
       if (!value.trim()) {
         return NextResponse.json({ success: true, kept: true });
       }
-      toStore = encryptSecret(value.trim());
+      const { encryptSecret } = await import('@/lib/settings-secure');
+      toStore = await encryptSecret(value.trim());
     }
     // Mark admin-confirmed: envelope { v, _confirmed } (see settings-registry).
     await setSetting(key, { v: toStore, _confirmed: true });

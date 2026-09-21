@@ -1,8 +1,7 @@
-import crypto from 'node:crypto';
-
 /**
  * Encrypted storage for sensitive settings (F0 §1.1).
- * AES-256-GCM with a random IV per value; envelope: `enc:v1:<iv>:<tag>:<ct>`.
+ * AES-256-GCM via WebCrypto (no node: imports — safe to bundle anywhere;
+ * actual use stays server-side). Envelope: `enc:v1:<iv>:<ct>`.
  * Key comes from `SETTINGS_ENCRYPTION_KEY` (32 bytes, base64 or hex or raw).
  * - Production without the key: THROW (fail closed, never store plaintext).
  * - Dev/test without the key: plaintext passthrough with `plain:` prefix so
@@ -11,16 +10,21 @@ import crypto from 'node:crypto';
 
 const PREFIX = 'enc:v1:';
 const DEV_PREFIX = 'plain:';
+const subtle: SubtleCrypto | undefined = (globalThis as { crypto?: Crypto }).crypto?.subtle;
 
-function loadKey(): Buffer | null {
+function loadKeyBytes(): Uint8Array | null {
   const raw = process.env.SETTINGS_ENCRYPTION_KEY;
   if (!raw) return null;
   const s = raw.trim();
   try {
-    if (/^[0-9a-fA-F]{64}$/.test(s)) return Buffer.from(s, 'hex');
-    const b = Buffer.from(s, 'base64');
-    if (b.length === 32) return b;
-    const utf = Buffer.from(s, 'utf8');
+    if (/^[0-9a-fA-F]{64}$/.test(s)) {
+      const b = new Uint8Array(32);
+      for (let i = 0; i < 32; i++) b[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);
+      return b;
+    }
+    const b64 = Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    if (b64.length === 32) return b64;
+    const utf = new TextEncoder().encode(s);
     if (utf.length === 32) return utf;
   } catch {
     return null;
@@ -28,36 +32,42 @@ function loadKey(): Buffer | null {
   return null;
 }
 
-export function isEncryptionConfigured(): boolean {
-  return loadKey() !== null;
+async function importKey(bytes: Uint8Array): Promise<CryptoKey> {
+  if (!subtle) throw new Error('WebCrypto unavailable');
+  return subtle.importKey('raw', bytes.slice().buffer as ArrayBuffer, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
-export function encryptSecret(plaintext: string): string {
-  const key = loadKey();
-  if (!key) {
+const b64 = (b: Uint8Array): string => btoa(String.fromCharCode(...b));
+const unb64 = (s: string): Uint8Array => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+export function isEncryptionConfigured(): boolean {
+  return loadKeyBytes() !== null;
+}
+
+export async function encryptSecret(plaintext: string): Promise<string> {
+  const bytes = loadKeyBytes();
+  if (!bytes) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('SETTINGS_ENCRYPTION_KEY is required in production');
     }
     return `${DEV_PREFIX}${plaintext}`;
   }
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const ct = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return `${PREFIX}${iv.toString('base64')}:${tag.toString('base64')}:${ct.toString('base64')}`;
+  const key = await importKey(bytes);
+  const iv = (globalThis as { crypto: Crypto }).crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await subtle!.encrypt({ name: 'AES-GCM', iv: iv.slice().buffer as ArrayBuffer }, key, new TextEncoder().encode(plaintext)));
+  return `${PREFIX}${b64(iv)}:${b64(ct)}`;
 }
 
-export function decryptSecret(stored: string): string {
+export async function decryptSecret(stored: string): Promise<string> {
   if (stored.startsWith(DEV_PREFIX)) return stored.slice(DEV_PREFIX.length);
   if (!stored.startsWith(PREFIX)) return stored; // legacy plaintext
-  const key = loadKey();
-  if (!key) throw new Error('SETTINGS_ENCRYPTION_KEY is required to decrypt settings');
+  const bytes = loadKeyBytes();
+  if (!bytes) throw new Error('SETTINGS_ENCRYPTION_KEY is required to decrypt settings');
   const parts = stored.slice(PREFIX.length).split(':');
-  if (parts.length !== 3) throw new Error('Malformed encrypted setting');
-  const [ivB64, tagB64, ctB64] = parts;
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivB64, 'base64'));
-  decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
-  return decipher.update(Buffer.from(ctB64, 'base64'), undefined, 'utf8') + decipher.final('utf8');
+  if (parts.length !== 2) throw new Error('Malformed encrypted setting');
+  const key = await importKey(bytes);
+  const pt = await subtle!.decrypt({ name: 'AES-GCM', iv: unb64(parts[0]).slice().buffer as ArrayBuffer }, key, unb64(parts[1]).slice().buffer as ArrayBuffer);
+  return new TextDecoder().decode(pt);
 }
 
 export function maskSecret(value: string): string {

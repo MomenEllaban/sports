@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createCourierShipment } from '@/lib/logistics';
 import { buildEtaReceipt } from '@/lib/eta';
-import { initializePayment } from '@/lib/payments';
+import { initializePayment, availablePaymentMethods, PaymentUnavailableError } from '@/lib/payments';
 import { dispatchNotification } from '@/lib/notifications';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { computeTotals, num } from '@/lib/pricing';
@@ -18,6 +18,16 @@ export async function POST(req: Request) {
 
     if (!phone || !items || items.length === 0) {
       return NextResponse.json({ success: false, error: 'رقم الموبايل والمنتجات مطلوبة.' }, { status: 400 });
+    }
+
+    // T01: reject payment methods that are not actually available (hidden in UI).
+    try {
+      const available = await availablePaymentMethods();
+      if (!available.includes(paymentMethod as PaymentMethod)) {
+        return NextResponse.json({ success: false, error: 'طريقة الدفع غير متاحة حالياً' }, { status: 400 });
+      }
+    } catch {
+      /* availability check is best-effort; creation validates again below */
     }
 
     // 1. Fetch Flagship Branch (Al Ibrahimeyah)
@@ -216,7 +226,15 @@ export async function POST(req: Request) {
     }
 
     // 7. Payment instructions (external, after commit — never fails the order).
-    const payResult = await initializePayment(paymentMethod as PaymentMethod, order.orderNumber, totalAmount, phone, name).catch(() => null);
+    let payResult: Awaited<ReturnType<typeof initializePayment>> | null = null;
+    try {
+      payResult = await initializePayment(paymentMethod as PaymentMethod, order.orderNumber, totalAmount, phone, name);
+    } catch (e) {
+      if (e instanceof PaymentUnavailableError) {
+        return NextResponse.json({ success: false, error: e.message }, { status: e.status });
+      }
+      payResult = null;
+    }
     // 3.1: persist gateway reference for webhook matching (never fails the order).
     if (payResult?.transactionRef) {
       await prisma.order
@@ -238,6 +256,7 @@ export async function POST(req: Request) {
       success: true,
       orderNumber: order.orderNumber,
       trackingNumber,
+      redirectUrl: payResult?.redirectUrl,
       instructionsAr: payResult?.instructionsAr,
       etaUuid: receipt?.etaUuid,
     });

@@ -65,7 +65,7 @@ export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   if (SENSITIVE_KEYS.has(key) && typeof value === 'string' && value) {
     const { decryptSecret } = await import('./settings-secure');
     try {
-      value = decryptSecret(value) as T;
+      value = (await decryptSecret(value)) as T;
     } catch {
       value = '' as T;
     }

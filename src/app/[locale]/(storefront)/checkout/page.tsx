@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -26,6 +26,23 @@ export default function CheckoutPage() {
   const [receiptError, setReceiptError] = useState('');
   const needsReceipt = paymentMethod === 'INSTAPAY' || paymentMethod === 'VODAFONE_CASH';
   const [orderCompleted, setOrderCompleted] = useState<{ orderNumber: string; trackingNumber: string; paymentInstructions?: string } | null>(null);
+
+  // T01: only offer payment methods that are actually available (gateway-gated).
+  const [availableMethods, setAvailableMethods] = useState<string[] | null>(null);
+  useEffect(() => {
+    fetch('/api/payments/methods')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.success && Array.isArray(d.methods)) {
+          setAvailableMethods(d.methods);
+          if (!d.methods.includes(paymentMethod)) setPaymentMethod('COD');
+        } else {
+          setAvailableMethods(['COD']);
+        }
+      })
+      .catch(() => setAvailableMethods(['COD']));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const subtotal = getSubtotal();
   const vat = getVatAmount();
@@ -82,6 +99,11 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (data.success) {
+        // T01: real gateway → redirect to Paymob iframe; else show confirmation.
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+          return;
+        }
         clearCart();
         setOrderCompleted({
           orderNumber: data.orderNumber,
@@ -245,6 +267,12 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="space-y-3 text-xs">
+                {availableMethods === null && (
+                  <p className="text-[11px] text-slate-500">جاري تحميل طرق الدفع...</p>
+                )}
+                {availableMethods !== null && !availableMethods.includes('PAYMOB') && !availableMethods.includes('FAWRY') && availableMethods.length <= 3 && (
+                  <p className="text-[11px] text-slate-500">الدفع الإلكتروني غير مفعل حالياً — الدفع عند الاستلام والتحويل متاحان.</p>
+                )}
                 <label
                   onClick={() => setPaymentMethod('COD')}
                   className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -260,6 +288,7 @@ export default function CheckoutPage() {
                   <span className="px-2.5 py-1 rounded bg-amber-500/20 text-amber-400 font-bold text-[10px]">متاح دائماً</span>
                 </label>
 
+                {(!availableMethods || availableMethods.includes('PAYMOB')) && (
                 <label
                   onClick={() => setPaymentMethod('PAYMOB')}
                   className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -273,7 +302,9 @@ export default function CheckoutPage() {
                     <span className="text-[11px] text-slate-400">فودافون كاش، اتصالات كاش، أورانج كاش وكروت البنوك</span>
                   </div>
                 </label>
+                )}
 
+                {(!availableMethods || availableMethods.includes('FAWRY')) && (
                 <label
                   onClick={() => setPaymentMethod('FAWRY')}
                   className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -287,6 +318,7 @@ export default function CheckoutPage() {
                     <span className="text-[11px] text-slate-400">كود دفع بالسوبرماركت ومنافذ فوري</span>
                   </div>
                 </label>
+                )}
 
                 <label
                   onClick={() => setPaymentMethod('INSTAPAY')}
