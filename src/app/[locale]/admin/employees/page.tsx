@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import EmployeesManager from '@/components/admin/EmployeesManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -19,13 +17,7 @@ export default async function AdminEmployeesPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div>
             <h1 className="text-2xl font-black text-slate-100">إدارة الموظفين والكادر الوظيفي</h1>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -39,8 +31,6 @@ export default async function AdminEmployeesPage() {
               branches={branches}
             />
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

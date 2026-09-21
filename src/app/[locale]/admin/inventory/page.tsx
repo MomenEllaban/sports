@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import TransfersManager from '@/components/admin/TransfersManager';
 import { prisma } from '@/lib/db';
 import { requirePageRole } from '@/lib/auth/require-page';
@@ -32,13 +30,7 @@ export default async function AdminInventoryPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div>
             <h1 className="text-2xl font-black text-slate-100">المخزون والتحويلات بين الفروع</h1>
             <p className="text-xs text-slate-400 mt-0.5">متابعة رصيد الأصناف لكل فرع بشكل منفصل وإنشاء أوامر التحويل الداخلي</p>
@@ -117,8 +109,6 @@ export default async function AdminInventoryPage() {
               </table>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

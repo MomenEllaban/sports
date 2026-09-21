@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Header from '@/components/storefront/Header';
-import Footer from '@/components/storefront/Footer';
 import { useCartStore } from '@/store/cartStore';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -102,8 +100,6 @@ export default function CheckoutPage() {
 
   if (orderCompleted) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-        <Header />
         <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center space-y-6">
           <div className="glass-panel p-8 rounded-3xl border border-emerald-500/30 space-y-4">
             <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto" />
@@ -138,14 +134,10 @@ export default function CheckoutPage() {
             </div>
           </div>
         </main>
-        <Footer />
-      </div>
-    );
+  );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8 space-y-8 w-full">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-100 border-b border-slate-800 pb-4">
@@ -412,8 +404,5 @@ export default function CheckoutPage() {
           </div>
         </form>
       </main>
-
-      <Footer />
-    </div>
   );
 }

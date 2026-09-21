@@ -1,7 +1,5 @@
 import React from 'react';
-import Header from '@/components/storefront/Header';
 import HeroBanner from '@/components/storefront/HeroBanner';
-import Footer from '@/components/storefront/Footer';
 import ProductCard from '@/components/storefront/ProductCard';
 import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
@@ -50,8 +48,6 @@ export default async function StorefrontHomePage({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
       
       <main className="flex-1 space-y-16 pb-16">
         <HeroBanner />
@@ -172,8 +168,5 @@ export default async function StorefrontHomePage({
           </Reveal>
         </section>
       </main>
-
-      <Footer />
-    </div>
   );
 }

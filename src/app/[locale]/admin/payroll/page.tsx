@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import PayrollManager from '@/components/admin/PayrollManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -19,13 +17,7 @@ export default async function AdminPayrollPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div className="border-b border-slate-800 pb-4">
             <h1 className="text-2xl font-black text-slate-100">مرتبات الموظفين والعمولات (Payroll System)</h1>
             <p className="text-xs text-slate-400 mt-0.5">إدارة أجور الموظفين بالفروع والنسب المؤوية من المبيعات (Commissions)</p>
@@ -80,8 +72,6 @@ export default async function AdminPayrollPage() {
               }))}
             />
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

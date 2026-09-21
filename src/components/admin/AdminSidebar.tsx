@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Role } from '@prisma/client';
 import Image from 'next/image';
+import NavPending from '@/components/layout/NavPending';
 
 export interface SidebarItem {
   key: string;
@@ -199,7 +200,8 @@ export default function AdminSidebar() {
                 }`}
               >
                 {item.icon}
-                <span>{isAr ? item.labelAr : item.labelEn}</span>
+                <span className="flex-1">{isAr ? item.labelAr : item.labelEn}</span>
+                <NavPending className={isActive ? 'text-white' : 'text-blue-400'} />
               </Link>
             );
           })}

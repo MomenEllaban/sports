@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import { StatusBadge, PayLabel } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -34,13 +32,7 @@ export default async function AdminDashboardPage() {
     todayOrders.reduce((s, o) => s + num(o.totalAmount), 0) + todaySales.reduce((s, x) => s + num(x.totalAmount), 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-black text-slate-100">لوحة التحكم والملخص العام</h1>
@@ -155,8 +147,6 @@ export default async function AdminDashboardPage() {
               </div>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

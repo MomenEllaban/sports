@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  experimental: {
+    // Keep client-side router cache segments around so back/forward and
+    // repeat navigation between pages feels instant instead of re-fetching.
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
   images: {
     qualities: [75, 80, 85],
     remotePatterns: [

@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { BarChart3, TrendingUp, Award, Layers } from 'lucide-react';
@@ -46,13 +44,7 @@ export default async function AdminReportsPage() {
   const posRevenue = saleItems.reduce((s, i) => s + num(i.totalPrice), 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div className="border-b border-slate-800 pb-4">
             <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
               <BarChart3 className="w-6 h-6 text-blue-400" />
@@ -110,8 +102,6 @@ export default async function AdminReportsPage() {
               </div>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

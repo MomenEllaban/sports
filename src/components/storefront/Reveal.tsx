@@ -16,6 +16,16 @@ export default function Reveal({ children, delay = 0, y = 24, className = '' }: 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Content that is already on screen (e.g. the top of a freshly navigated
+    // page) must render immediately instead of waiting for a scroll observer,
+    // otherwise the page briefly looks blank and feels slow.
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.95 && rect.bottom > 0) {
+      setVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

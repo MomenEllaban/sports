@@ -1,6 +1,4 @@
 import React from 'react';
-import Header from '@/components/storefront/Header';
-import Footer from '@/components/storefront/Footer';
 import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
 import { MapPin, Phone, Clock, Navigation } from 'lucide-react';
@@ -23,8 +21,6 @@ export default async function BranchesPage({
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
       <main className="flex-1 max-w-7xl mx-auto px-4 py-10 space-y-8 w-full">
         <Reveal>
           <div className="space-y-2 animate-fade-up">
@@ -129,7 +125,5 @@ export default async function BranchesPage({
           ))}
         </div>
       </main>
-      <Footer />
-    </div>
   );
 }

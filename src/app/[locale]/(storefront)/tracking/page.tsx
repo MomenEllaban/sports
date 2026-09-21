@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Header from '@/components/storefront/Header';
-import Footer from '@/components/storefront/Footer';
 import { Search, Package, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -51,8 +49,6 @@ export default function TrackingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12 space-y-8 w-full">
         <div className="text-center space-y-3">
@@ -163,8 +159,5 @@ export default function TrackingPage() {
           </div>
         )}
       </main>
-
-      <Footer />
-    </div>
   );
 }

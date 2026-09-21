@@ -1,6 +1,4 @@
 import React from 'react';
-import Header from '@/components/storefront/Header';
-import Footer from '@/components/storefront/Footer';
 import ProductDetailsClient from './ProductDetailsClient';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -35,8 +33,6 @@ export default async function ProductDetailsPage({
   const desc = isAr ? product.descriptionAr : product.descriptionEn;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
       <main className="flex-1 max-w-6xl mx-auto px-4 py-8 space-y-8 w-full">
         <nav className="text-xs text-slate-400 flex items-center gap-2" aria-label="breadcrumb">
           <Link href="/" className="hover:text-slate-200">
@@ -131,7 +127,5 @@ export default async function ProductDetailsPage({
           )}
         </section>
       </main>
-      <Footer />
-    </div>
   );
 }

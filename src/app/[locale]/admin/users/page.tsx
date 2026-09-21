@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import UsersManager from '@/components/admin/UsersManager';
 import { prisma } from '@/lib/db';
 import { ShieldCheck } from 'lucide-react';
@@ -32,13 +30,7 @@ export default async function AdminUsersPage() {
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex dir-rtl">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           {/* Header */}
           <div className="flex flex-wrap justify-between items-center border-b border-slate-800 pb-4 gap-4">
             <div>
@@ -64,8 +56,6 @@ export default async function AdminUsersPage() {
               branches={branches}
             />
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

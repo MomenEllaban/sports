@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import Header from '@/components/storefront/Header';
-import Footer from '@/components/storefront/Footer';
 import { useCartStore } from '@/store/cartStore';
 import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
 import { useTranslations } from 'next-intl';
@@ -39,8 +37,6 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <Header />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8 space-y-8 w-full">
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
@@ -201,8 +197,5 @@ export default function CartPage() {
           </div>
         )}
       </main>
-
-      <Footer />
-    </div>
   );
 }

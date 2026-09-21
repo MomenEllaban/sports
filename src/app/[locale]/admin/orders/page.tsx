@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import OrdersManager from '@/components/admin/OrdersManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -78,13 +76,7 @@ export default async function AdminOrdersPage() {
   const rows = [...orderRows, ...posRows].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-black text-slate-100">إدارة الطلبات والشحنات</h1>
@@ -101,8 +93,6 @@ export default async function AdminOrdersPage() {
               branches={branches}
             />
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }

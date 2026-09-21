@@ -1,6 +1,4 @@
 import React from 'react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
 import ExpensesManager from '@/components/admin/ExpensesManager';
 import { StatusBadge } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
@@ -33,13 +31,7 @@ export default async function AdminAccountingPage() {
   const codPending = codOrders.filter((o) => o.paymentStatus !== 'PAID').reduce((s, o) => s + num(o.totalAmount), 0);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
-      <AdminSidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader />
-
-        <main className="p-6 space-y-6 overflow-y-auto">
+    <>
           <div className="flex justify-between items-center border-b border-slate-800 pb-4">
             <div>
               <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
@@ -120,8 +112,6 @@ export default async function AdminAccountingPage() {
               </table>
             </div>
           </div>
-        </main>
-      </div>
-    </div>
+        </>
   );
 }
