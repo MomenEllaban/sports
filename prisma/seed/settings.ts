@@ -40,6 +40,10 @@ const DEFAULTS: Record<string, unknown> = {
   'eta.clientId': '',
   'eta.clientSecret': '',
   'eta.taxRegNumber': '123-456-789',
+  // ETA-spike — branch/activity/signing (used in T14, safe defaults).
+  'eta.branchCode': '0',
+  'eta.activityCode': '',
+  'eta.signingUrl': '',
   // 4.2 WhatsApp Business Cloud API — settings-gated.
   'whatsapp.mode': 'off',
   'whatsapp.phoneId': '',

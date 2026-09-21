@@ -177,7 +177,11 @@ export async function submitEtaDocument(
   token: string,
   doc: EtaDocumentPayload
 ): Promise<{ uuid: string }> {
-  const signingUrl = process.env.ETA_SIGNING_URL;
+  // ETA-spike: signing endpoint from Settings (encrypted) with env fallback.
+  // Still optional here; T14 makes it mandatory in production.
+  const { getSetting } = await import('./settings');
+  const signingUrl =
+    (await getSetting<string>('eta.signingUrl', '').catch(() => '')) || process.env.ETA_SIGNING_URL;
   let signedDocument: unknown = {
     issuer: { registrationNumber: doc.taxRegNumber },
     receiver: {},

@@ -327,6 +327,8 @@ model Product {
   isFeatured    Boolean  @default(false)
   isActive      Boolean  @default(true)
   images        String[] @default([])
+  // ETA-spike: GS1 GTIN per SKU for production e-invoicing (T14).
+  gs1Code       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

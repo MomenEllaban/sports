@@ -34,6 +34,9 @@
 | ETA Client ID (`eta.clientId`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | — (فارغ: الميزة مقفولة) | من بوابة مصلحة الضرائب (eInvoicing).|
 | ETA Client Secret (`eta.clientSecret`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | — (فارغ: الميزة مقفولة) | سرّي — يُخزن مشفراً.|
 | رقم التسجيل الضريبي (9 أرقام) (`eta.taxRegNumber`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | `"123-456-789"` | من البطاقة الضريبية. إلزامي لأي إرسال. مثال: `123-456-789` |
+| كود الفرع لدى ETA (`eta.branchCode`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | `"0"` | كود الفرع المسجل في المنظومة (من المحاسب). يُستخدم في T14. مثال: `0` |
+| كود النشاط (`eta.activityCode`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | — (فارغ: الميزة مقفولة) | كود نشاط بيع التجزئة الرياضية (من المحاسب). يُستخدم في T14. مثال: `5239` |
+| رابط خدمة التوقيع الإلكتروني (`eta.signingUrl`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | — (فارغ: الميزة مقفولة) | رابط خدمة توقيع المستندات CAdES (HSM/Token). إلزامي في production (T14).|
 | وضع واتساب (`whatsapp.mode`) | واتساب للأعمال | نعم | CLIENT | `"off"` | off للوضع التجريبي (سجل فقط)، cloud للإرسال الحقيقي عبر Meta.|
 | WhatsApp Phone Number ID (`whatsapp.phoneId`) | واتساب للأعمال | لا | PROVIDER | — (فارغ: الميزة مقفولة) | من Meta Business ← WhatsApp ← API Setup.|
 | WhatsApp API Token (`whatsapp.token`) | واتساب للأعمال | لا | PROVIDER | — (فارغ: الميزة مقفولة) | توكن دائم من Meta (سرّي — يُخزن مشفراً).|
