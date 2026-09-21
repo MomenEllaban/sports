@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from './db';
+import { requiredSecret } from './env-guard';
 import { Role } from '@prisma/client';
 
 export const authOptions: NextAuthOptions = {
@@ -67,5 +68,5 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: 'jwt',
   },
-  secret: process.env.NEXTAUTH_SECRET || 'sports_champions_secret_key_2026',
+  secret: requiredSecret('NEXTAUTH_SECRET', 'dev-insecure-nextauth-secret'),
 };

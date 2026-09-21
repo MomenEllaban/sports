@@ -4,6 +4,9 @@ import { requireRole } from '@/lib/auth/guards';
 
 export async function GET() {
   try {
+    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    if (error) return error;
+
     const employees = await prisma.employee.findMany({
       orderBy: { createdAt: 'desc' },
       include: { branch: { select: { id: true, name: true, nameEn: true } } },

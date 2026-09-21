@@ -1,11 +1,12 @@
 import crypto from 'node:crypto';
 import { cookies } from 'next/headers';
+import { requiredSecret } from '@/lib/env-guard';
 
 export const PORTAL_COOKIE = 'sc_portal';
 const MAX_AGE = 7 * 24 * 60 * 60; // 7 days
 
 function secret(): string {
-  return process.env.NEXTAUTH_SECRET || 'dev-portal-secret';
+  return requiredSecret('NEXTAUTH_SECRET', 'dev-insecure-portal-secret');
 }
 
 export interface PortalSession {

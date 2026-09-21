@@ -6,6 +6,7 @@ import { initializePayment } from '@/lib/payments';
 import { dispatchNotification } from '@/lib/notifications';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { computeTotals, num } from '@/lib/pricing';
+import { getVatRate } from '@/lib/settings';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
 
 const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -43,18 +44,28 @@ export async function POST(req: Request) {
     }
 
     // 3. Validate items + compute totals from DB prices (T06 semantics). No writes yet.
-    const orderItemsData: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number }> = [];
-    const shortages: Array<{ productId: string; sku: string; available: number; requested: number }> = [];
-
+    const requested: Array<{ productId: string; quantity: number }> = [];
     for (const item of items) {
       if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
         return NextResponse.json({ success: false, error: 'كمية غير صالحة في الطلب' }, { status: 400 });
       }
-      const dbProduct = await prisma.product.findUnique({
-        where: { id: item.productId },
-        include: { inventories: { where: { branchId: flagshipBranch.id } } },
-      });
+      if (typeof item.productId !== 'string' || !item.productId) {
+        return NextResponse.json({ success: false, error: 'صنف غير صالح في الطلب' }, { status: 400 });
+      }
+      requested.push({ productId: item.productId, quantity: item.quantity });
+    }
 
+    const products = await prisma.product.findMany({
+      where: { id: { in: [...new Set(requested.map((r) => r.productId))] } },
+      include: { inventories: { where: { branchId: flagshipBranch.id } } },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+
+    const orderItemsData: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number }> = [];
+    const shortages: Array<{ productId: string; sku: string; available: number; requested: number }> = [];
+
+    for (const item of requested) {
+      const dbProduct = byId.get(item.productId);
       if (!dbProduct || !dbProduct.isActive) {
         return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
       }
@@ -89,35 +100,38 @@ export async function POST(req: Request) {
     }
 
     // T09: totals via the central pricing module (same exclusive-VAT semantics).
+    const vatRate = await getVatRate();
     const totals = computeTotals({
       lines: orderItemsData,
       deliveryFee: Number(deliveryFee || 0),
+      vatRate,
     });
     const vatAmount = totals.vat;
     const totalAmount = totals.total;
 
-    const receipt = await buildEtaReceipt({
-      branchId: flagshipBranch.id,
-      invoiceNumber: 'pending',
-      totalAmount,
-      vatAmount,
-      items: orderItemsData.map((i) => ({
-        name: 'منتج رياضي',
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        totalPrice: i.totalPrice,
-        vatAmount: Math.round(i.totalPrice * 0.14 * 100) / 100,
-      })),
-    });
-
     // 4-6. ONE transaction: stock + logs + order + invoice; numbers retried (T07).
     const provider = fulfillmentType === 'PICKUP' ? ShippingProvider.PICKUP : ShippingProvider.BOSTA;
     let order: { id: string; orderNumber: string };
+    let receipt: Awaited<ReturnType<typeof buildEtaReceipt>> | null = null;
     let trackingNumber = '';
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       const orderNumber = genOrderNumber();
       try {
+        const currentReceipt = await buildEtaReceipt({
+          branchId: flagshipBranch.id,
+          invoiceNumber: orderNumber,
+          totalAmount,
+          vatAmount,
+          items: orderItemsData.map((i) => ({
+            name: 'منتج رياضي',
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            totalPrice: i.totalPrice,
+            vatAmount: Math.round(i.totalPrice * vatRate * 100) / 100,
+          })),
+        });
+        receipt = currentReceipt;
         const courierResult = await createCourierShipment({
           orderNumber,
           branchAddress: flagshipBranch.address,
@@ -166,18 +180,18 @@ export async function POST(req: Request) {
           await tx.taxInvoice.create({
             data: {
               invoiceNumber: orderNumber,
-              etaUuid: receipt.etaUuid,
+              etaUuid: currentReceipt.etaUuid,
               orderId: created.id,
               branchId: flagshipBranch.id,
               totalAmount,
               vatAmount,
-              qrCodeData: receipt.qrCodeDataUrl,
-              status: receipt.status,
-              etaResponseText: receipt.message,
+              qrCodeData: currentReceipt.qrCodeDataUrl,
+              status: currentReceipt.status,
+              etaResponseText: currentReceipt.message,
             },
           });
           return { id: created.id, orderNumber };
-        });
+        }, { maxWait: 10000, timeout: 20000 });
         trackingNumber = courierResult.trackingNumber;
         lastErr = null;
         break;
@@ -225,7 +239,7 @@ export async function POST(req: Request) {
       orderNumber: order.orderNumber,
       trackingNumber,
       instructionsAr: payResult?.instructionsAr,
-      etaUuid: receipt.etaUuid,
+      etaUuid: receipt?.etaUuid,
     });
   } catch (error) {
     console.error('Order creation error:', error);

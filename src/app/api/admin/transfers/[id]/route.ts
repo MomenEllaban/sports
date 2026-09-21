@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { decrementStock, incrementStock, InsufficientStockError } from '@/lib/inventory/service';
 
 // Approve (COMPLETED: moves stock) or reject a transfer
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,6 +12,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     const body = await req.json();
     const { action } = body; // 'approve' | 'reject'
+
+    if (action !== 'approve' && action !== 'reject') {
+      return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
+    }
+
+    const approverId = (session!.user as { id: string }).id;
+
+    if (action === 'reject') {
+      const claimed = await prisma.stockTransfer.updateMany({
+        where: { id, status: 'PENDING' },
+        data: { status: 'REJECTED', approvedById: approverId },
+      });
+      if (claimed.count !== 1) {
+        return NextResponse.json({ success: false, error: 'Transfer already processed' }, { status: 400 });
+      }
+      const transfer = await prisma.stockTransfer.findUnique({ where: { id } });
+      return NextResponse.json({ success: true, transfer });
+    }
 
     const transfer = await prisma.stockTransfer.findUnique({
       where: { id },
@@ -23,98 +42,55 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ success: false, error: 'Transfer already processed' }, { status: 400 });
     }
 
-    const approverId = (session!.user as { id: string }).id;
-
-    if (action === 'reject') {
-      const updated = await prisma.stockTransfer.update({
-        where: { id },
-        data: { status: 'REJECTED', approvedById: approverId },
-      });
-      return NextResponse.json({ success: true, transfer: updated });
-    }
-
-    if (action !== 'approve') {
-      return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
-    }
-
-    // Verify source stock first
-    for (const item of transfer.items) {
-      const inv = await prisma.branchInventory.findUnique({
-        where: { branchId_productId: { branchId: transfer.fromBranchId, productId: item.productId } },
-      });
-      if (!inv || inv.stockQuantity < item.quantity) {
-        return NextResponse.json({ success: false, error: 'Insufficient stock in source branch' }, { status: 400 });
-      }
-    }
-
-    // Move stock + audit logs
-    for (const item of transfer.items) {
-      const fromInv = await prisma.branchInventory.findUnique({
-        where: { branchId_productId: { branchId: transfer.fromBranchId, productId: item.productId } },
-      });
-      const toInv = await prisma.branchInventory.findUnique({
-        where: { branchId_productId: { branchId: transfer.toBranchId, productId: item.productId } },
-      });
-
-      const fromNew = fromInv!.stockQuantity - item.quantity;
-      await prisma.branchInventory.update({
-        where: { branchId_productId: { branchId: transfer.fromBranchId, productId: item.productId } },
-        data: { stockQuantity: fromNew },
-      });
-      await prisma.inventoryLog.create({
-        data: {
-          branchId: transfer.fromBranchId,
-          productId: item.productId,
-          type: 'TRANSFER',
-          changeQuantity: -item.quantity,
-          previousQuantity: fromInv!.stockQuantity,
-          newQuantity: fromNew,
-          referenceId: transfer.transferNumber,
-          createdById: approverId,
-        },
-      });
-
-      if (toInv) {
-        const toNew = toInv.stockQuantity + item.quantity;
-        await prisma.branchInventory.update({
-          where: { branchId_productId: { branchId: transfer.toBranchId, productId: item.productId } },
-          data: { stockQuantity: toNew },
+    // ONE transaction: claim the transfer + move stock + audit logs. The
+    // conditional status claim is the exactly-once lock; stock uses the
+    // race-safe inventory service, so a crash or concurrent approval rolls back.
+    try {
+      await prisma.$transaction(async (tx) => {
+        const claimed = await tx.stockTransfer.updateMany({
+          where: { id, status: 'PENDING' },
+          data: { status: 'COMPLETED', approvedById: approverId },
         });
-        await prisma.inventoryLog.create({
-          data: {
-            branchId: transfer.toBranchId,
+        if (claimed.count !== 1) {
+          throw new Error('TRANSFER_ALREADY_PROCESSED');
+        }
+        for (const item of transfer.items) {
+          await decrementStock(tx, {
+            branchId: transfer.fromBranchId,
             productId: item.productId,
+            quantity: item.quantity,
             type: 'TRANSFER',
-            changeQuantity: item.quantity,
-            previousQuantity: toInv.stockQuantity,
-            newQuantity: toNew,
             referenceId: transfer.transferNumber,
             createdById: approverId,
-          },
-        });
-      } else {
-        await prisma.branchInventory.create({
-          data: { branchId: transfer.toBranchId, productId: item.productId, stockQuantity: item.quantity, lowStockThreshold: 5 },
-        });
-        await prisma.inventoryLog.create({
-          data: {
+          });
+          await incrementStock(tx, {
             branchId: transfer.toBranchId,
             productId: item.productId,
+            quantity: item.quantity,
             type: 'TRANSFER',
-            changeQuantity: item.quantity,
-            previousQuantity: 0,
-            newQuantity: item.quantity,
             referenceId: transfer.transferNumber,
             createdById: approverId,
+          });
+        }
+      }, { maxWait: 10000, timeout: 20000 });
+    } catch (e) {
+      if (e instanceof InsufficientStockError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Insufficient stock in source branch',
+            items: [{ productId: e.productId, available: e.available }],
           },
-        });
+          { status: 400 }
+        );
       }
+      if (e instanceof Error && e.message === 'TRANSFER_ALREADY_PROCESSED') {
+        return NextResponse.json({ success: false, error: 'Transfer already processed' }, { status: 400 });
+      }
+      throw e;
     }
 
-    const updated = await prisma.stockTransfer.update({
-      where: { id },
-      data: { status: 'COMPLETED', approvedById: approverId },
-    });
+    const updated = await prisma.stockTransfer.findUnique({ where: { id } });
     return NextResponse.json({ success: true, transfer: updated });
   } catch (e) {
     console.error('Admin transfer action error:', e);

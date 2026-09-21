@@ -1,4 +1,4 @@
-import { prisma } from './db.js';
+import { prisma } from '@/lib/db';
 
 export interface AuditEntry {
   actorId?: string | null;

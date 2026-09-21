@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { incrementStock } from '@/lib/inventory/service';
+
+class PoError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
 
 // Receive goods for a PO: adds stock + audit logs, marks RECEIVED when fully received
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -12,81 +21,58 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = await req.json();
     const { received } = body as { received: Array<{ itemId: string; quantity: number }> };
 
-    const po = await prisma.purchaseOrder.findUnique({ where: { id }, include: { items: true } });
-    if (!po) {
-      return NextResponse.json({ success: false, error: 'Purchase order not found' }, { status: 404 });
-    }
-    if (po.status === 'CANCELLED' || po.status === 'RECEIVED') {
-      return NextResponse.json({ success: false, error: 'Purchase order already closed' }, { status: 400 });
-    }
     if (!Array.isArray(received) || received.length === 0) {
       return NextResponse.json({ success: false, error: 'No received quantities' }, { status: 400 });
     }
 
     const actorId = (session!.user as { id: string }).id;
 
-    for (const r of received) {
-      const qty = Math.floor(Number(r.quantity) || 0);
-      if (qty <= 0) continue;
-      const item = po.items.find((i) => i.id === r.itemId);
-      if (!item) continue;
-      const addQty = Math.min(qty, item.quantityOrdered - item.quantityReceived);
-      if (addQty <= 0) continue;
+    // ONE transaction: item receipts + stock + logs + status. The conditional
+    // quantityReceived update is the lock so concurrent receives cannot double-count.
+    const updated = await prisma.$transaction(async (tx) => {
+      const po = await tx.purchaseOrder.findUnique({ where: { id }, include: { items: true } });
+      if (!po) throw new PoError(404, 'Purchase order not found');
+      if (po.status === 'CANCELLED' || po.status === 'RECEIVED') {
+        throw new PoError(400, 'Purchase order already closed');
+      }
 
-      await prisma.purchaseOrderItem.update({
-        where: { id: item.id },
-        data: { quantityReceived: item.quantityReceived + addQty },
-      });
+      for (const r of received) {
+        const qty = Math.floor(Number(r.quantity) || 0);
+        if (qty <= 0) continue;
+        const item = po.items.find((i) => i.id === r.itemId);
+        if (!item) continue;
+        const addQty = Math.min(qty, item.quantityOrdered - item.quantityReceived);
+        if (addQty <= 0) continue;
 
-      const inv = await prisma.branchInventory.findUnique({
-        where: { branchId_productId: { branchId: po.branchId, productId: item.productId } },
-      });
-      if (inv) {
-        const newQty = inv.stockQuantity + addQty;
-        await prisma.branchInventory.update({
-          where: { branchId_productId: { branchId: po.branchId, productId: item.productId } },
-          data: { stockQuantity: newQty },
+        const claimed = await tx.purchaseOrderItem.updateMany({
+          where: { id: item.id, quantityReceived: item.quantityReceived },
+          data: { quantityReceived: item.quantityReceived + addQty },
         });
-        await prisma.inventoryLog.create({
-          data: {
-            branchId: po.branchId,
-            productId: item.productId,
-            type: 'RESTOCK',
-            changeQuantity: addQty,
-            previousQuantity: inv.stockQuantity,
-            newQuantity: newQty,
-            referenceId: po.poNumber,
-            createdById: actorId,
-          },
-        });
-      } else {
-        await prisma.branchInventory.create({
-          data: { branchId: po.branchId, productId: item.productId, stockQuantity: addQty, lowStockThreshold: 5 },
-        });
-        await prisma.inventoryLog.create({
-          data: {
-            branchId: po.branchId,
-            productId: item.productId,
-            type: 'RESTOCK',
-            changeQuantity: addQty,
-            previousQuantity: 0,
-            newQuantity: addQty,
-            referenceId: po.poNumber,
-            createdById: actorId,
-          },
+        if (claimed.count !== 1) throw new PoError(409, 'Purchase order changed concurrently, retry');
+
+        await incrementStock(tx, {
+          branchId: po.branchId,
+          productId: item.productId,
+          quantity: addQty,
+          type: 'RESTOCK',
+          referenceId: po.poNumber,
+          createdById: actorId,
         });
       }
-    }
 
-    const refreshed = await prisma.purchaseOrder.findUnique({ where: { id }, include: { items: true } });
-    const fullyReceived = refreshed!.items.every((i) => i.quantityReceived >= i.quantityOrdered);
-    const updated = await prisma.purchaseOrder.update({
-      where: { id },
-      data: { status: fullyReceived ? 'RECEIVED' : 'SUBMITTED' },
-    });
+      const refreshed = await tx.purchaseOrder.findUniqueOrThrow({ where: { id }, include: { items: true } });
+      const fullyReceived = refreshed.items.every((i) => i.quantityReceived >= i.quantityOrdered);
+      return tx.purchaseOrder.update({
+        where: { id },
+        data: { status: fullyReceived ? 'RECEIVED' : 'SUBMITTED' },
+      });
+    }, { maxWait: 10000, timeout: 20000 });
 
     return NextResponse.json({ success: true, purchaseOrder: updated });
   } catch (e) {
+    if (e instanceof PoError) {
+      return NextResponse.json({ success: false, error: e.message }, { status: e.status });
+    }
     console.error('Admin PO receive error:', e);
     return NextResponse.json({ success: false, error: 'Failed to receive goods' }, { status: 500 });
   }

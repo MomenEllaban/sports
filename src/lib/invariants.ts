@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { num } from './pricing.js';
+import { num } from '@/lib/pricing';
 
 /**
  * READ-ONLY invariant checker core (T11). Takes any PrismaClient (app or test DB).

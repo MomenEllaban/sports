@@ -4,6 +4,9 @@ import { requireRole } from '@/lib/auth/guards';
 
 export async function GET() {
   try {
+    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    if (error) return error;
+
     const brands = await prisma.brand.findMany({ orderBy: { nameAr: 'asc' } });
     return NextResponse.json({ success: true, brands });
   } catch {

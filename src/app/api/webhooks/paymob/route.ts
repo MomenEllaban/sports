@@ -1,37 +1,47 @@
 import { NextResponse } from 'next/server';
-import crypto from 'node:crypto';
 import { prisma } from '@/lib/db';
+import { num } from '@/lib/pricing';
+import { verifyWebhookHmac } from '@/lib/webhooks/verify';
 
 /**
  * Paymob payment webhook (3.1) — public endpoint.
- * Verifies HMAC-SHA512 signature when PAYMOB_HMAC_SECRET is set, then flips
- * the matching order (by orderNumber) to PAID. Idempotent: already-PAID
- * orders return success without rewrites.
+ * Fail-closed: the HMAC-SHA512 signature over the RAW body is REQUIRED when
+ * PAYMOB_HMAC_SECRET is configured, and unauthenticated calls are rejected
+ * outside development. Only an explicit success flips the matching order to
+ * PAID, and the reported amount must match the order total.
  */
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(rawBody) as Record<string, unknown>;
+    } catch {
+      return NextResponse.json({ success: false, error: 'invalid JSON body' }, { status: 400 });
+    }
+
+    const obj = (body.obj ?? {}) as Record<string, unknown>;
+    const objOrder = (obj.order ?? {}) as Record<string, unknown>;
     const orderNumber: string | undefined =
-      body.merchant_order_id || body.orderNumber || body.obj?.order?.merchant_order_id;
+      (body.merchant_order_id as string) ||
+      (body.orderNumber as string) ||
+      (objOrder.merchant_order_id as string);
     const success: boolean | undefined =
-      body.success ?? body.obj?.success ?? body.txn_response_code === 'APPROVED';
+      (body.success as boolean) ?? (obj.success as boolean) ?? (body.txn_response_code === 'APPROVED' ? true : undefined);
     const paidAmount: number | undefined =
       body.amount_cents !== undefined ? Number(body.amount_cents) / 100 : undefined;
     const transactionRef: string | undefined =
-      body.transactionRef || body.id?.toString() || body.obj?.id?.toString();
+      (body.transactionRef as string) || (body.id !== undefined ? String(body.id) : undefined) ||
+      (obj.id !== undefined ? String(obj.id) : undefined);
+
+    const secret = process.env.PAYMOB_HMAC_SECRET;
+    const signature = req.headers.get('x-paymob-signature') || (body.hmac as string) || (body.signature as string);
+    if (!verifyWebhookHmac('sha512', secret, rawBody, signature)) {
+      return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
+    }
 
     if (!orderNumber) {
       return NextResponse.json({ success: false, error: 'orderNumber is required' }, { status: 400 });
-    }
-
-    const secret = process.env.PAYMOB_HMAC_SECRET;
-    const signature: string | undefined =
-      req.headers.get('x-paymob-signature') || body.hmac || body.signature;
-    if (secret && signature) {
-      const expected = crypto.createHmac('sha512', secret).update(JSON.stringify(body)).digest('hex');
-      if (expected !== signature) {
-        return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
-      }
     }
 
     const order = await prisma.order.findUnique({ where: { orderNumber } });
@@ -41,6 +51,7 @@ export async function POST(req: Request) {
     if (order.paymentStatus === 'PAID') {
       return NextResponse.json({ success: true, idempotentReplay: true, orderNumber });
     }
+
     if (success === false) {
       await prisma.order.update({
         where: { orderNumber },
@@ -48,12 +59,18 @@ export async function POST(req: Request) {
       });
       return NextResponse.json({ success: true, orderNumber, paymentStatus: 'FAILED' });
     }
+    if (success !== true) {
+      return NextResponse.json({ success: false, error: 'payment status is ambiguous' }, { status: 400 });
+    }
+    if (paidAmount !== undefined && Number.isFinite(paidAmount) && Math.abs(paidAmount - num(order.totalAmount)) > 0.01) {
+      return NextResponse.json({ success: false, error: 'amount mismatch' }, { status: 400 });
+    }
+
     const updated = await prisma.order.update({
       where: { orderNumber },
       data: {
         paymentStatus: 'PAID',
         paymentRef: transactionRef ?? order.paymentRef,
-        ...(paidAmount !== undefined && Number.isFinite(paidAmount) ? {} : {}),
       },
     });
     return NextResponse.json({ success: true, orderNumber, paymentStatus: updated.paymentStatus });

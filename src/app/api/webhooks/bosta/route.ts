@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { parseCourierWebhook } from '@/lib/logistics';
 import { applyCourierStatus } from '@/lib/logistics/webhook';
+import { verifyWebhookSecret } from '@/lib/webhooks/verify';
 
 /**
  * Bosta shipment webhook (3.2) — public endpoint.
@@ -12,11 +13,9 @@ import { applyCourierStatus } from '@/lib/logistics/webhook';
 export async function POST(req: Request) {
   try {
     const secret = process.env.BOSTA_WEBHOOK_SECRET;
-    if (secret) {
-      const sig = req.headers.get('x-bosta-signature') || req.headers.get('x-webhook-signature');
-      if (sig !== secret) {
-        return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
-      }
+    const sig = req.headers.get('x-bosta-signature') || req.headers.get('x-webhook-signature');
+    if (!verifyWebhookSecret(secret, sig)) {
+      return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
     }
     const body = (await req.json()) as Record<string, unknown>;
     const { trackingNumber, normalizedStatus } = parseCourierWebhook(body);

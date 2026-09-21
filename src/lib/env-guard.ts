@@ -24,3 +24,17 @@ export function assertDevelopment(action: string): void {
     throw new Error(`REFUSED: "${action}" requires APP_ENV=development (current: ${getAppEnv()}).`);
   }
 }
+
+/**
+ * Fail-closed secret accessor (security): the env var is required outside
+ * development; the insecure fallback is ONLY ever used while APP_ENV=development
+ * so a missing secret can never silently protect production data.
+ */
+export function requiredSecret(name: string, devFallback: string): string {
+  const value = process.env[name];
+  if (value && value.trim().length > 0) return value;
+  if (getAppEnv() !== 'development') {
+    throw new Error(`REFUSED: ${name} must be set while APP_ENV=${getAppEnv()}.`);
+  }
+  return devFallback;
+}

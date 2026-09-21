@@ -7,7 +7,7 @@ import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { computeTotals, loyaltyEarned as loyaltyRule, num } from '@/lib/pricing';
-import { getLoyaltyRule } from '@/lib/settings';
+import { getLoyaltyRule, getVatRate } from '@/lib/settings';
 import { dispatchNotification } from '@/lib/notifications';
 
 const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -73,13 +73,16 @@ export async function POST(req: Request) {
     }
 
     // Load products + pre-check stock for clear errors (the transaction re-checks atomically).
+    const products = await prisma.product.findMany({
+      where: { id: { in: [...new Set(lines.map((l) => l.productId))] } },
+      include: { inventories: { where: { branchId: ctx.branch.id } } },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+
     let subtotal = 0;
     const priced: Array<{ productId: string; unitPrice: number; quantity: number; totalPrice: number }> = [];
     for (const line of lines) {
-      const dbProduct = await prisma.product.findUnique({
-        where: { id: line.productId },
-        include: { inventories: { where: { branchId: ctx.branch.id } } },
-      });
+      const dbProduct = byId.get(line.productId);
       if (!dbProduct || !dbProduct.isActive) {
         return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
       }
@@ -121,7 +124,8 @@ export async function POST(req: Request) {
     }
 
     // T09: totals via the central pricing module (same exclusive-VAT semantics).
-    const totals = computeTotals({ lines: priced, discount });
+    const vatRate = await getVatRate();
+    const totals = computeTotals({ lines: priced, discount, vatRate });
     const vatAmount = totals.vat;
     const totalAmount = totals.total;
 
@@ -134,26 +138,27 @@ export async function POST(req: Request) {
       if (customer) resolvedCustomerId = customer.id;
     }
 
-    const receipt = await buildEtaReceipt({
-      branchId: ctx.branch.id,
-      invoiceNumber: 'pending',
-      totalAmount,
-      vatAmount,
-      items: priced.map((i) => ({
-        name: 'منتج رياضي',
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        totalPrice: i.totalPrice,
-        vatAmount: Math.round(i.totalPrice * 0.14 * 100) / 100,
-      })),
-    });
-
     // ONE transaction: stock + logs + sale + invoice (T07). Number collisions retried.
     let sale: { id: string; saleNumber: string } | null = null;
+    let receipt: Awaited<ReturnType<typeof buildEtaReceipt>> | null = null;
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       const saleNumber = genSaleNumber();
       try {
+        const currentReceipt = await buildEtaReceipt({
+          branchId: ctx.branch.id,
+          invoiceNumber: saleNumber,
+          totalAmount,
+          vatAmount,
+          items: priced.map((i) => ({
+            name: 'منتج رياضي',
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            totalPrice: i.totalPrice,
+            vatAmount: Math.round(i.totalPrice * vatRate * 100) / 100,
+          })),
+        });
+        receipt = currentReceipt;
         sale = await prisma.$transaction(async (tx) => {
           for (const line of priced) {
             await decrementStock(tx, {
@@ -192,18 +197,18 @@ export async function POST(req: Request) {
           await tx.taxInvoice.create({
             data: {
               invoiceNumber: saleNumber,
-              etaUuid: receipt.etaUuid,
+              etaUuid: currentReceipt.etaUuid,
               saleId: created.id,
               branchId: ctx.branch.id,
               totalAmount,
               vatAmount,
-              qrCodeData: receipt.qrCodeDataUrl,
-              status: receipt.status,
-              etaResponseText: receipt.message,
+              qrCodeData: currentReceipt.qrCodeDataUrl,
+              status: currentReceipt.status,
+              etaResponseText: currentReceipt.message,
             },
           });
           return { id: created.id, saleNumber };
-        });
+        }, { maxWait: 10000, timeout: 20000 });
         lastErr = null;
         break;
       } catch (e) {
@@ -256,7 +261,7 @@ export async function POST(req: Request) {
       vatAmount,
       discountAmount: discount,
       loyaltyEarned,
-      qrCodeDataUrl: receipt.qrCodeDataUrl,
+      qrCodeDataUrl: receipt?.qrCodeDataUrl || '',
     });
   } catch (error) {
     console.error('POS Sale API error:', error);

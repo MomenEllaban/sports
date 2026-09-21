@@ -6,6 +6,11 @@ import { PATCH as usersPatch } from '../../src/app/api/admin/users/[id]/route.js
 import { POST as expensesPost } from '../../src/app/api/admin/expenses/route.js';
 import { POST as productsPost } from '../../src/app/api/admin/products/route.js';
 import { GET as posProducts } from '../../src/app/api/pos/products/route.js';
+import { GET as employeesGet } from '../../src/app/api/admin/employees/route.js';
+import { GET as branchesGet } from '../../src/app/api/admin/branches/route.js';
+import { GET as categoriesGet } from '../../src/app/api/admin/categories/route.js';
+import { GET as brandsGet } from '../../src/app/api/admin/brands/route.js';
+import { GET as suppliersGet } from '../../src/app/api/admin/suppliers/route.js';
 
 const req = (body?: unknown, method = 'POST') =>
   new Request('http://t/x', {
@@ -79,5 +84,29 @@ describe('RBAC enforcement (T04)', () => {
     setMockSession(sessionFor(admin));
     const res = await usersGet();
     expect(res.status).toBe(200);
+  });
+
+  it('anonymous users get 401 on catalog/admin GET routes', async () => {
+    setMockSession(null);
+    expect((await employeesGet()).status).toBe(401);
+    expect((await branchesGet()).status).toBe(401);
+    expect((await categoriesGet()).status).toBe(401);
+    expect((await brandsGet()).status).toBe(401);
+    expect((await suppliersGet()).status).toBe(401);
+  });
+
+  it('BRANCH_MANAGER reads catalog routes but branches is SUPER_ADMIN-only; STAFF is blocked', async () => {
+    const bm = await makeUser('BRANCH_MANAGER', [branchId]);
+    setMockSession(sessionFor(bm));
+    expect((await employeesGet()).status).toBe(200);
+    expect((await categoriesGet()).status).toBe(200);
+    expect((await brandsGet()).status).toBe(200);
+    expect((await suppliersGet()).status).toBe(200);
+    expect((await branchesGet()).status).toBe(403);
+
+    const staff = await makeUser('STAFF', [branchId]);
+    setMockSession(sessionFor(staff));
+    expect((await employeesGet()).status).toBe(403);
+    expect((await categoriesGet()).status).toBe(403);
   });
 });

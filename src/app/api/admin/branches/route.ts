@@ -4,6 +4,9 @@ import { requireRole } from '@/lib/auth/guards';
 
 export async function GET() {
   try {
+    const { error } = await requireRole('SUPER_ADMIN');
+    if (error) return error;
+
     const branches = await prisma.branch.findMany({
       orderBy: { createdAt: 'asc' },
       include: {

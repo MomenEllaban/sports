@@ -90,7 +90,7 @@ export async function transitionOrder(
         createdById: actingUserId,
       });
     }
-  });
+  }, { maxWait: 10000, timeout: 20000 });
 
   return { orderNumber: order.orderNumber, from, to };
 }

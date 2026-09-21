@@ -2,8 +2,10 @@ import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { routing } from './i18n/routing';
+import { requiredSecret } from './lib/env-guard';
 
 const intlMiddleware = createMiddleware(routing);
+const authSecret = requiredSecret('NEXTAUTH_SECRET', 'dev-insecure-nextauth-secret');
 
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -23,7 +25,7 @@ export default async function middleware(req: NextRequest) {
   const isLoginRoute = pathname.includes('/admin/login');
 
   if (isAdminRoute && !isLoginRoute) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({ req, secret: authSecret });
     if (!token) {
       const locale = pathname.startsWith('/en') ? 'en' : 'ar';
       const loginUrl = req.nextUrl.clone();
@@ -38,7 +40,7 @@ export default async function middleware(req: NextRequest) {
   // 3. Protect POS terminal pages: CASHIER, BRANCH_MANAGER, SUPER_ADMIN only (T03).
   const isPosRoute = /^(\/(ar|en))?\/pos(\/|$)/.test(pathname);
   if (isPosRoute) {
-    const token = (await getToken({ req, secret: process.env.NEXTAUTH_SECRET })) as {
+    const token = (await getToken({ req, secret: authSecret })) as {
       role?: string;
     } | null;
     const locale = pathname.startsWith('/en') ? 'en' : 'ar';

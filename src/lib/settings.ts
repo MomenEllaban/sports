@@ -1,4 +1,4 @@
-import { prisma } from './db.js';
+import { prisma } from '@/lib/db';
 
 /**
  * Settings service (T12) — SINGLE SOURCE OF TRUTH for configurable business values.
