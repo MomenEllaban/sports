@@ -1,6 +1,8 @@
 import { PaymentMethod } from '@prisma/client';
 import { getPaymobConfig } from './paymob-config';
 import { createRealPaymobPayment } from './paymob';
+import { getFawryConfig } from './fawry-config';
+import { createRealFawryCharge, FAWRY_EXPIRY_HOURS } from './fawry';
 
 export interface PaymentInitializationResult {
   success: boolean;
@@ -38,6 +40,8 @@ export async function availablePaymentMethods(): Promise<PaymentMethod[]> {
   if (enabled.has('CARD')) out.push(PaymentMethod.CARD);
   const paymob = await getPaymobConfig().catch(() => null);
   if (paymob && (paymob.ready || paymob.mock)) out.push(PaymentMethod.PAYMOB);
+  const fawry = await getFawryConfig().catch(() => null);
+  if (fawry && (fawry.ready || fawry.mock)) out.push(PaymentMethod.FAWRY);
   return out;
 }
 
@@ -83,20 +87,31 @@ export async function initializePayment(
     }
 
     case PaymentMethod.FAWRY: {
-      // T02 lands the real Fawry reference; until then keep legacy placeholder
-      // ONLY in non-production so checkout never shows a fake code live.
-      if (process.env.NODE_ENV === 'production') {
-        throw new PaymentUnavailableError('الدفع بفوري غير متاح حالياً — اختر طريقة أخرى');
+      // T02: real Pay-at-Fawry reference. Fails closed without keys.
+      const fcfg = await getFawryConfig().catch(() => ({ ready: false, mock: false, merchantCode: '', secureKey: '', missing: ['config'] }));
+      if (fcfg.ready) {
+        const charge = await createRealFawryCharge(fcfg, orderNumber, amountEgp, { phone: customerPhone, name: customerName });
+        return {
+          success: true,
+          paymentMethod: PaymentMethod.FAWRY,
+          transactionRef: charge.fawryRef,
+          fawryReferenceNumber: charge.fawryRef,
+          instructionsAr: `رقم الدفع في منافذ فوري هو: ${charge.fawryRef}. يرجى السداد خلال ${FAWRY_EXPIRY_HOURS} ساعة.`,
+          instructionsEn: `Your Fawry payment reference code is: ${charge.fawryRef}. Please pay within ${FAWRY_EXPIRY_HOURS} hours.`,
+        };
       }
-      const fawryRef = `${Math.floor(100000000 + Math.random() * 900000000)}`;
-      return {
-        success: true,
-        paymentMethod: PaymentMethod.FAWRY,
-        transactionRef: fawryRef,
-        fawryReferenceNumber: fawryRef,
-        instructionsAr: `رقم الدفع كاش في منافذ فوري هو: ${fawryRef}. يرجى السداد خلال 24 ساعة.`,
-        instructionsEn: `Your Fawry payment reference code is: ${fawryRef}. Please pay at any Fawry kiosk within 24 hours.`,
-      };
+      if (fcfg.mock) {
+        const fawryRef = `${Math.floor(100000000 + Math.random() * 900000000)}`;
+        return {
+          success: true,
+          paymentMethod: PaymentMethod.FAWRY,
+          transactionRef: fawryRef,
+          fawryReferenceNumber: fawryRef,
+          instructionsAr: `(وضع تجريبي) رقم فوري: ${fawryRef}.`,
+          instructionsEn: `(Mock mode) Fawry code: ${fawryRef}.`,
+        };
+      }
+      throw new PaymentUnavailableError('الدفع بفوري غير متاح حالياً — اختر طريقة أخرى');
     }
 
     case PaymentMethod.INSTAPAY:

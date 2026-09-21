@@ -7,7 +7,7 @@
 | T05 | ورديات ودرج | DONE | (this commit) | unit 22/22, tsc0, lint0, build ok, rbac-meta ok | Shift model+migration, gate sale, wizards, report, seed 8 shifts |
 | ETA-spike | فجوات ETA موثقة | DONE | (this commit) | tsc0, docs | ETA_GAP + gs1Code + signing/branch/activity settings |
 | T01 | Paymob حقيقي | DONE | (this commit) | unit 29/29, tsc0, lint0 | real Auth→Order→Key→Iframe, gating, mock-only dev, success page |
-| T02 | Fawry حقيقي | TODO | — | — | — |
+| T02 | Fawry حقيقي | DONE | (this commit) | unit 33/33, tsc0, lint0 | real charge + ref expiry 24h + expiry job window + seed PENDING case |
 | T03 | Bosta/Mylerz حقيقي | TODO | — | — | — |
 | T16 | Discount pipeline (ولاء+كوبونات) | TODO | — | — | — |
 | T10 | Refund/RMA | TODO | — | — | — |

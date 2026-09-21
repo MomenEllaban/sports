@@ -252,8 +252,12 @@ export async function seedTransactions(db: PrismaClient) {
     const provider = shipProviders[i % shipProviders.length];
     const deliveryFee = provider === 'PICKUP' ? 0 : 30;
     const total = round2(subtotal - discount + tax + deliveryFee);
-    const method = i % 3 === 0 ? 'PAYMOB' : i % 3 === 1 ? 'COD' : 'INSTAPAY';
-    const paymentStatus = method === 'COD' ? (status === 'DELIVERED' ? 'PAID' : 'PENDING') : 'PAID';
+    const method = (['PAYMOB', 'COD', 'INSTAPAY', 'FAWRY'] as const)[i % 4];
+    // T02: one FAWRY order stays PENDING (expiry/reconciliation demo).
+    const paymentStatus =
+      method === 'COD' ? (status === 'DELIVERED' ? 'PAID' : 'PENDING')
+      : method === 'FAWRY' && i % 8 === 7 ? 'PENDING'
+      : 'PAID';
     const shipped = status === 'SHIPPED' || status === 'DELIVERED';
 
     orderRows.push({

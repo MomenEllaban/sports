@@ -28,3 +28,7 @@
 17. **قيم placeholder لا تُعتبر إعداداً** — `.env` كان فيه `paymob_api_key_placeholder` وتُعامل كجاهز (كان سيعرض Paymob حياً ليفشل 403)؛ الآن deny-list ترفضها. ينطبق نفس المبدأ على Fawry/الشحن في T02/T03.
 18. **المجاميع بالقرش** — `amount_cents` أعداد صحيحة (`Math.round(EGP*100)`) في كل خطوات Paymob.
 19. **التحقق في success page من السيرفر** — لا ثقة في URL params؛ الحالة من track API.
+
+## T02
+20. **ترتيب حقول توقيع Fawry يحتاج تأكيد sandbox** — الباني معزول في `fawryChargeSignature` لتعديل سطر واحد؛ التشغيل الحي يتطلب مفاتيح حقيقية + اختبار sandbox (انظر FINAL_REPORT لاحقاً).
+21. **نافذة انتهاء Fawry أقصر (24h)** — `orders:expire` يلغي FAWRY غير المدفوعة بعد 24h بدل `unpaidExpiryHours` لأن المرجع يموت عند البوابة.

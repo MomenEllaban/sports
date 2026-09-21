@@ -20,13 +20,17 @@ async function main() {
       if (typeof n === 'number' && n > 0) hours = n;
     } catch { /* keep default */ }
     const cutoff = new Date(Date.now() - hours * 3600_000);
+    // T02: Fawry references die at the gateway after 24h — expire them sooner.
+    const fawryCutoff = new Date(Date.now() - 24 * 3600_000);
 
     const expired = await db.order.findMany({
       where: {
         orderStatus: 'PENDING',
         paymentStatus: 'PENDING',
-        paymentMethod: { in: ELECTRONIC },
-        createdAt: { lt: cutoff },
+        OR: [
+          { paymentMethod: { in: ELECTRONIC.filter((m) => m !== 'FAWRY') }, createdAt: { lt: cutoff } },
+          { paymentMethod: 'FAWRY', createdAt: { lt: fawryCutoff } },
+        ],
       },
       select: { id: true, orderNumber: true },
     });
