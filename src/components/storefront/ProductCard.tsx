@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingCart, MessageCircle, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { Link } from '@/i18n/routing';
 
 export interface ProductWithInventory {
   id: string;
@@ -66,7 +67,7 @@ export default function ProductCard({
   return (
     <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 flex flex-col justify-between group">
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full bg-slate-900 overflow-hidden">
+      <Link href={`/catalog/${product.id}`} className="relative aspect-square w-full bg-slate-900 overflow-hidden block">
         <Image
           src={product.images[0] || 'https://res.cloudinary.com/djseokhow/image/upload/v1789820962/sports-champions/products/bmxe8ldv89v1lwf3vi4v.jpg'}
           alt={name}
@@ -86,7 +87,7 @@ export default function ProductCard({
             </span>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Content Details */}
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -107,9 +108,12 @@ export default function ProductCard({
             )}
           </div>
 
-          <h3 className="font-bold text-slate-100 text-base line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors">
+          <Link
+            href={`/catalog/${product.id}`}
+            className="font-bold text-slate-100 text-base line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors hover:underline"
+          >
             {name}
-          </h3>
+          </Link>
           <p className="text-xs text-slate-400 line-clamp-2">
             {isAr ? product.descriptionAr : product.descriptionEn}
           </p>
