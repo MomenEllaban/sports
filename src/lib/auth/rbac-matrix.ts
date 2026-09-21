@@ -57,6 +57,8 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/upload/receipt': { methods: { POST: 'public' } },
   '/api/webhooks/paymob': { methods: { POST: 'public' } },
   '/api/webhooks/fawry': { methods: { POST: 'public' } },
+  '/api/webhooks/bosta': { methods: { POST: 'public' } },
+  '/api/webhooks/mylerz': { methods: { POST: 'public' } },
 };
 
 export function lookupMatrix(pathname: string): MatrixEntry | null {
