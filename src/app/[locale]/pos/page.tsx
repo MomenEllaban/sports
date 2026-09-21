@@ -102,12 +102,45 @@ export default function PosTerminalPage() {
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
+        if (Array.isArray(data.branches) && data.branches.length > 0) {
+          setBranchOptions(data.branches);
+        }
+
+        if (data.needsBranch) {
+          // Manager/admin must pick a branch: restore the last choice when still
+          // valid, auto-pick when there is only one, otherwise show the picker.
+          setProducts([]);
+          setActiveBranch(null);
+          const options: Array<{ id: string; name: string; nameEn: string }> = data.branches || [];
+          let saved = '';
+          try {
+            saved = localStorage.getItem('pos:branchId') || '';
+          } catch {
+            /* storage unavailable */
+          }
+          const preferred =
+            saved && options.some((b) => b.id === saved)
+              ? saved
+              : options.length === 1
+                ? options[0].id
+                : '';
+          if (preferred) {
+            setBranchIdState(preferred);
+            await fetchPosProducts(preferred);
+          }
+          return;
+        }
+
         setProducts(data.products);
         if (data.branch) {
           setActiveBranch(data.branch);
-          if (!branchId) setBranchIdState(data.branch.id);
+          setBranchIdState(data.branch.id);
+          try {
+            localStorage.setItem('pos:branchId', data.branch.id);
+          } catch {
+            /* storage unavailable */
+          }
         }
-        if (Array.isArray(data.branches)) setBranchOptions(data.branches);
       } else {
         setLoadError(data.error || 'تعذر تحميل المنتجات من السيرفر.');
       }
@@ -342,19 +375,24 @@ export default function PosTerminalPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-sm text-slate-100 leading-tight">
-                كاشير - {activeBranch ? activeBranch.name : '...'}
+                كاشير - {activeBranch ? activeBranch.name : branchOptions.length > 0 ? 'اختر الفرع' : '...'}
               </h1>
               <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-black text-[10px] border border-amber-500/30">
                 POS
               </span>
             </div>
-            {branchOptions.length > 1 ? (
+            {branchOptions.length > 0 ? (
               <select
                 value={posBranchId}
-                onChange={(e) => { setBranchIdState(e.target.value); fetchPosProducts(e.target.value); }}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setBranchIdState(id);
+                  if (id) void fetchPosProducts(id);
+                }}
                 aria-label="اختيار الفرع"
                 className="mt-1 text-[11px] font-bold bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-amber-300 focus:outline-none focus:border-amber-500"
               >
+                <option value="" disabled>اختر الفرع</option>
                 {branchOptions.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -421,6 +459,25 @@ export default function PosTerminalPage() {
                 <button onClick={() => fetchPosProducts(posBranchId || undefined)} className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
                   إعادة المحاولة
                 </button>
+              </div>
+            ) : !activeBranch && branchOptions.length > 0 ? (
+              <div className="text-center text-xs py-12 space-y-4">
+                <p className="text-amber-400 font-bold">اختر الفرع لعرض المنتجات والمخزون</p>
+                <select
+                  value={posBranchId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setBranchIdState(id);
+                    if (id) void fetchPosProducts(id);
+                  }}
+                  aria-label="اختيار الفرع"
+                  className="mx-auto block text-sm font-bold bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-amber-300 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="" disabled>اختر الفرع</option>
+                  {branchOptions.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-3">
