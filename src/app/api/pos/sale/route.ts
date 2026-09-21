@@ -6,8 +6,9 @@ import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
-import { computeTotals, loyaltyEarned as loyaltyRule, num } from '@/lib/pricing';
-import { getLoyaltyRule, getVatRate } from '@/lib/settings';
+import { computeStackedTotals, linesSubtotal, loyaltyEarned as loyaltyRule, num } from '@/lib/pricing';
+import { getLoyaltyRule, getVatRate, getRedeemRule } from '@/lib/settings';
+import { quoteCoupon, consumeCoupon, redeemPoints, CouponError } from '@/lib/discounts/coupons';
 import { dispatchNotification } from '@/lib/notifications';
 
 const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -125,9 +126,6 @@ export async function POST(req: Request) {
 
     // T09: totals via the central pricing module (same exclusive-VAT semantics).
     const vatRate = await getVatRate();
-    const totals = computeTotals({ lines: priced, discount, vatRate });
-    const vatAmount = totals.vat;
-    const totalAmount = totals.total;
 
     let resolvedCustomerId: string | null = null;
     if (customerId) {
@@ -137,6 +135,41 @@ export async function POST(req: Request) {
       const customer = await prisma.customer.findUnique({ where: { phone: String(body.customerPhone) } });
       if (customer) resolvedCustomerId = customer.id;
     }
+
+    // T16: unified pipeline — coupon → loyalty → authorized PIN, capped.
+    const redeemRule = await getRedeemRule();
+    const posSubtotal = linesSubtotal(priced);
+    let couponQuote: Awaited<ReturnType<typeof quoteCoupon>> | null = null;
+    const rawCoupon = typeof body.couponCode === 'string' ? body.couponCode.trim() : '';
+    if (rawCoupon) {
+      try {
+        couponQuote = await quoteCoupon(rawCoupon, posSubtotal);
+      } catch (e) {
+        const err = e as CouponError & { status?: number };
+        return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      }
+    }
+    const wantPoints = resolvedCustomerId ? Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0)) : 0;
+    if (wantPoints > 0 && resolvedCustomerId) {
+      const bal = (await prisma.customer.findUnique({ where: { id: resolvedCustomerId }, select: { loyaltyPoints: true } }))?.loyaltyPoints || 0;
+      if (wantPoints > bal) {
+        return NextResponse.json({ success: false, error: 'رصيد النقاط لا يكفي' }, { status: 400 });
+      }
+    }
+    const totals = computeStackedTotals({
+      lines: priced,
+      vatRate,
+      stack: {
+        coupon: couponQuote ? { kind: couponQuote.kind, value: couponQuote.value, cap: couponQuote.cap } : null,
+        loyalty: wantPoints > 0 ? { points: wantPoints, rate: redeemRule.rate, maxPct: redeemRule.maxPct } : null,
+        pin: discount,
+        maxTotalPct: redeemRule.maxTotalPct,
+        allowCouponLoyalty: redeemRule.allowCouponLoyalty,
+        allowCouponPin: redeemRule.allowCouponPin,
+      },
+    });
+    const vatAmount = totals.vat;
+    const totalAmount = totals.total;
 
     // T05: attribute to the shift open at SALE time. Offline queue posts
     // carry the captured shiftId; it must belong to this cashier+branch
@@ -190,7 +223,11 @@ export async function POST(req: Request) {
               customerId: resolvedCustomerId,
               shiftId: saleShiftId,
               subtotal,
-              discountAmount: discount,
+              discountAmount: totals.totalDiscount,
+              couponCode: couponQuote?.code || null,
+              couponDiscount: totals.couponDiscount,
+              loyaltyRedeemed: totals.pointsUsed,
+              loyaltyDiscount: totals.loyaltyDiscount,
               taxAmount: vatAmount,
               totalAmount,
               paymentMethod: paymentMethod as PaymentMethod,
@@ -207,6 +244,13 @@ export async function POST(req: Request) {
               },
             },
           });
+          // T16: consume coupon + redeem points atomically with the sale.
+          if (couponQuote) {
+            await consumeCoupon(tx, couponQuote.id, { saleId: created.id, customerId: resolvedCustomerId, amount: totals.couponDiscount });
+          }
+          if (totals.pointsUsed > 0 && resolvedCustomerId) {
+            await redeemPoints(tx, resolvedCustomerId, totals.pointsUsed);
+          }
           await tx.taxInvoice.create({
             data: {
               invoiceNumber: saleNumber,
@@ -272,7 +316,10 @@ export async function POST(req: Request) {
       totalAmount,
       subtotal,
       vatAmount,
-      discountAmount: discount,
+      discountAmount: totals.totalDiscount,
+      couponDiscount: totals.couponDiscount,
+      loyaltyDiscount: totals.loyaltyDiscount,
+      loyaltyRedeemed: totals.pointsUsed,
       loyaltyEarned,
       qrCodeDataUrl: receipt?.qrCodeDataUrl || '',
     });

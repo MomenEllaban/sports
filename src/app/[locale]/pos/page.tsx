@@ -44,6 +44,9 @@ export default function PosTerminalPage() {
   const [managerPin, setManagerPin] = useState('');
   const [discountInput, setDiscountInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  // T16: coupon + loyalty inputs (server recomputes authoritatively).
+  const [couponInput, setCouponInput] = useState('');
+  const [loyaltyInput, setLoyaltyInput] = useState('');
 
   // Payment step state: method tabs + tendered/change + confirm
   const [payMethod, setPayMethod] = useState<'CASH' | 'CARD' | 'INSTAPAY'>('CASH');
@@ -349,6 +352,8 @@ export default function PosTerminalPage() {
       customerId: customer?.id || null,
       branchId: posBranchId || undefined,
       shiftId: shift?.id || undefined,
+      couponCode: couponInput.trim() || undefined,
+      loyaltyPoints: Math.max(0, Math.floor(Number(loyaltyInput) || 0)) || undefined,
       items: ticketItems.map((i) => ({
         productId: i.id,
         quantity: i.quantity,
@@ -394,6 +399,8 @@ export default function PosTerminalPage() {
         clearTicket();
         setTenderedInput('');
         setReferenceInput('');
+        setCouponInput('');
+        setLoyaltyInput('');
         fetchPosProducts(); // Refresh stock
       } else {
         const msg = data.error || 'حدث خطأ أثناء حفظ الفاتورة.';
@@ -882,6 +889,39 @@ export default function PosTerminalPage() {
                 </div>
               </div>
               {pinError && <p className="text-[10px] text-rose-400">مبلغ الخصم غير صالح</p>}
+            </div>
+
+            {/* T16: coupon + loyalty at POS */}
+            <div className="p-3 rounded-xl bg-slate-950 border border-purple-500/30 space-y-2 text-xs">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-7">
+                  <label htmlFor="pos-coupon" className="block text-[10px] font-bold text-slate-400 mb-1">كود الخصم</label>
+                  <input
+                    id="pos-coupon"
+                    type="text"
+                    placeholder="SAVE10"
+                    dir="ltr"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    className="w-full min-h-[44px] p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 font-mono font-bold placeholder:text-slate-500"
+                  />
+                </div>
+                <div className="col-span-5">
+                  <label htmlFor="pos-loyalty" className="block text-[10px] font-bold text-slate-400 mb-1">
+                    نقاط الولاء {customer ? `(${customer.loyaltyPoints})` : ''}
+                  </label>
+                  <input
+                    id="pos-loyalty"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={loyaltyInput}
+                    onChange={(e) => setLoyaltyInput(e.target.value)}
+                    className="w-full min-h-[44px] p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-500">الكوبون والولاء يُحتسبان مع خصم المدير بسقف موحد — المراجعة النهائية عند التأكيد.</p>
             </div>
 
             {/* Calculations Breakdown */}

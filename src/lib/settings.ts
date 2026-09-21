@@ -131,6 +131,31 @@ export async function getLoyaltyRule(): Promise<{ earnPerEgp: number; pointsPerU
   };
 }
 
+export interface RedeemRule {
+  rate: number;
+  maxPct: number;
+  maxTotalPct: number;
+  allowCouponLoyalty: boolean;
+  allowCouponPin: boolean;
+}
+
+/** T16: loyalty redeem + stacking rules (safe defaults, admin-tunable). */
+export async function getRedeemRule(): Promise<RedeemRule> {
+  const [rate, maxPct, maxTotalPct, stacking] = await Promise.all([
+    getSetting<number>('loyalty.redeemRate', 1),
+    getSetting<number>('loyalty.maxRedeemPct', 20),
+    getSetting<number>('discount.maxTotalPct', 30),
+    getSetting<{ allowCouponLoyalty?: boolean; allowCouponPin?: boolean }>('discount.stacking', {}),
+  ]);
+  return {
+    rate: rate > 0 ? rate : 1,
+    maxPct: maxPct >= 0 && maxPct <= 100 ? maxPct : 20,
+    maxTotalPct: maxTotalPct >= 0 && maxTotalPct <= 100 ? maxTotalPct : 30,
+    allowCouponLoyalty: stacking.allowCouponLoyalty !== false,
+    allowCouponPin: stacking.allowCouponPin === true,
+  };
+}
+
 export async function getLowStockThreshold(): Promise<number> {
   const v = await getSetting<number>(SETTING_KEYS.lowStockThreshold, 5);
   return typeof v === 'number' && v >= 0 ? Math.floor(v) : 5;

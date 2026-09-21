@@ -5,8 +5,9 @@ import { buildEtaReceipt } from '@/lib/eta';
 import { initializePayment, availablePaymentMethods, PaymentUnavailableError } from '@/lib/payments';
 import { dispatchNotification } from '@/lib/notifications';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
-import { computeTotals, num } from '@/lib/pricing';
-import { getVatRate } from '@/lib/settings';
+import { computeTotals, computeStackedTotals, num, linesSubtotal } from '@/lib/pricing';
+import { getVatRate, getRedeemRule } from '@/lib/settings';
+import { quoteCoupon, consumeCoupon, redeemPoints, CouponError } from '@/lib/discounts/coupons';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
 
 const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -109,13 +110,38 @@ export async function POST(req: Request) {
       );
     }
 
-    // T09: totals via the central pricing module (same exclusive-VAT semantics).
+    // T16: unified discount pipeline (coupon → loyalty → cap).
+    // Coupon/PIN never stack by default (allowCouponPin=false); loyalty stacks.
     const vatRate = await getVatRate();
-    const totals = computeTotals({
+    const redeemRule = await getRedeemRule();
+    const subtotal0 = linesSubtotal(orderItemsData);
+    let couponQuote: Awaited<ReturnType<typeof quoteCoupon>> | null = null;
+    const rawCoupon = typeof body.couponCode === 'string' ? body.couponCode.trim() : '';
+    if (rawCoupon) {
+      try {
+        couponQuote = await quoteCoupon(rawCoupon, subtotal0);
+      } catch (e) {
+        const err = e as CouponError & { status?: number };
+        return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      }
+    }
+    const wantPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0));
+    const totals = computeStackedTotals({
       lines: orderItemsData,
       deliveryFee: Number(deliveryFee || 0),
       vatRate,
+      stack: {
+        coupon: couponQuote ? { kind: couponQuote.kind, value: couponQuote.value, cap: couponQuote.cap } : null,
+        loyalty: wantPoints > 0 ? { points: wantPoints, rate: redeemRule.rate, maxPct: redeemRule.maxPct } : null,
+        maxTotalPct: redeemRule.maxTotalPct,
+        allowCouponLoyalty: redeemRule.allowCouponLoyalty,
+        allowCouponPin: redeemRule.allowCouponPin,
+      },
     });
+    // Loyalty needs a real balance check now (atomic re-check inside the tx).
+    if (totals.pointsUsed > (customer.loyaltyPoints || 0)) {
+      return NextResponse.json({ success: false, error: 'رصيد النقاط لا يكفي' }, { status: 400 });
+    }
     const vatAmount = totals.vat;
     const totalAmount = totals.total;
 
@@ -178,8 +204,13 @@ export async function POST(req: Request) {
               paymentStatus: PaymentStatus.PENDING,
               orderStatus: OrderStatus.CONFIRMED,
               subtotal: totals.subtotal,
+              discountAmount: totals.totalDiscount,
               taxAmount: vatAmount,
               totalAmount,
+              couponCode: couponQuote?.code || null,
+              couponDiscount: totals.couponDiscount,
+              loyaltyRedeemed: totals.pointsUsed,
+              loyaltyDiscount: totals.loyaltyDiscount,
               receiptImage:
                 typeof (body as { receiptImage?: unknown }).receiptImage === 'string'
                   ? String((body as { receiptImage: string }).receiptImage).slice(0, 500)
@@ -187,6 +218,23 @@ export async function POST(req: Request) {
               items: { create: orderItemsData },
             },
           });
+          // T16: consume coupon + redeem points atomically with the order.
+          if (couponQuote) {
+            try {
+              await consumeCoupon(tx, couponQuote.id, { orderId: created.id, customerId: customer.id, amount: totals.couponDiscount });
+            } catch (e) {
+              const err = e as CouponError & { status?: number };
+              throw Object.assign(new Error(err.message), { status: err.status || 400 });
+            }
+          }
+          if (totals.pointsUsed > 0) {
+            try {
+              await redeemPoints(tx, customer.id, totals.pointsUsed);
+            } catch (e) {
+              const err = e as CouponError & { status?: number };
+              throw Object.assign(new Error(err.message), { status: err.status || 400 });
+            }
+          }
           await tx.taxInvoice.create({
             data: {
               invoiceNumber: orderNumber,
@@ -217,6 +265,11 @@ export async function POST(req: Request) {
             },
             { status: 400 }
           );
+        }
+        // T16: coupon/points races surface with an HTTP status.
+        const st = (e as { status?: number }).status;
+        if (typeof st === 'number' && st >= 400 && st < 500) {
+          return NextResponse.json({ success: false, error: (e as Error).message }, { status: st });
         }
         throw e;
       }

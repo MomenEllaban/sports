@@ -66,6 +66,8 @@ const DEFAULTS: Record<string, unknown> = {
   'orders.unpaidExpiryHours': 48,
   'shifts.openingFloat': 500,
   'shifts.maxShortage': 50,
+  // T16 — discount stacking rules.
+  'discount.stacking': { allowCouponLoyalty: true, allowCouponPin: false },
   // F1 — rate limits, upload cap, OTP mode (safe defaults).
   'ratelimit.trackPerMin': 30,
   'ratelimit.portalLoginPerMin': 10,

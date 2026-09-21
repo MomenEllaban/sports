@@ -49,6 +49,58 @@ export default function CheckoutPage() {
   const finalDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : deliveryFee;
   const total = subtotal + vat + finalDeliveryFee;
 
+  // T16: coupon + loyalty redeem (server recomputes authoritatively).
+  const [couponCode, setCouponCode] = useState('');
+  const [couponAmount, setCouponAmount] = useState(0);
+  const [couponError, setCouponError] = useState('');
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [loyaltyBalance, setLoyaltyBalance] = useState<number | null>(null);
+  const [loyaltyPoints, setLoyaltyPoints] = useState('');
+  const [redeemRate, setRedeemRate] = useState(1);
+  useEffect(() => {
+    fetch('/api/discounts/quote').then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (d?.success && Number(d.rate) > 0) setRedeemRate(Number(d.rate));
+    }).catch(() => null);
+  }, []);
+  const loyaltyPreview = Math.min(Math.max(0, Math.floor(Number(loyaltyPoints) || 0)), loyaltyBalance || 0) * redeemRate;
+  const previewTotal = Math.max(0, total - couponAmount - loyaltyPreview);
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim() || couponBusy) return;
+    setCouponBusy(true);
+    setCouponError('');
+    try {
+      const res = await fetch('/api/discounts/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: couponCode.trim(), subtotal }),
+      });
+      const data = await res.json();
+      if (data.success) setCouponAmount(data.amount);
+      else {
+        setCouponAmount(0);
+        setCouponError(data.error || 'الكود غير صالح');
+      }
+    } catch {
+      setCouponError('تعذر التحقق من الكود');
+    } finally {
+      setCouponBusy(false);
+    }
+  };
+
+  const fetchLoyalty = async () => {
+    if (!phone.trim()) return;
+    try {
+      const res = await fetch('/api/discounts/loyalty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) setLoyaltyBalance(data.points);
+    } catch { /* silent */ }
+  };
+
   const handleReceiptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -92,6 +144,8 @@ export default function CheckoutPage() {
           deliveryFee: finalDeliveryFee,
           paymentMethod,
           receiptImage: receiptUrl || undefined,
+          couponCode: couponCode.trim() || undefined,
+          loyaltyPoints: Math.max(0, Math.floor(Number(loyaltyPoints) || 0)) || undefined,
           items: items.map((i) => ({ productId: i.id, quantity: i.quantity, price: i.price })),
         }),
       });
@@ -397,6 +451,40 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* T16: coupon + loyalty */}
+              <div className="space-y-3 text-xs border-t border-b border-slate-800/80 py-4">
+                <div className="flex gap-2">
+                  <label htmlFor="coupon-code" className="sr-only">كود الخصم</label>
+                  <input
+                    id="coupon-code"
+                    value={couponCode}
+                    onChange={(e) => { setCouponCode(e.target.value); setCouponAmount(0); setCouponError(''); }}
+                    placeholder="كود الخصم (اختياري)"
+                    dir="ltr"
+                    className="flex-1 min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-800 font-mono font-bold focus:outline-none focus:border-purple-500"
+                  />
+                  <button type="button" onClick={applyCoupon} disabled={couponBusy || !couponCode.trim()} className="min-h-[44px] px-4 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-60 text-white font-bold">
+                    {couponBusy ? '...' : 'تطبيق'}
+                  </button>
+                </div>
+                {couponError && <p role="alert" className="text-rose-400 font-bold">{couponError}</p>}
+                {couponAmount > 0 && <p className="text-emerald-400 font-bold">خصم الكوبون: −{couponAmount.toLocaleString()} {tCommon('currency')}</p>}
+                <div className="flex gap-2 items-center">
+                  <label htmlFor="loyalty-points" className="sr-only">النقاط</label>
+                  <input
+                    id="loyalty-points"
+                    type="number"
+                    min="0"
+                    value={loyaltyPoints}
+                    onChange={(e) => setLoyaltyPoints(e.target.value)}
+                    onBlur={fetchLoyalty}
+                    placeholder={loyaltyBalance !== null ? `نقاطك: ${loyaltyBalance} (القيمة ${redeemRate} ج/نقطة)` : 'نقاط الولاء (أدخل رقمك أولاً)'}
+                    className="flex-1 min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-800 font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                {loyaltyPreview > 0 && <p className="text-amber-300 font-bold">خصم النقاط التقريبي: −{loyaltyPreview.toLocaleString()} {tCommon('currency')}</p>}
+              </div>
+
               <div className="space-y-2 text-xs border-t border-b border-slate-800/80 py-4">
                 <div className="flex justify-between text-slate-400">
                   <span>المجموع الفرعي:</span>
@@ -417,6 +505,9 @@ export default function CheckoutPage() {
                 <div className="text-right">
                   <span className="text-2xl font-black text-slate-100">{total.toLocaleString()}</span>
                   <span className="text-xs font-bold text-amber-400 ml-1">{tCommon('currency')}</span>
+                  {(couponAmount > 0 || loyaltyPreview > 0) && (
+                    <div className="text-[11px] text-emerald-400 font-bold">بعد الخصم التقريبي: {previewTotal.toLocaleString()} {tCommon('currency')}</div>
+                  )}
                 </div>
               </div>
 

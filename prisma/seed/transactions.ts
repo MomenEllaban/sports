@@ -75,6 +75,11 @@ export async function seedTransactions(db: PrismaClient) {
   const taxInvoiceRows: Prisma.TaxInvoiceCreateManyInput[] = [];
   const auditRows: Prisma.AuditLogCreateManyInput[] = [];
   const shiftRows: Prisma.ShiftCreateManyInput[] = [];
+  const couponRows: Prisma.CouponCreateManyInput[] = [
+    { id: 'coupon-D-SAVE10', code: 'SAVE10', kind: 'PERCENT', value: 10, capAmount: 200, minTotal: 500, usageLimit: 100, usedCount: 12, isActive: true, createdById: adminId },
+    { id: 'coupon-D-FLAT50', code: 'FLAT50', kind: 'FIXED', value: 50, minTotal: 300, usedCount: 5, isActive: true, createdById: adminId },
+    { id: 'coupon-D-OLD', code: 'OLD20', kind: 'PERCENT', value: 20, usedCount: 3, isActive: false, createdById: adminId },
+  ];
 
   // ------------------------------------------------- Shifts (T05 demo)
   // One OPEN shift per branch (today) + 3 CLOSED shifts per branch with
@@ -499,6 +504,8 @@ export async function seedTransactions(db: PrismaClient) {
 
   // ------------------------------------------- replace previous demo rows
   await db.$transaction([
+    db.couponUse.deleteMany({ where: { couponId: { startsWith: 'coupon-D-' } } }),
+    db.coupon.deleteMany({ where: { id: { startsWith: 'coupon-D-' } } }),
     db.shift.deleteMany({ where: { id: { startsWith: 'shift-D-' } } }),
     db.taxInvoice.deleteMany({
       where: { OR: [{ invoiceNumber: { startsWith: 'INV-S-' } }, { invoiceNumber: { startsWith: 'INV-O-' } }] },
@@ -529,7 +536,10 @@ export async function seedTransactions(db: PrismaClient) {
     db.taxInvoice.createMany({ data: taxInvoiceRows, skipDuplicates: true }),
     db.auditLog.createMany({ data: auditRows, skipDuplicates: true }),
     db.shift.createMany({ data: shiftRows, skipDuplicates: true }),
+    db.coupon.createMany({ data: couponRows, skipDuplicates: true }),
   ]);
+
+  counts.coupons = couponRows.length;
 
   counts.shifts = shiftRows.length;
   counts.sales = saleRows.length;

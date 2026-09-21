@@ -9,7 +9,7 @@
 | T01 | Paymob حقيقي | DONE | (this commit) | unit 29/29, tsc0, lint0 | real Auth→Order→Key→Iframe, gating, mock-only dev, success page |
 | T02 | Fawry حقيقي | DONE | (this commit) | unit 33/33, tsc0, lint0 | real charge + ref expiry 24h + expiry job window + seed PENDING case |
 | T03 | Bosta/Mylerz حقيقي | DONE | (this commit) | unit 38/38, tsc0, lint0 | real clients, MANUAL degrade, ship retry API+UI |
-| T16 | Discount pipeline (ولاء+كوبونات) | TODO | — | — | — |
+| T16 | Discount pipeline (ولاء+كوبونات) | DONE | (this commit) | unit 46/46, tsc0, lint0 | unified stack, coupon CRUD+UI, checkout+POS redeem, race-safe |
 | T10 | Refund/RMA | TODO | — | — | — |
 | T11 | داشبورد KPI | TODO | — | — | — |
 | T12 | تقارير | TODO | — | — | — |

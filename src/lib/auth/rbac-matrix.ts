@@ -9,7 +9,7 @@ import type { Role } from '@prisma/client';
  */
 export type MatrixEntry = { methods: Record<string, Role[] | 'public'> };
 
-export const PUBLIC_PREFIXES = ['/api/auth/', '/api/orders/', '/api/account/', '/api/payments/'];
+export const PUBLIC_PREFIXES = ['/api/auth/', '/api/orders/', '/api/account/', '/api/payments/', '/api/discounts/'];
 
 const SUPER: Role[] = ['SUPER_ADMIN'];
 const BM: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER'];
@@ -64,6 +64,8 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/webhooks/fawry': { methods: { POST: 'public' } },
   '/api/webhooks/bosta': { methods: { POST: 'public' } },
   '/api/webhooks/mylerz': { methods: { POST: 'public' } },
+  '/api/admin/coupons': { methods: { GET: BM, POST: BM } },
+  '/api/admin/coupons/[id]': { methods: { PATCH: BM, DELETE: BM } },
   '/api/admin/cod-settlement': { methods: { GET: FIN, POST: FIN } },
 };
 
