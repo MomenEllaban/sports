@@ -57,6 +57,19 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
     router.refresh();
   };
 
+  const saveItem = async (runId: string, itemId: string, bonus: number, deductions: number) => {
+    setError('');
+    try {
+      await apiFetch(`/api/admin/payroll-runs/${runId}`, 'PATCH', { itemId, bonus, deductions });
+      toast(t('operationSuccess'), 'success');
+      router.refresh();
+    } catch {
+      const msg = t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-between items-center gap-3">
@@ -85,7 +98,9 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
                 <tr>
                   <th className="pb-2">{isAr ? 'الموظف' : 'Employee'}</th>
                   <th className="pb-2">{isAr ? 'الأساسي' : 'Base'}</th>
-                  <th className="pb-2">{isAr ? 'العمولة' : 'Commission'}</th>
+                  <th className="pb-2" title={isAr ? 'نسبة من مبيعات الكاشير الفعلية بالشهر' : 'Rate × actual POS sales this month'}>{isAr ? 'العمولة (مبيعات فعلية)' : 'Commission (sales)'}</th>
+                  <th className="pb-2">{isAr ? 'مكافأة' : 'Bonus'}</th>
+                  <th className="pb-2">{isAr ? 'خصم' : 'Deductions'}</th>
                   <th className="pb-2">{isAr ? 'الصافي' : 'Net'}</th>
                 </tr>
               </thead>
@@ -95,6 +110,40 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
                     <td className="py-2 font-bold text-slate-200">{i.employee.name}</td>
                     <td className="py-2 text-slate-400">{i.baseSalary.toLocaleString()}</td>
                     <td className="py-2 text-amber-400">{i.commissionAmount.toLocaleString()}</td>
+                    <td className="py-2">
+                      {run.status === 'DRAFT' ? (
+                        <input
+                          type="number"
+                          min={0}
+                          defaultValue={i.bonus}
+                          aria-label={isAr ? `مكافأة ${i.employee.name}` : `Bonus for ${i.employee.name}`}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            if (v !== i.bonus) saveItem(run.id, i.id, v, i.deductions);
+                          }}
+                          className="w-20 px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-xs"
+                        />
+                      ) : (
+                        <span className="text-slate-400">{i.bonus.toLocaleString()}</span>
+                      )}
+                    </td>
+                    <td className="py-2">
+                      {run.status === 'DRAFT' ? (
+                        <input
+                          type="number"
+                          min={0}
+                          defaultValue={i.deductions}
+                          aria-label={isAr ? `خصم ${i.employee.name}` : `Deductions for ${i.employee.name}`}
+                          onBlur={(e) => {
+                            const v = Number(e.target.value);
+                            if (v !== i.deductions) saveItem(run.id, i.id, i.bonus, v);
+                          }}
+                          className="w-20 px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-xs"
+                        />
+                      ) : (
+                        <span className="text-slate-400">{i.deductions.toLocaleString()}</span>
+                      )}
+                    </td>
                     <td className="py-2 font-black text-emerald-400">{i.netSalary.toLocaleString()}</td>
                   </tr>
                 ))}

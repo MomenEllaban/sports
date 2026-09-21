@@ -28,9 +28,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'No active employees' }, { status: 400 });
     }
 
+    // 2.4: commission base = ACTUAL POS sales by this employee's linked user in the payroll month.
+    const monthStart = new Date(periodYear, periodMonth - 1, 1);
+    const monthEnd = new Date(periodYear, periodMonth, 1);
+    const salesTotals = await prisma.sale.groupBy({
+      by: ['cashierId'],
+      where: { createdAt: { gte: monthStart, lt: monthEnd } },
+      _sum: { totalAmount: true },
+    });
+    const salesByCashier = new Map(salesTotals.map((s) => [s.cashierId, num(s._sum.totalAmount ?? 0)]));
+
+    const salesByEmployee: Record<string, number> = {};
     const items = employees.map((e) => {
       const salary = num(e.salary);
-      const commission = money(salary * e.commissionRate);
+      const salesTotal = e.userId ? salesByCashier.get(e.userId) ?? 0 : 0;
+      salesByEmployee[e.id] = salesTotal;
+      const commission = money(salesTotal * e.commissionRate);
       return {
         employeeId: e.id,
         baseSalary: salary,
@@ -55,7 +68,7 @@ export async function POST(req: Request) {
       include: { items: { include: { employee: true } } },
     });
 
-    return NextResponse.json({ success: true, payrollRun: run });
+    return NextResponse.json({ success: true, payrollRun: run, salesByEmployee });
   } catch (e) {
     console.error('Admin payroll create error:', e);
     return NextResponse.json({ success: false, error: 'Failed to create payroll run' }, { status: 500 });
