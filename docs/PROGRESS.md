@@ -11,7 +11,7 @@
 | T03 | Bosta/Mylerz حقيقي | DONE | (this commit) | unit 38/38, tsc0, lint0 | real clients, MANUAL degrade, ship retry API+UI |
 | T16 | Discount pipeline (ولاء+كوبونات) | DONE | (this commit) | unit 46/46, tsc0, lint0 | unified stack, coupon CRUD+UI, checkout+POS redeem, race-safe |
 | T10 | Refund/RMA | DONE | (this commit) | tsc0, lint0, build ok | refund outbox, wizard, gateway/manual payout, retry worker |
-| T11 | داشبورد KPI | TODO | — | — | — |
+| T11 | داشبورد KPI | DONE | (this commit) | tsc0, lint0, build ok | aggregates, action queues, 7-day chart, tablet touch |
 | T12 | تقارير | TODO | — | — | — |
 | T07 | Variants + Size Chart | TODO | — | — | — |
 | T08 | Reviews + Wishlist | TODO | — | — | — |
