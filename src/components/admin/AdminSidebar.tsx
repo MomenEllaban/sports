@@ -10,6 +10,7 @@ import {
   Package,
   Layers,
   Truck,
+  HandCoins,
   Users,
   UserCog,
   DollarSign,
@@ -106,6 +107,14 @@ export default function AdminSidebar() {
       labelEn: 'Payroll & Commissions',
       href: '/admin/payroll',
       icon: <Briefcase className="w-5 h-5 text-amber-500" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
+    },
+    {
+      key: 'cod-settlement',
+      labelAr: 'تسوية التحصيل النقدي COD',
+      labelEn: 'COD Settlement',
+      href: '/admin/cod-settlement',
+      icon: <HandCoins className="w-5 h-5 text-teal-400" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
     },
     {

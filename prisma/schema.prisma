@@ -354,6 +354,8 @@ model Order {
   discountAmount   Decimal @db.Decimal(12, 2)            @default(0.0)
   totalAmount      Decimal @db.Decimal(12, 2)
   codReconciled    Boolean          @default(false)
+  // 3.3: cash actually remitted by the courier for this COD order.
+  codRemitted      Decimal @db.Decimal(12, 2) @default(0.0)
   etaReceiptId     String?
   // 2.3: customer-uploaded transfer receipt (InstaPay / Vodafone Cash) for manual review.
   receiptImage     String?
