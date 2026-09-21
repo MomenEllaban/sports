@@ -1,5 +1,6 @@
 import React from 'react';
 import ProductDetailsClient from './ProductDetailsClient';
+import ReviewsSection from '@/components/storefront/ReviewsSection';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { getSetting } from '@/lib/settings';
@@ -45,6 +46,15 @@ export default async function ProductDetailsPage({
   }));
   const chartRow = (Array.isArray(charts) ? charts : []).find((c) => c.category === product.category.slug);
   const sizeChart = chartRow && Array.isArray(chartRow.rows) && chartRow.rows.length > 0 ? chartRow : null;
+
+  const approvedReviews = await prisma.review.findMany({
+    where: { productId: product.id, approved: true },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+    select: { id: true, rating: true, text: true, createdAt: true },
+  });
+  const reviewCount = approvedReviews.length;
+  const reviewAvg = reviewCount ? approvedReviews.reduce((s, r) => s + r.rating, 0) / reviewCount : 0;
 
   const price = num(product.price);
   const totalStock = product.inventories.reduce((s, i) => s + i.stockQuantity, 0);
@@ -123,8 +133,7 @@ export default async function ProductDetailsPage({
           <h2 className="font-black text-lg flex items-center gap-2">
             <MapPin className="w-5 h-5 text-amber-400" />
             {isAr ? 'التوفر في الفروع' : 'Branch availability'}
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-3">
+          </h2>          <div className="grid sm:grid-cols-2 gap-3">
             {product.inventories.map((inv) => (
               <div
                 key={inv.branchId}
@@ -149,6 +158,13 @@ export default async function ProductDetailsPage({
             <p className="text-xs text-slate-500">لا توجد بيانات مخزون لهذا الصنف.</p>
           )}
         </section>
+
+        <ReviewsSection
+          productId={product.id}
+          reviews={approvedReviews.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))}
+          avg={reviewAvg}
+          count={reviewCount}
+        />
       </main>
   );
 }

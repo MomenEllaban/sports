@@ -23,6 +23,7 @@ try {
   await need('sales (POS unified table)', await db.sale.count());
   await need('shifts (/admin/shifts)', await db.shift.count());
   await need('coupons (/admin/coupons)', await db.coupon.count());
+  await need('reviews (/admin/reviews)', await db.review.count({ where: { approved: true } }));
   await need('suppliers (/admin/purchasing)', await db.supplier.count());
   await need('purchaseOrders', await db.purchaseOrder.count());
   await need('transfers (/admin/inventory)', await db.stockTransfer.count());

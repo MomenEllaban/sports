@@ -342,6 +342,7 @@ model Product {
   purchaseOrderItems PurchaseOrderItem[]
   transferItems      StockTransferItem[]
   inventoryLogs      InventoryLog[]
+  reviews            Review[]
 }
 
 model Order {
@@ -613,6 +614,22 @@ model CouponUse {
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
 
   @@index([couponId])
+}
+
+// T08: product reviews (visible only after staff approval).
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  customerId String?
+  phone      String?
+  rating     Int
+  text       String?
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, approved])
 }
 
 // T10: refund outbox — money movement retried outside the stock transaction.

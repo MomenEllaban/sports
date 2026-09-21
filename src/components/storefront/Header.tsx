@@ -3,12 +3,23 @@
 import React from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X } from 'lucide-react';
+import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X, Heart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import ThemeToggle from '@/components/admin/ThemeToggle';
 import Image from 'next/image';
 import { WhatsAppIcon } from './WhatsAppButton';
 import NavPending from '@/components/layout/NavPending';
+import { useWishlistCount } from './WishlistButton';
+
+function WishlistCount() {
+  const count = useWishlistCount();
+  if (count === 0) return null;
+  return (
+    <span className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center justify-center border-2 border-slate-950 tabular-nums">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
 
 export default function Header() {
   const t = useTranslations('common');
@@ -154,6 +165,16 @@ export default function Header() {
           >
             <User className="w-4 h-4 text-blue-400 shrink-0" />
             <span className="hidden xl:inline">{t('admin')}</span>
+          </Link>
+
+          {/* Wishlist Icon */}
+          <Link
+            href="/wishlist"
+            className="relative flex items-center justify-center w-10 h-10 min-h-[44px] rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500 hover:text-white transition-all shadow-md shrink-0"
+            aria-label={isAr ? 'قائمة الأمنيات' : 'Wishlist'}
+          >
+            <Heart className="w-5 h-5" />
+            <WishlistCount />
           </Link>
 
           {/* Cart Icon */}

@@ -80,6 +80,7 @@ export async function seedTransactions(db: PrismaClient) {
     { id: 'coupon-D-FLAT50', code: 'FLAT50', kind: 'FIXED', value: 50, minTotal: 300, usedCount: 5, isActive: true, createdById: adminId },
     { id: 'coupon-D-OLD', code: 'OLD20', kind: 'PERCENT', value: 20, usedCount: 3, isActive: false, createdById: adminId },
   ];
+  const reviewRows: Prisma.ReviewCreateManyInput[] = [];
 
   // ------------------------------------------------- Shifts (T05 demo)
   // One OPEN shift per branch (today) + 3 CLOSED shifts per branch with
@@ -502,8 +503,23 @@ export async function seedTransactions(db: PrismaClient) {
     });
   }
 
+  const reviewTexts = ['ممتاز وخامة أصلية', 'تجربة شراء رائعة', 'السعر مناسب والجودة عالية', 'مقاس مظبوط وتوصيل سريع', 'أنصح به بشدة'];
+  for (let i = 0; i < 10 && i < products.length; i++) {
+    const p = products[(i * 7) % products.length];
+    reviewRows.push({
+      id: `review-D-${pad4(i + 1)}`,
+      productId: p.id,
+      rating: 3 + ((i * 2) % 3),
+      text: reviewTexts[i % reviewTexts.length],
+      phone: customers[i % Math.max(customers.length, 1)]?.phone ?? null,
+      approved: i % 3 !== 2, // every third stays pending for the queue demo
+      createdAt: daysAgo(20 - i),
+    });
+  }
+
   // ------------------------------------------- replace previous demo rows
   await db.$transaction([
+    db.review.deleteMany({ where: { id: { startsWith: 'review-D-' } } }),
     db.couponUse.deleteMany({ where: { couponId: { startsWith: 'coupon-D-' } } }),
     db.coupon.deleteMany({ where: { id: { startsWith: 'coupon-D-' } } }),
     db.shift.deleteMany({ where: { id: { startsWith: 'shift-D-' } } }),
@@ -537,10 +553,11 @@ export async function seedTransactions(db: PrismaClient) {
     db.auditLog.createMany({ data: auditRows, skipDuplicates: true }),
     db.shift.createMany({ data: shiftRows, skipDuplicates: true }),
     db.coupon.createMany({ data: couponRows, skipDuplicates: true }),
+    db.review.createMany({ data: reviewRows, skipDuplicates: true }),
   ]);
 
+  counts.reviews = reviewRows.length;
   counts.coupons = couponRows.length;
-
   counts.shifts = shiftRows.length;
   counts.sales = saleRows.length;
   counts.saleItems = saleItemRows.length;

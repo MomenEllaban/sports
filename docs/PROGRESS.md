@@ -14,7 +14,7 @@
 | T11 | داشبورد KPI | DONE | (this commit) | tsc0, lint0, build ok | aggregates, action queues, 7-day chart, tablet touch |
 | T12 | تقارير | DONE | (this commit) | tsc0, lint0 | profit by product/branch/cashier, dead stock, shipping, CSV, filters |
 | T07 | Variants + Size Chart | DONE | (this commit) | unit 49/49, tsc0, lint0 | display families, pickers, chart, SafeImage |
-| T08 | Reviews + Wishlist | TODO | — | — | — |
+| T08 | Reviews + Wishlist | DONE | (this commit) | tsc0, lint0 | approval-gated reviews, wishlist, admin queue |
 | T09 | عناوين البورتال في checkout | TODO | — | — | — |
 | T13 | باركود وجرد | TODO | — | — | — |
 | T14 | ETA إنتاجي | TODO | — | — | — |

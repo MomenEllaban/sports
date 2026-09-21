@@ -18,6 +18,7 @@ import {
   BarChart3,
   Bell,
   Clock3,
+  Star,
   TicketPercent,
   Settings,
   ShieldAlert,
@@ -119,6 +120,14 @@ export default function AdminSidebar() {
       href: '/admin/cod-settlement',
       icon: <HandCoins className="w-5 h-5 text-teal-400" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
+    },
+    {
+      key: 'reviews',
+      labelAr: 'تقييمات العملاء',
+      labelEn: 'Customer Reviews',
+      href: '/admin/reviews',
+      icon: <Star className="w-5 h-5 text-amber-300" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
       key: 'coupons',

@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingCart, MessageCircle, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { Link } from '@/i18n/routing';
+import { SafeImage } from '@/components/ui/foundation';
+import { WishlistButton } from './WishlistButton';
 
 export interface ProductWithInventory {
   id: string;
@@ -68,8 +69,8 @@ export default function ProductCard({
     <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 flex flex-col justify-between group">
       {/* Top Image Container */}
       <Link href={`/catalog/${product.id}`} className="relative aspect-square w-full bg-slate-900 overflow-hidden block">
-        <Image
-          src={product.images[0] || 'https://res.cloudinary.com/djseokhow/image/upload/v1789820962/sports-champions/products/bmxe8ldv89v1lwf3vi4v.jpg'}
+        <SafeImage
+          src={product.images[0] || '/placeholder-product.svg'}
           alt={name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -81,11 +82,14 @@ export default function ProductCard({
           <span className="px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-[11px] font-semibold text-slate-300 border border-slate-700">
             {categoryName}
           </span>
-          {product.isFeatured && (
-            <span className="px-2.5 py-1 rounded-full bg-amber-500/90 text-slate-950 text-[10px] font-extrabold uppercase">
-              مميز
-            </span>
-          )}
+          <span className="flex items-center gap-1 pointer-events-auto">
+            <WishlistButton productId={product.id} productName={name} />
+            {product.isFeatured && (
+              <span className="px-2.5 py-1 rounded-full bg-amber-500/90 text-slate-950 text-[10px] font-extrabold uppercase">
+                مميز
+              </span>
+            )}
+          </span>
         </div>
       </Link>
 
