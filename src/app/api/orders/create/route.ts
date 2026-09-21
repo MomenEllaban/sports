@@ -203,6 +203,12 @@ export async function POST(req: Request) {
 
     // 7. Payment instructions (external, after commit — never fails the order).
     const payResult = await initializePayment(paymentMethod as PaymentMethod, order.orderNumber, totalAmount, phone, name).catch(() => null);
+    // 3.1: persist gateway reference for webhook matching (never fails the order).
+    if (payResult?.transactionRef) {
+      await prisma.order
+        .update({ where: { id: order.id }, data: { paymentRef: payResult.transactionRef } })
+        .catch(() => null);
+    }
 
     // 8. Notifications after commit (never roll back the order).
     dispatchNotification({

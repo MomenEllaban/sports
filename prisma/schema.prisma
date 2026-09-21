@@ -357,6 +357,8 @@ model Order {
   etaReceiptId     String?
   // 2.3: customer-uploaded transfer receipt (InstaPay / Vodafone Cash) for manual review.
   receiptImage     String?
+  // 3.1: gateway transaction reference (Paymob/Fawry) for webhook matching.
+  paymentRef       String?
   notes            String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
