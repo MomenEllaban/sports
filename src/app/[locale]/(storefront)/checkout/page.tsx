@@ -307,7 +307,7 @@ export default function CheckoutPage() {
                   }`}
                 >
                   <span className="font-bold text-sm text-slate-100">توصيل للمنزل بالإسكندرية</span>
-                  <span className="text-[11px]">عن طريق بوسطة أو مرسول</span>
+                  <span className="text-[11px]">عن طريق بوسطة (تتبع مباشر)</span>
                 </label>
 
                 <label

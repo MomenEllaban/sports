@@ -4,6 +4,7 @@ import { ClipboardCheck } from 'lucide-react';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { SETTINGS_REGISTRY, SETUP_GROUPS, parseStored, statusOf, hasUsableValue } from '@/lib/settings-registry';
 import { Link } from '@/i18n/routing';
+import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,7 @@ export const dynamic = 'force-dynamic';
  */
 export default async function SetupPage() {
   await requirePageRole('SUPER_ADMIN');
+  const t = await getTranslations('setup');
   const rows = await prisma.setting.findMany();
   const byKey = new Map(rows.map((r) => [r.key, r.value]));
   const items = SETTINGS_REGISTRY.map((def) => {
@@ -26,10 +28,10 @@ export default async function SetupPage() {
       <div className="border-b border-slate-800 pb-4">
         <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
           <ClipboardCheck className="w-6 h-6 text-emerald-400" />
-          قائمة التجهيز — المطلوب من العميل
+          {t('title')}
         </h1>
         <p className="text-xs text-slate-400 mt-0.5">
-          كل بند ناقص يقفل ميزة بشكل نضيف لحد ما يتملي. القيم الافتراضية من عندنا تحتاج تأكيدك.
+          {t('subtitle')}
         </p>
       </div>
 
@@ -68,10 +70,10 @@ export default async function SetupPage() {
                           : status === 'MISSING' ? 'bg-rose-500/15 text-rose-400'
                           : 'bg-amber-500/15 text-amber-400'
                         }`}>
-                          {status === 'CONFIRMED' ? 'مؤكد' : status === 'MISSING' ? 'ناقص' : 'افتراضي — أكّد'}
+                          {status === 'CONFIRMED' ? t('confirmed') : status === 'MISSING' ? t('missing') : t('defaultUnconfirmed')}
                         </span>
                         <Link href={`/admin/settings#${encodeURIComponent(def.key)}`} className="text-[11px] font-bold text-blue-400 hover:underline min-h-[44px] flex items-center">
-                          تعديل
+                          {t('edit')}
                         </Link>
                       </div>
                     </li>

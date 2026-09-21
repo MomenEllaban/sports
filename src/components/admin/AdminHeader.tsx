@@ -7,10 +7,12 @@ import { Bell, MapPin, LogOut, ShieldCheck } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import ThemeToggle from './ThemeToggle';
 import { LocaleSwitcher } from '@/components/ui/foundation';
+import { useTranslations } from 'next-intl';
 
 export default function AdminHeader() {
   const { data: session } = useSession();
   const locale = useLocale();
+  const tSetup = useTranslations('setup');
   const isAr = locale === 'ar';
   const [unreadCount, setUnreadCount] = useState(0);
   const [missingSetup, setMissingSetup] = useState<number | null>(null);
@@ -50,7 +52,7 @@ export default function AdminHeader() {
             className="min-h-[44px] flex items-center gap-1.5 px-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold"
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>{isAr ? `التجهيز: ${missingSetup} بنود ناقصة` : `Setup: ${missingSetup} missing`}</span>
+            <span>{tSetup('banner')}: {missingSetup}</span>
           </Link>
         )}
         <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/30 font-bold">

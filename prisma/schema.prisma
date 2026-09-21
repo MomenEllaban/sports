@@ -25,6 +25,7 @@ enum OrderSource {
 enum ShippingProvider {
   BOSTA
   MYLERZ
+  // T15 DEPRECATED (kept for historic rows only — hidden from all UI):
   MRSOOL
   LOCAL_COURIER
   PICKUP
@@ -36,6 +37,7 @@ enum PaymentMethod {
   COD
   INSTAPAY
   VODAFONE_CASH
+  // T15 DEPRECATED (kept for historic rows only — initializePayment refuses it):
   KASHIER
   CASH
   CARD

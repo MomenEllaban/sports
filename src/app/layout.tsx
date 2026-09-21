@@ -2,8 +2,24 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ابطال الرياضة الإبراهيمية | Sports Champions Alexandria',
-  description: 'المقر الرئيسي للملابس والمعدات الرياضية بالإسكندرية (سباحة، جيم، كارديو، باليه). 92 شارع عمر لطفى، الإبراهيمية.',
+  title: {
+    default: 'ابطال الرياضة الإبراهيمية | Sports Champions Alexandria',
+    template: '%s | ابطال الرياضة',
+  },
+  description:
+    'المقر الرئيسي للملابس والمعدات الرياضية بالإسكندرية (سباحة، جيم، كارديو، باليه). 92 شارع عمر لطفى، الإبراهيمية. Alexandria sports apparel & equipment store.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sports-champions.example.com'),
+  alternates: { languages: { ar: '/ar', en: '/en' } },
+  openGraph: {
+    type: 'website',
+    locale: 'ar_EG',
+    alternateLocale: ['en_US'],
+    siteName: 'ابطال الرياضة الإبراهيمية',
+    title: 'ابطال الرياضة الإبراهيمية | Sports Champions Alexandria',
+    description: 'ملابس ومعدات رياضية — الإسكندرية. Sports apparel & equipment — Alexandria.',
+    images: [{ url: '/logo.avif', alt: 'Sports Champions logo' }],
+  },
+  twitter: { card: 'summary_large_image', title: 'ابطال الرياضة الإبراهيمية', description: 'ملابس ومعدات رياضية — الإسكندرية.' },
   icons: {
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
