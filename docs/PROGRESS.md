@@ -12,7 +12,7 @@
 | T16 | Discount pipeline (ولاء+كوبونات) | DONE | (this commit) | unit 46/46, tsc0, lint0 | unified stack, coupon CRUD+UI, checkout+POS redeem, race-safe |
 | T10 | Refund/RMA | DONE | (this commit) | tsc0, lint0, build ok | refund outbox, wizard, gateway/manual payout, retry worker |
 | T11 | داشبورد KPI | DONE | (this commit) | tsc0, lint0, build ok | aggregates, action queues, 7-day chart, tablet touch |
-| T12 | تقارير | TODO | — | — | — |
+| T12 | تقارير | DONE | (this commit) | tsc0, lint0 | profit by product/branch/cashier, dead stock, shipping, CSV, filters |
 | T07 | Variants + Size Chart | TODO | — | — | — |
 | T08 | Reviews + Wishlist | TODO | — | — | — |
 | T09 | عناوين البورتال في checkout | TODO | — | — | — |

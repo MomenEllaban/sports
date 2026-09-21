@@ -31,6 +31,7 @@
 | أقصى خصم كلي % (كل القنوات) (`discount.maxTotalPct`) | الولاء والخصومات | لا | CLIENT | `30` | سقف مجموع (كوبون+ولاء+PIN) من الإجمالي (T16).|
 | قواعد الجمع بين الخصومات (`discount.stacking`) | الولاء والخصومات | لا | CLIENT | `{"allowCouponLoyalty":true,"allowCouponPin":false}` | هل يجتمع الكوبون مع الولاء؟ ومع خصم المدير؟ (T16).|
 | حد النواقص الافتراضي (`stock.lowThreshold`) | المخزون | نعم | CLIENT | `5` | يُستخدم عند إنشاء صنف جديد؛ يمكن تخصيصه لكل صنف/فرع.|
+| مدة الركود للأصناف الميتة (أيام) (`reports.deadStockDays`) | المخزون | لا | CLIENT | `60` | صنف بمخزون بلا بيع خلالها = ميت (T12). الافتراضي 60.|
 | وضع ETA (`eta.mode`) | الفاتورة الإلكترونية ETA | نعم | ACCOUNTANT | `"off"` | off حتى تجهز بيانات... ثم preprod للتجربة ثم production.|
 | ETA Client ID (`eta.clientId`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | — (فارغ: الميزة مقفولة) | من بوابة مصلحة الضرائب (eInvoicing).|
 | ETA Client Secret (`eta.clientSecret`) | الفاتورة الإلكترونية ETA | لا | ACCOUNTANT | — (فارغ: الميزة مقفولة) | سرّي — يُخزن مشفراً.|

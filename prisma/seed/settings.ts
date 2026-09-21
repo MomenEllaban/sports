@@ -68,6 +68,8 @@ const DEFAULTS: Record<string, unknown> = {
   'shifts.maxShortage': 50,
   // T16 — discount stacking rules.
   'discount.stacking': { allowCouponLoyalty: true, allowCouponPin: false },
+  // T12 — dead stock window.
+  'reports.deadStockDays': 60,
   // F1 — rate limits, upload cap, OTP mode (safe defaults).
   'ratelimit.trackPerMin': 30,
   'ratelimit.portalLoginPerMin': 10,
