@@ -4,7 +4,7 @@
 |---|---|---|---|---|---|
 | F0 | الأساس: registry + تجهيز + UI موحد + فحوصات | DONE | (this commit) | unit 18/18, tsc0, lint0, i18n206, images41 | CLIENT_INPUTS مولّد، seed settings 41 |
 | F1 | أمان وتشغيل | DONE | (this commit) | unit 22/22, tsc0, lint0, rbac-meta ok | rate-limit + magic-bytes + OTP-ready + expire job + health + OPERATIONS |
-| T05 | ورديات ودرج | TODO | — | — | — |
+| T05 | ورديات ودرج | DONE | (this commit) | unit 22/22, tsc0, lint0, build ok, rbac-meta ok | Shift model+migration, gate sale, wizards, report, seed 8 shifts |
 | ETA-spike | فجوات ETA موثقة | TODO | — | — | — |
 | T01 | Paymob حقيقي | TODO | — | — | — |
 | T02 | Fawry حقيقي | TODO | — | — | — |

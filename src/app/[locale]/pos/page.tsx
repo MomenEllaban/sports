@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
-import { LocaleSwitcher } from '@/components/ui/foundation';
+import { LocaleSwitcher, Stepper, ConfirmDialog } from '@/components/ui/foundation';
 import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -89,7 +89,107 @@ export default function PosTerminalPage() {
 
   useEffect(() => {
     fetchPosProducts();
+    fetchShiftStatus();
   }, []);
+
+  // ── T05 shift gate ─────────────────────────────────────
+  const [shift, setShift] = useState<{ id: string; branchId: string; branchName: string; openedAt: string; openingFloat: number } | null>(null);
+  const [shiftLoading, setShiftLoading] = useState(true);
+  const [openFloat, setOpenFloat] = useState('');
+  const [openNote, setOpenNote] = useState('');
+  const [openBusy, setOpenBusy] = useState(false);
+  const [openError, setOpenError] = useState('');
+  const [showClose, setShowClose] = useState(false);
+  const [closePreview, setClosePreview] = useState<{ expected: number; openingFloat: number; maxShortage: number } | null>(null);
+  const [actualCash, setActualCash] = useState('');
+  const [closeNote, setCloseNote] = useState('');
+  const [closeBusy, setCloseBusy] = useState(false);
+  const [closeError, setCloseError] = useState('');
+  const [closeResult, setCloseResult] = useState<{ expected: number; actual: number; difference: number } | null>(null);
+
+  const fetchShiftStatus = async () => {
+    try {
+      setShiftLoading(true);
+      const res = await fetch('/api/pos/shifts');
+      const data = await res.json();
+      setShift(data.success && data.shift ? data.shift : null);
+    } catch {
+      setShift(null);
+    } finally {
+      setShiftLoading(false);
+    }
+  };
+
+  const handleOpenShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOpenBusy(true);
+    setOpenError('');
+    try {
+      const res = await fetch('/api/pos/shifts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branchId: posBranchId || undefined, openingFloat: openFloat === '' ? undefined : Number(openFloat), openNote: openNote || undefined }),
+      });
+      const data = await res.json();
+      if (data.success && data.shift) {
+        toast('تم فتح الوردية — ابدأ أول بيعة', 'success');
+        setOpenFloat('');
+        setOpenNote('');
+        await fetchShiftStatus();
+        await fetchPosProducts();
+      } else {
+        setOpenError(data.error || 'تعذر فتح الوردية');
+      }
+    } catch {
+      setOpenError('تعذر الاتصال بالسيرفر');
+    } finally {
+      setOpenBusy(false);
+    }
+  };
+
+  const openCloseWizard = async () => {
+    if (!shift) return;
+    setCloseError('');
+    setCloseResult(null);
+    try {
+      const res = await fetch(`/api/pos/shifts/${shift.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setClosePreview({ expected: data.expected, openingFloat: data.openingFloat, maxShortage: data.maxShortage });
+        setShowClose(true);
+      } else {
+        toast(data.error || 'تعذر جلب الوردية', 'error');
+      }
+    } catch {
+      toast('تعذر الاتصال بالسيرفر', 'error');
+    }
+  };
+
+  const handleCloseShift = async () => {
+    if (!shift || closeBusy) return;
+    setCloseBusy(true);
+    setCloseError('');
+    try {
+      const res = await fetch(`/api/pos/shifts/${shift.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actualCash: Number(actualCash), closeNote: closeNote || undefined }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCloseResult({ expected: data.expected, actual: data.actual, difference: data.difference });
+        toast(`أُغلقت الوردية — الفرق ${data.difference}`, 'success');
+        clearTicket();
+        await fetchShiftStatus();
+      } else {
+        setCloseError(data.error || 'تعذر إغلاق الوردية');
+      }
+    } catch {
+      setCloseError('تعذر الاتصال بالسيرفر');
+    } finally {
+      setCloseBusy(false);
+    }
+  };
 
   const [activeBranch, setActiveBranch] = useState<{ id: string; name: string; nameEn: string } | null>(null);
   const [branchOptions, setBranchOptions] = useState<Array<{ id: string; name: string; nameEn: string }>>([]);
@@ -248,6 +348,7 @@ export default function PosTerminalPage() {
       managerPin: managerPin || undefined,
       customerId: customer?.id || null,
       branchId: posBranchId || undefined,
+      shiftId: shift?.id || undefined,
       items: ticketItems.map((i) => ({
         productId: i.id,
         quantity: i.quantity,
@@ -300,12 +401,14 @@ export default function PosTerminalPage() {
         toast(msg, 'error');
       }
     } catch {
-      // Offline mode: queue the sale locally and sync later
+      // Offline mode: queue the sale locally and sync later.
+      // The open shift at sale time travels with the queue item (T05).
       queueOfflineSale({
         id: `offline-${Date.now()}`,
         saleNumber: `OFFLINE-${Date.now()}`,
         branchId: posBranchId,
         cashierId: '',
+        shiftId: shift?.id,
         customerPhone: customer?.phone,
         items: ticketItems.map((i) => ({ ...i })),
         subtotal: getSubtotal(),
@@ -336,6 +439,7 @@ export default function PosTerminalPage() {
             discountAmount: sale.discountAmount,
             customerPhone: sale.customerPhone || undefined,
             branchId: sale.branchId || undefined,
+            shiftId: sale.shiftId || undefined,
             clientSaleId: sale.id,
             items: sale.items.map((i) => ({ productId: i.id, quantity: i.quantity, unitPrice: i.unitPrice })),
           }),
@@ -407,6 +511,19 @@ export default function PosTerminalPage() {
         {/* Cashier Info */}
         <div className="flex items-center gap-3 text-xs">
           <LocaleSwitcher />
+          {shift && (
+            <>
+              <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
+                وردية مفتوحة • {shift.branchName}
+              </span>
+              <button
+                onClick={openCloseWizard}
+                className="min-h-[44px] px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-bold text-slate-200"
+              >
+                إغلاق الوردية
+              </button>
+            </>
+          )}
           <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1">
             <Check className="w-3.5 h-3.5" /> مصلحة الضرائب ETA متصلة
           </span>
@@ -417,7 +534,51 @@ export default function PosTerminalPage() {
         </div>
       </header>
 
-      {/* Main Grid View */}
+      {/* Main Grid View — gated on an open shift (T05) */}
+      {!shiftLoading && !shift ? (
+        <div className="flex-1 overflow-y-auto p-4 flex items-start justify-center">
+          <form onSubmit={handleOpenShift} className="w-full max-w-md glass-panel p-6 rounded-3xl border border-amber-500/40 space-y-4 mt-6">
+            <Stepper steps={['عد النقدية بالدرج', 'تأكيد فتح الوردية']} active={0} />
+            <h2 className="font-black text-base text-slate-100">افتح وردية لبدء البيع</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              أول مرة؟ عد الكاش الموجود بالدرج واكتبه هنا. كل فواتيرك ستُنسب لهذه الوردية، وعند الإغلاق ستقارن المتوقع بالمعدود.
+            </p>
+            <div>
+              <label htmlFor="open-float" className="block text-xs font-bold text-slate-300 mb-1">رصيد الافتتاح (ج.م) *</label>
+              <input
+                id="open-float"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                value={openFloat}
+                onChange={(e) => setOpenFloat(e.target.value)}
+                placeholder="مثال: 500"
+                className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="open-note" className="block text-xs font-bold text-slate-300 mb-1">ملاحظة (اختياري)</label>
+              <input
+                id="open-note"
+                type="text"
+                value={openNote}
+                onChange={(e) => setOpenNote(e.target.value)}
+                placeholder="مثال: استلام من الكاشير السابق"
+                className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            {openError && <p role="alert" className="text-xs font-bold text-rose-400">{openError}</p>}
+            <button
+              type="submit"
+              disabled={openBusy}
+              className="w-full min-h-[44px] py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-extrabold text-sm"
+            >
+              {openBusy ? 'جاري الفتح...' : 'فتح الوردية وبدء البيع'}
+            </button>
+          </form>
+        </div>
+      ) : (
       <div className="flex-1 grid grid-cols-12 overflow-hidden">
         {/* Left Side: Product Selector & Barcode Scanner */}
         <div className="col-span-7 border-l border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 overflow-hidden">
@@ -847,6 +1008,70 @@ export default function PosTerminalPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Close-shift wizard */}
+      {showClose && closePreview && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70" onClick={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }}>
+          <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <Stepper steps={['عد النقدية بالدرج', 'راجع الفرق', 'تأكيد الإغلاق']} active={closeResult ? 2 : 1} />
+            <h3 className="font-black text-sm text-slate-100">إغلاق الوردية</h3>
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
+              <div className="flex justify-between text-slate-400"><span>رصيد الافتتاح:</span><span className="font-bold text-slate-200">{closePreview.openingFloat.toLocaleString()} ج.م</span></div>
+              <div className="flex justify-between text-slate-400"><span>المتوقع بالدرج:</span><span className="font-black text-blue-300">{closePreview.expected.toLocaleString()} ج.م</span></div>
+              <div className="text-[11px] text-slate-500">المتوقع = الافتتاح + مبيعات الكاش فقط (الفيزا والتحويل لا تدخل الدرج).</div>
+            </div>
+            {closeResult ? (
+              <div className="p-4 rounded-2xl border text-xs text-center font-black" role="status">
+                {closeResult.difference === 0 ? (
+                  <span className="text-emerald-400">الدرج مضبوط تماماً ✓ — الخطوة التالية: اطبع تقرير الوردية من الإدارة</span>
+                ) : (
+                  <span className={closeResult.difference > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                    الفرق: {closeResult.difference > 0 ? '+' : ''}{closeResult.difference.toLocaleString()} ج.م — {closeResult.difference > 0 ? 'زيادة' : 'عجز'}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label htmlFor="actual-cash" className="block text-xs font-bold text-slate-300 mb-1">المبلغ المعدود فعلاً (ج.م) *</label>
+                  <input
+                    id="actual-cash"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={actualCash}
+                    onChange={(e) => setActualCash(e.target.value)}
+                    className="w-full min-h-[44px] p-3 rounded-xl bg-slate-950 border border-slate-700 font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="close-note" className="block text-xs font-bold text-slate-300 mb-1">
+                    تفسير الفرق {closePreview && actualCash !== '' && (Number(actualCash) - closePreview.expected) < 0 && Math.abs(Number(actualCash) - closePreview.expected) > closePreview.maxShortage ? '(إجباري — العجز فوق المسموح)' : '(اختياري)'}
+                  </label>
+                  <input
+                    id="close-note"
+                    type="text"
+                    value={closeNote}
+                    onChange={(e) => setCloseNote(e.target.value)}
+                    className="w-full min-h-[44px] p-3 rounded-xl bg-slate-950 border border-slate-700 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </>
+            )}
+            {closeError && <p role="alert" className="text-xs font-bold text-rose-400">{closeError}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }} disabled={closeBusy} className="min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">رجوع</button>
+              {!closeResult && (
+                <button onClick={handleCloseShift} disabled={closeBusy || actualCash === ''} className="min-h-[44px] rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 text-xs font-black">
+                  {closeBusy ? 'جاري الإغلاق...' : 'تأكيد الإغلاق'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Printable Receipt Modal with ETA QR Code */}
       {showReceiptModal && receiptData && (

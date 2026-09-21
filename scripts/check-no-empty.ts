@@ -21,6 +21,7 @@ try {
   await need('customers (/admin/customers)', await db.customer.count());
   await need('orders (/admin/orders, tracking)', await db.order.count());
   await need('sales (POS unified table)', await db.sale.count());
+  await need('shifts (/admin/shifts)', await db.shift.count());
   await need('suppliers (/admin/purchasing)', await db.supplier.count());
   await need('purchaseOrders', await db.purchaseOrder.count());
   await need('transfers (/admin/inventory)', await db.stockTransfer.count());

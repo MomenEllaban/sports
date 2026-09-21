@@ -51,6 +51,8 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/purchase-orders/[id]/receive': { methods: { POST: BM } },
   '/api/pos/products': { methods: { GET: POS } },
   '/api/pos/sale': { methods: { POST: POS } },
+  '/api/pos/shifts': { methods: { GET: POS, POST: POS } },
+  '/api/pos/shifts/[id]': { methods: { GET: POS, POST: POS } },
   '/api/pos/customer': { methods: { GET: POS, POST: POS } },
   '/api/admin/audit': { methods: { GET: SUPER } },
   '/api/admin/settings': { methods: { GET: SUPER, PUT: SUPER } },

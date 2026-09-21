@@ -74,6 +74,54 @@ export async function seedTransactions(db: PrismaClient) {
   const invLogRows: Prisma.InventoryLogCreateManyInput[] = [];
   const taxInvoiceRows: Prisma.TaxInvoiceCreateManyInput[] = [];
   const auditRows: Prisma.AuditLogCreateManyInput[] = [];
+  const shiftRows: Prisma.ShiftCreateManyInput[] = [];
+
+  // ------------------------------------------------- Shifts (T05 demo)
+  // One OPEN shift per branch (today) + 3 CLOSED shifts per branch with
+  // realistic differences (exact / shortage with note / over).
+  const shiftCashierMain = cashierFor(BRANCH_MAIN_ID);
+  const shiftCashierSam = cashierFor(BRANCH_SAMOUHA_ID);
+  const closedShiftIds: Record<string, string[]> = { [BRANCH_MAIN_ID]: [], [BRANCH_SAMOUHA_ID]: [] };
+  const shiftSalesCount: Record<string, number> = {};
+  for (const [b, c] of [[BRANCH_MAIN_ID, shiftCashierMain], [BRANCH_SAMOUHA_ID, shiftCashierSam]] as const) {
+    for (let s = 1; s <= 3; s++) {
+      const sid = `shift-D-${b === BRANCH_MAIN_ID ? 'main' : 'sam'}-closed-${s}`;
+      closedShiftIds[b].push(sid);
+      const openedAt = daysAgo(30 - s * 7);
+      shiftRows.push({
+        id: sid,
+        branchId: b,
+        cashierId: c,
+        status: 'CLOSED',
+        openedAt,
+        closedAt: new Date(openedAt.getTime() + 8 * 3600_000),
+        openingFloat: 500,
+        expectedCash: 500, // recomputed below from CASH sales
+        actualCash: 500,
+        difference: 0,
+        openNote: 'وردية تجريبية',
+        closeNote: s === 2 ? 'عجز معتمد من المدير' : null,
+      });
+    }
+    const openId = `shift-D-${b === BRANCH_MAIN_ID ? 'main' : 'sam'}-open`;
+    shiftRows.push({
+      id: openId,
+      branchId: b,
+      cashierId: c,
+      status: 'OPEN',
+      openedAt: new Date(Date.now() - 2 * 3600_000),
+      openingFloat: 500,
+      expectedCash: 500,
+      actualCash: 0,
+      difference: 0,
+      openNote: 'وردية اليوم',
+    });
+  }
+  const shiftForSale = (branchId: string): string => {
+    const n = (shiftSalesCount[branchId] = (shiftSalesCount[branchId] || 0) + 1);
+    const list = closedShiftIds[branchId];
+    return list[Math.min(list.length - 1, Math.floor((n - 1) / 7))];
+  };
 
   // ---------------------------------------------------------------- Sales (POS)
   const sim = new Map(stock);
@@ -107,6 +155,7 @@ export async function seedTransactions(db: PrismaClient) {
       saleNumber: `SALE-D-${num}`,
       branchId,
       cashierId: cashierFor(branchId),
+      shiftId: shiftForSale(branchId),
       customerId,
       subtotal,
       taxAmount: tax,
@@ -158,6 +207,22 @@ export async function seedTransactions(db: PrismaClient) {
       });
     }
   }
+
+  // Reconcile closed shifts: expected = float + CASH sales; variants exact/short/over.
+  const cashByShift = new Map<string, number>();
+  for (const s of saleRows) {
+    if (s.paymentMethod === 'CASH' && s.shiftId) {
+      cashByShift.set(s.shiftId, round2((cashByShift.get(s.shiftId) || 0) + Number(s.totalAmount)));
+    }
+  }
+  shiftRows.forEach((sh, idx) => {
+    if (sh.status !== 'CLOSED' || !sh.id) return;
+    const expected = round2(500 + (cashByShift.get(sh.id as string) || 0));
+    sh.expectedCash = expected;
+    const variant = idx % 3;
+    sh.actualCash = variant === 0 ? expected : variant === 1 ? round2(expected - 35) : round2(expected + 20);
+    sh.difference = round2(Number(sh.actualCash) - expected);
+  });
 
   // ------------------------------------------------------------- Orders (online)
   const orderStatuses: OrdStatus[] = [
@@ -430,6 +495,7 @@ export async function seedTransactions(db: PrismaClient) {
 
   // ------------------------------------------- replace previous demo rows
   await db.$transaction([
+    db.shift.deleteMany({ where: { id: { startsWith: 'shift-D-' } } }),
     db.taxInvoice.deleteMany({
       where: { OR: [{ invoiceNumber: { startsWith: 'INV-S-' } }, { invoiceNumber: { startsWith: 'INV-O-' } }] },
     }),
@@ -458,8 +524,10 @@ export async function seedTransactions(db: PrismaClient) {
     db.inventoryLog.createMany({ data: invLogRows, skipDuplicates: true }),
     db.taxInvoice.createMany({ data: taxInvoiceRows, skipDuplicates: true }),
     db.auditLog.createMany({ data: auditRows, skipDuplicates: true }),
+    db.shift.createMany({ data: shiftRows, skipDuplicates: true }),
   ]);
 
+  counts.shifts = shiftRows.length;
   counts.sales = saleRows.length;
   counts.saleItems = saleItemRows.length;
   counts.orders = orderRows.length;

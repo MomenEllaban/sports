@@ -138,6 +138,18 @@ export async function POST(req: Request) {
       if (customer) resolvedCustomerId = customer.id;
     }
 
+    // T05: attribute to the shift open at SALE time. Offline queue posts
+    // carry the captured shiftId; it must belong to this cashier+branch
+    // (open or already closed). Otherwise use the current open shift.
+    let saleShiftId = ctx.shift.id;
+    if (typeof body.shiftId === 'string' && body.shiftId) {
+      const claimed = await prisma.shift.findFirst({
+        where: { id: body.shiftId, cashierId: ctx.cashierId, branchId: ctx.branch.id },
+        select: { id: true },
+      });
+      if (claimed) saleShiftId = claimed.id;
+    }
+
     // ONE transaction: stock + logs + sale + invoice (T07). Number collisions retried.
     let sale: { id: string; saleNumber: string } | null = null;
     let receipt: Awaited<ReturnType<typeof buildEtaReceipt>> | null = null;
@@ -176,6 +188,7 @@ export async function POST(req: Request) {
               branchId: ctx.branch.id,
               cashierId: ctx.cashierId,
               customerId: resolvedCustomerId,
+              shiftId: saleShiftId,
               subtotal,
               discountAmount: discount,
               taxAmount: vatAmount,

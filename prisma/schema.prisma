@@ -98,6 +98,11 @@ enum PayrollStatus {
   PAID
 }
 
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
 enum SalaryType {
   MONTHLY
   HOURLY
@@ -139,6 +144,7 @@ model Branch {
   transfersTo    StockTransfer[]     @relation("TransferToBranch")
   orders         Order[]
   sales          Sale[]
+  shifts         Shift[]
   inventoryLogs  InventoryLog[]
   purchaseOrders PurchaseOrder[]
   expenses       Expense[]
@@ -207,6 +213,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   employee Employee?
+  shifts   Shift[]
 }
 
 model Employee {
@@ -401,12 +408,40 @@ model Sale {
   approvedById   String?
   // T07: offline-sync idempotency key (nullable unique).
   clientSaleId   String?  @unique
+  // T05: shift this sale belongs to (set at sale time, incl. offline sync).
+  shiftId        String?
   createdAt      DateTime      @default(now())
 
   branch     Branch      @relation(fields: [branchId], references: [id])
   customer   Customer?   @relation(fields: [customerId], references: [id])
+  shift      Shift?      @relation(fields: [shiftId], references: [id])
   items      SaleItem[]
   taxInvoice TaxInvoice?
+}
+
+// T05: cashier shifts (cash drawer sessions). One OPEN shift per cashier max.
+model Shift {
+  id           String      @id @default(cuid())
+  branchId     String
+  cashierId    String
+  status       ShiftStatus @default(OPEN)
+  openedAt     DateTime    @default(now())
+  closedAt     DateTime?
+  openingFloat Decimal @db.Decimal(12, 2) @default(0)
+  expectedCash Decimal @db.Decimal(12, 2) @default(0)
+  actualCash   Decimal @db.Decimal(12, 2) @default(0)
+  difference   Decimal @db.Decimal(12, 2) @default(0)
+  openNote     String?
+  closeNote    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  cashier User   @relation(fields: [cashierId], references: [id])
+  sales  Sale[]
+
+  @@index([cashierId, status])
+  @@index([branchId, status])
 }
 
 model SaleItem {

@@ -17,6 +17,7 @@ import {
   Briefcase,
   BarChart3,
   Bell,
+  Clock3,
   Settings,
   ShieldAlert,
   Monitor,
@@ -117,6 +118,14 @@ export default function AdminSidebar() {
       href: '/admin/cod-settlement',
       icon: <HandCoins className="w-5 h-5 text-teal-400" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
+    },
+    {
+      key: 'shifts',
+      labelAr: 'الورديات والدرج',
+      labelEn: 'Shifts & Cash Drawer',
+      href: '/admin/shifts',
+      icon: <Clock3 className="w-5 h-5 text-cyan-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
       key: 'reports',

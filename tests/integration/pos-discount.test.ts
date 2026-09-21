@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import bcrypt from 'bcryptjs';
-import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor } from '../helpers/factories.js';
+import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor, openTestShift } from '../helpers/factories.js';
 import { setMockSession } from '../setup-mocks.js';
 import { POST as posSale } from '../../src/app/api/pos/sale/route.js';
 
@@ -33,6 +33,8 @@ describe('server-authoritative pricing and discounts (T06, RED first)', () => {
     const p = await makeProduct(cat.id, 500);
     productId = p.id;
     await stock(branchId, productId, 50);
+    await openTestShift(branchId, cashier.id);
+    await openTestShift(branchId, manager.id);
   }, 180000);
 
   afterAll(async () => {

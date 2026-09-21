@@ -13,7 +13,7 @@ export function testPrisma(): PrismaClient {
 
 const TABLES = [
   'TaxInvoice', 'Notification', 'Expense', 'PurchaseOrderItem', 'PurchaseOrder', 'Supplier',
-  'InventoryLog', 'SaleItem', 'Sale', 'OrderItem', 'Order', 'Address', 'Customer',
+  'InventoryLog', 'SaleItem', 'Sale', 'Shift', 'OrderItem', 'Order', 'Address', 'Customer',
   'PayrollItem', 'PayrollRun', 'Employee', 'User', 'StockTransferItem', 'StockTransfer',
   'BranchInventory', 'Product', 'Category', 'Brand', 'Branch',
 ].map((t) => `"${t}"`);
@@ -81,4 +81,11 @@ export async function makeCustomer(phone?: string) {
 
 export function sessionFor(user: { id: string; name: string; email: string; role: string; branchIds: string[]; branchId?: string | null }) {
   return { user: { id: user.id, name: user.name, email: user.email, role: user.role, branchIds: user.branchIds, branchId: user.branchId ?? null } };
+}
+
+/** Open a T05 shift for tests (cashier + branch must exist). */
+export async function openTestShift(branchId: string, cashierId: string, openingFloat = 500) {
+  return testPrisma().shift.create({
+    data: { branchId, cashierId, status: 'OPEN', openingFloat, expectedCash: openingFloat },
+  });
 }

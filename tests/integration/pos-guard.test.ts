@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor } from '../helpers/factories.js';
+import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor, openTestShift } from '../helpers/factories.js';
 import { setMockSession } from '../setup-mocks.js';
 import { GET as posProducts } from '../../src/app/api/pos/products/route.js';
 import { POST as posSale } from '../../src/app/api/pos/sale/route.js';
@@ -68,6 +68,7 @@ describe('POS protection (T03, RED first)', () => {
   it('CASHIER can list products and sell', async () => {
     const u = await makeUser('CASHIER', [branchId]);
     await testPrisma().user.update({ where: { id: u.id }, data: { branchId } });
+    await openTestShift(branchId, u.id);
     asRole(u);
     const list = await posProducts(new Request('http://t/api/pos/products'));
     expect(list.status).toBe(200);

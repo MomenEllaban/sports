@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import type { AppSession } from '@/lib/auth/guards';
 import type { Role } from '@prisma/client';
+import { num } from '@/lib/pricing';
 
 export class PosContextError extends Error {
   status: number;
@@ -14,6 +15,8 @@ export interface PosContext {
   branch: { id: string; name: string; nameEn: string };
   cashierId: string;
   role: Role;
+  /** T05: the cashier's OPEN shift — sale refuses without it. */
+  shift: { id: string; branchId: string; openingFloat: number };
 }
 
 /**
@@ -49,7 +52,14 @@ export async function resolvePosContext(
     if (!branch) {
       throw new PosContextError(422, 'فرع الكاشير غير نشط');
     }
-    return { branch: { id: branch.id, name: branch.name, nameEn: branch.nameEn }, cashierId: me.id, role };
+    const shift = await prisma.shift.findFirst({ where: { cashierId: me.id, status: 'OPEN' } });
+    if (!shift) {
+      throw new PosContextError(422, 'لا توجد وردية مفتوحة — افتح وردية أولاً');
+    }
+    if (shift.branchId !== branch.id) {
+      throw new PosContextError(403, 'الوردية المفتوحة لفرع آخر — أغلقها وافتح وردية هنا');
+    }
+    return { branch: { id: branch.id, name: branch.name, nameEn: branch.nameEn }, cashierId: me.id, role, shift: { id: shift.id, branchId: shift.branchId, openingFloat: num(shift.openingFloat) } };
   }
 
   if (role === 'BRANCH_MANAGER' || role === 'SUPER_ADMIN') {
@@ -63,7 +73,14 @@ export async function resolvePosContext(
     if (role === 'BRANCH_MANAGER' && !(me.branchIds || []).includes(branch.id)) {
       throw new PosContextError(403, 'غير مصرح بالبيع في هذا الفرع');
     }
-    return { branch: { id: branch.id, name: branch.name, nameEn: branch.nameEn }, cashierId: me.id, role };
+    const shift = await prisma.shift.findFirst({ where: { cashierId: me.id, status: 'OPEN' } });
+    if (!shift) {
+      throw new PosContextError(422, 'لا توجد وردية مفتوحة — افتح وردية أولاً');
+    }
+    if (shift.branchId !== branch.id) {
+      throw new PosContextError(403, 'الوردية المفتوحة لفرع آخر — أغلقها وافتح وردية هنا');
+    }
+    return { branch: { id: branch.id, name: branch.name, nameEn: branch.nameEn }, cashierId: me.id, role, shift: { id: shift.id, branchId: shift.branchId, openingFloat: num(shift.openingFloat) } };
   }
 
   throw new PosContextError(403, 'Forbidden');

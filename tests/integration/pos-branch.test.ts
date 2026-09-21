@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor } from '../helpers/factories.js';
+import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor, openTestShift } from '../helpers/factories.js';
 import { setMockSession } from '../setup-mocks.js';
 import { POST as posSale } from '../../src/app/api/pos/sale/route.js';
 import { GET as posProducts } from '../../src/app/api/pos/products/route.js';
@@ -40,6 +40,7 @@ describe('POS session identity and branch (T05, RED first)', () => {
       where: { email: (await makeUser('CASHIER', [smouhaId])).email },
       data: { branchId: smouhaId },
     });
+    await openTestShift(smouhaId, cashier.id);
     setMockSession(sessionFor({ ...cashier, branchIds: [smouhaId] }));
     const res = await posSale(saleReq({ paymentMethod: 'CASH', items: [{ productId, quantity: 2 }] }));
     expect(res.status).toBe(200);

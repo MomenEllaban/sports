@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor } from '../helpers/factories.js';
+import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor, openTestShift } from '../helpers/factories.js';
 import { setMockSession } from '../setup-mocks.js';
 import { POST as posSale } from '../../src/app/api/pos/sale/route.js';
 import { POST as orderCreate } from '../../src/app/api/orders/create/route.js';
@@ -26,6 +26,7 @@ describe('atomic inventory and idempotent sync (T07, RED first)', () => {
     const p = await makeProduct(cat.id, 200);
     productId = p.id;
     await stock(branchId, productId, 1);
+    await openTestShift(branchId, cashier.id);
     setMockSession(sessionFor(cashier));
   }, 180000);
 

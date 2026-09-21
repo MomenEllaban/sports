@@ -27,6 +27,8 @@ export interface OfflineSaleQueue {
   totalAmount: number;
   paymentMethod: PaymentMethod;
   timestamp: string;
+  /** T05: shift open at sale time — synced back to the same shift. */
+  shiftId?: string;
 }
 
 interface PosState {
