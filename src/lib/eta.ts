@@ -232,12 +232,14 @@ export async function submitEtaDocument(
 /**
  * 4.1 — Issue a credit note (e.g. order RETURNED) against an ETA document.
  * Best-effort: callers must never fail the local return when ETA is offline.
+ * T10: pass the REAL returned items so production notes aren't empty.
  */
 export async function submitEtaCreditNote(args: {
   branchId: string;
   invoiceNumber: string;
   totalAmount: number;
   vatAmount: number;
+  items?: EtaReceiptData['items'];
 }): Promise<{ ok: boolean; message: string }> {
   const cfg = await getEtaConfig().catch(() => null);
   if (!cfg || !cfg.ready) {
@@ -250,7 +252,7 @@ export async function submitEtaCreditNote(args: {
       totalAmount: -Math.abs(args.totalAmount),
       vatAmount: -Math.abs(args.vatAmount),
       taxRegNumber: cfg.taxRegNumber,
-      items: [],
+      items: args.items || [],
     });
     return { ok: true, message: 'Credit note submitted to ETA' };
   } catch (e) {

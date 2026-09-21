@@ -6,6 +6,7 @@ import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
+import { Stepper } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
@@ -36,6 +37,7 @@ interface OrderRow {
   orderStatus: string;
   paymentStatus: string;
   receiptImage?: string | null;
+  refund?: { id: string; status: string; amount: number; lastError?: string | null } | null;
   createdAt: string;
   items: OrderItem[];
   customer: { id: string; name: string | null; phone: string } | null;
@@ -67,13 +69,18 @@ export default function OrdersManager({
   const [sourceFilter, setSourceFilter] = useState('ALL');
   const [updatingId, setUpdatingId] = useState('');
   const [error, setError] = useState('');
+  // T10 refund wizard
+  const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [refundStep, setRefundStep] = useState(1);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundBusy, setRefundBusy] = useState(false);
+  const [refundError, setRefundError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newOrderError, setNewOrderError] = useState('');
 
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);  const PAGE_SIZE = 10;
 
   const [newOrderForm, setNewOrderForm] = useState({
     guestName: '',
@@ -118,6 +125,44 @@ export default function OrdersManager({
     }
   };
 
+  // T10: request a refund (wizard confirm) + retry a stuck one.
+  const submitRefund = async () => {
+    if (!refundTarget || refundBusy) return;
+    setRefundBusy(true);
+    setRefundError('');
+    try {
+      const res = (await apiFetch(`/api/admin/orders/${refundTarget.id}/refund`, 'POST', { reason: refundReason || undefined })) as {
+        result?: { ok?: boolean; error?: string };
+      };
+      if (res.result && res.result.ok === false) {
+        toast(`${isAr ? 'سُجل الاسترداد — فشل رد المبلغ، سيُعاد تلقائياً' : 'Refund recorded — payout failed, will retry'}: ${res.result.error || ''}`, 'info');
+      } else {
+        toast(isAr ? 'تم الاسترداد وإرجاع المخزون' : 'Refunded with restock', 'success');
+      }
+      setRefundTarget(null);
+      setRefundStep(1);
+      setRefundReason('');
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t('operationFailed');
+      setRefundError(msg);
+    } finally {
+      setRefundBusy(false);
+    }
+  };
+
+  const retryRefund = async (refundId: string) => {
+    setUpdatingId(refundId);
+    try {
+      const res = (await apiFetch(`/api/admin/refunds/${refundId}`, 'POST', {})) as { success?: boolean; result?: { error?: string } };
+      toast(res.success ? (isAr ? 'تم رد المبلغ' : 'Payout succeeded') : (res.result?.error || t('operationFailed')), res.success ? 'success' : 'error');
+      router.refresh();
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : t('operationFailed'), 'error');
+    } finally {
+      setUpdatingId('');
+    }
+  };
   // T03: retry booking a MANUAL shipment with the real courier.
   const retryShipment = async (id: string) => {
     setUpdatingId(id);
@@ -296,7 +341,28 @@ export default function OrdersManager({
                   </td>
                   <td className="p-3 text-slate-300"><PayLabel value={ord.paymentMethod} /></td>
                   <td className="p-3 font-black text-slate-100">{ord.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>
-                  <td className="p-3"><StatusBadge value={ord.orderStatus} /></td>
+                  <td className="p-3"><StatusBadge value={ord.orderStatus} />
+                    {ord.refund && (
+                      <span className={`mt-1 block px-2 py-0.5 rounded-lg font-bold text-[10px] w-fit ${
+                        ord.refund.status === 'SUCCEEDED' ? 'bg-emerald-500/15 text-emerald-400'
+                        : ord.refund.status === 'FAILED' ? 'bg-rose-500/15 text-rose-400'
+                        : 'bg-amber-500/15 text-amber-400'
+                      }`}>
+                        {ord.refund.status === 'SUCCEEDED' ? (isAr ? 'مسترد' : 'Refunded')
+                          : ord.refund.status === 'FAILED' ? (isAr ? 'فشل الرد — أعد' : 'Payout failed — retry')
+                          : (isAr ? 'استرداد معلق' : 'Refund pending')}
+                      </span>
+                    )}
+                    {ord.refund && (ord.refund.status === 'FAILED' || ord.refund.status === 'PENDING') && (
+                      <button
+                        onClick={() => retryRefund(ord.refund!.id)}
+                        disabled={updatingId === ord.refund.id}
+                        className="mt-1 min-h-[44px] px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-slate-200 disabled:opacity-60"
+                      >
+                        {isAr ? 'إعادة محاولة الرد' : 'Retry payout'}
+                      </button>
+                    )}
+                  </td>
                   <td className="p-3">
                     {ord.kind === 'ORDER' ? (
                       <select
@@ -337,11 +403,19 @@ export default function OrdersManager({
                           ))}
                         </div>
                         {/* Order Summary */}
-                        <div className="mt-3 flex gap-4 text-[11px] text-slate-400">
+                        <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-slate-400">
                           <span>{isAr ? 'المجموع الفرعي' : 'Subtotal'}: {ord.subtotal?.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</span>
                           {ord.discountAmount > 0 && <span className="text-rose-400">{isAr ? 'خصم' : 'Discount'}: -{ord.discountAmount?.toLocaleString()}</span>}
                           <span>{isAr ? 'العنوان' : 'Address'}: {ord.deliveryAddress}</span>
                         </div>
+                        {ord.kind === 'ORDER' && ord.orderStatus === 'DELIVERED' && ord.paymentStatus === 'PAID' && !ord.refund && (
+                          <button
+                            onClick={() => { setRefundTarget(ord); setRefundStep(1); setRefundReason(''); setRefundError(''); }}
+                            className="mt-3 min-h-[44px] px-4 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-bold"
+                          >
+                            {isAr ? 'استرداد الطلب...' : 'Refund order...'}
+                          </button>
+                        )}
                         {ord.kind === 'ORDER' && ord.receiptImage && (
                           <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-amber-500/30 flex items-center gap-3">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -462,6 +536,51 @@ export default function OrdersManager({
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إنشاء الطلب' : 'Create Order')}
             </button>
           </form>
+        </Modal>
+      )}
+
+      {/* T10 refund wizard */}
+      {refundTarget && (
+        <Modal title={isAr ? `استرداد ${refundTarget.orderNumber}` : `Refund ${refundTarget.orderNumber}`} onClose={() => { if (!refundBusy) setRefundTarget(null); }}>
+          <div className="space-y-4 text-xs">
+            <Stepper steps={[isAr ? 'مراجعة المبلغ والأصناف' : 'Review amount & items', isAr ? 'سبب الاسترداد' : 'Reason', isAr ? 'تأكيد' : 'Confirm']} active={refundStep - 1} />
+            {refundStep === 1 && (
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                <div className="flex justify-between text-slate-400"><span>{isAr ? 'إجمالي الطلب:' : 'Order total:'}</span><span className="font-black text-slate-100">{refundTarget.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</span></div>
+                <div className="flex justify-between text-slate-400"><span>{isAr ? 'طريقة الدفع:' : 'Method:'}</span><span className="font-bold">{refundTarget.paymentMethod}</span></div>
+                <div className="text-[11px] text-slate-500">{refundTarget.items.map((i) => `${isAr ? i.product.nameAr : i.product.nameEn} ×${i.quantity}`).join(' • ')}</div>
+                <p className="text-[11px] text-amber-300">سيُرجع المخزون للفرع فوراً، ويُرد المبلغ عبر البوابة (أو يُسوى نقداً).</p>
+              </div>
+            )}
+            {refundStep === 2 && (
+              <div>
+                <label htmlFor="refund-reason" className="block font-bold text-slate-300 mb-1">{isAr ? 'سبب الاسترداد' : 'Refund reason'}</label>
+                <textarea id="refund-reason" rows={3} value={refundReason} onChange={(e) => setRefundReason(e.target.value)} placeholder={isAr ? 'مثال: عيب مصنعي...' : 'e.g. defective item...'} className="w-full min-h-[44px] p-3 rounded-xl bg-slate-950 border border-slate-700 focus:outline-none focus:border-rose-500" />
+              </div>
+            )}
+            {refundStep === 3 && (
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 leading-relaxed">
+                {isAr
+                  ? `تأكيد استرداد ${refundTarget.totalAmount.toLocaleString()} ج.م لطلب ${refundTarget.orderNumber}؟ لا يمكن التراجع — المخزون يُرجع والطلب يصبح مرتجعاً.`
+                  : `Confirm refunding ${refundTarget.totalAmount} for ${refundTarget.orderNumber}? Irreversible — stock returns and order becomes RETURNED.`}
+              </div>
+            )}
+            {refundError && <p role="alert" className="text-rose-400 font-bold">{refundError}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              {refundStep > 1 ? (
+                <button onClick={() => setRefundStep(refundStep - 1)} disabled={refundBusy} className="min-h-[44px] rounded-xl bg-slate-800 text-slate-200 font-bold">{isAr ? 'السابق' : 'Back'}</button>
+              ) : (
+                <button onClick={() => setRefundTarget(null)} disabled={refundBusy} className="min-h-[44px] rounded-xl bg-slate-800 text-slate-200 font-bold">{isAr ? 'إلغاء' : 'Cancel'}</button>
+              )}
+              {refundStep < 3 ? (
+                <button onClick={() => setRefundStep(refundStep + 1)} className="min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">{isAr ? 'التالي' : 'Next'}</button>
+              ) : (
+                <button onClick={submitRefund} disabled={refundBusy} className="min-h-[44px] rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-black">
+                  {refundBusy ? '...' : (isAr ? 'تأكيد الاسترداد' : 'Confirm refund')}
+                </button>
+              )}
+            </div>
+          </div>
         </Modal>
       )}
     </div>

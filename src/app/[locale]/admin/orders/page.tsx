@@ -15,6 +15,7 @@ export default async function AdminOrdersPage() {
         items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
         customer: { select: { id: true, name: true, phone: true } },
         branch: { select: { id: true, name: true } },
+        refund: { select: { id: true, status: true, amount: true, lastError: true } },
       },
     }),
     // POS cashier sales appear here too (source POS, completed/paid) — single source of truth stays the Sale table
@@ -34,6 +35,7 @@ export default async function AdminOrdersPage() {
     kind: 'ORDER' as const,
     ...o,
     receiptImage: (o as { receiptImage?: string | null }).receiptImage ?? null,
+    refund: o.refund ? { ...o.refund, amount: num(o.refund.amount) } : null,
     totalAmount: num(o.totalAmount),
     subtotal: num(o.subtotal),
     discountAmount: num(o.discountAmount),
