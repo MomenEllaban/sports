@@ -30,8 +30,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Prices must be non-negative' }, { status: 400 });
     }
 
-    const flagship = await prisma.branch.findFirst({ where: { isActive: true } });
-    if (!flagship) {
+    const branches = await prisma.branch.findMany({ where: { isActive: true } });
+    if (branches.length === 0) {
       return NextResponse.json({ success: false, error: 'No active branch' }, { status: 500 });
     }
 
@@ -59,8 +59,16 @@ export async function POST(req: Request) {
     });
 
     const qty = Math.max(0, Math.floor(Number(initialStock) || 0));
-    await prisma.branchInventory.create({
-      data: { branchId: flagship.id, productId: product.id, stockQuantity: qty, lowStockThreshold: 5 },
+    // 2.2: init inventory rows for ALL active branches (first branch holds opening stock).
+    const flagship = branches[0];
+    await prisma.branchInventory.createMany({
+      data: branches.map((b) => ({
+        branchId: b.id,
+        productId: product.id,
+        stockQuantity: b.id === flagship.id ? qty : 0,
+        lowStockThreshold: 5,
+      })),
+      skipDuplicates: true,
     });
 
     if (qty > 0) {

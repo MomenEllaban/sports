@@ -23,7 +23,16 @@ export interface ProductWithInventory {
   }>;
 }
 
-export default function ProductCard({ product }: { product: ProductWithInventory }) {
+// Official store WhatsApp (matches store.whatsapp setting default 01224226876).
+export const STORE_WHATSAPP_INTL = '201224226876';
+
+export default function ProductCard({
+  product,
+  whatsappNumber = STORE_WHATSAPP_INTL,
+}: {
+  product: ProductWithInventory;
+  whatsappNumber?: string;
+}) {
   const locale = useLocale();
   const tStore = useTranslations('storefront');
   const tCommon = useTranslations('common');
@@ -52,7 +61,7 @@ export default function ProductCard({ product }: { product: ProductWithInventory
   const whatsappMessage = encodeURIComponent(
     `مرحباً "ابطال الرياضة الإبراهيمية"، يرغب العميل في طلب:\n- المنتج: ${product.nameAr} (${product.sku})\n- السعر: ${product.price} ج.م`
   );
-  const whatsappUrl = `https://wa.me/201001234567?text=${whatsappMessage}`;
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 flex flex-col justify-between group">
