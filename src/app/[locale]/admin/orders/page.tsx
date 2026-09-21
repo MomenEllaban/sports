@@ -35,6 +35,7 @@ export default async function AdminOrdersPage() {
   const orderRows = orders.map((o) => ({
     kind: 'ORDER' as const,
     ...o,
+    receiptImage: (o as { receiptImage?: string | null }).receiptImage ?? null,
     totalAmount: num(o.totalAmount),
     subtotal: num(o.subtotal),
     discountAmount: num(o.discountAmount),

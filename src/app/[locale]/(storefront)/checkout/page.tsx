@@ -20,9 +20,13 @@ export default function CheckoutPage() {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'PAYMOB' | 'FAWRY' | 'INSTAPAY'>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'PAYMOB' | 'FAWRY' | 'INSTAPAY' | 'VODAFONE_CASH'>('COD');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [receiptUrl, setReceiptUrl] = useState('');
+  const [receiptUploading, setReceiptUploading] = useState(false);
+  const [receiptError, setReceiptError] = useState('');
+  const needsReceipt = paymentMethod === 'INSTAPAY' || paymentMethod === 'VODAFONE_CASH';
   const [orderCompleted, setOrderCompleted] = useState<{ orderNumber: string; trackingNumber: string; paymentInstructions?: string } | null>(null);
 
   const subtotal = getSubtotal();
@@ -30,9 +34,32 @@ export default function CheckoutPage() {
   const finalDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : deliveryFee;
   const total = subtotal + vat + finalDeliveryFee;
 
+  const handleReceiptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setReceiptError('');
+    setReceiptUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload/receipt', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) setReceiptUrl(data.url);
+      else setReceiptError(data.error || 'فشل رفع صورة الإيصال');
+    } catch {
+      setReceiptError('تعذر رفع الصورة. حاول مرة أخرى.');
+    } finally {
+      setReceiptUploading(false);
+    }
+  };
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || items.length === 0) return;
+    if (needsReceipt && !receiptUrl) {
+      setFormError('يرجى رفع صورة إيصال التحويل أولاً (InstaPay / فودافون كاش).');
+      return;
+    }
 
     setIsSubmitting(true);
     setFormError('');
@@ -49,6 +76,7 @@ export default function CheckoutPage() {
           zoneId: selectedZone,
           deliveryFee: finalDeliveryFee,
           paymentMethod,
+          receiptImage: receiptUrl || undefined,
           items: items.map((i) => ({ productId: i.id, quantity: i.quantity, price: i.price })),
         }),
       });
@@ -281,6 +309,46 @@ export default function CheckoutPage() {
                     <span className="text-[11px] text-slate-400">تحويل فوري بحساب الشركة sports.champions@instapay</span>
                   </div>
                 </label>
+
+                <label
+                  onClick={() => setPaymentMethod('VODAFONE_CASH')}
+                  className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
+                    paymentMethod === 'VODAFONE_CASH'
+                      ? 'bg-blue-600/20 border-blue-500 text-slate-100'
+                      : 'bg-slate-900 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <div>
+                    <span className="font-bold block text-sm text-slate-100">محفظة فودافون كاش</span>
+                    <span className="text-[11px] text-slate-400">تحويل على رقم المحفظة 01001234567 ثم رفع صورة الإيصال</span>
+                  </div>
+                </label>
+
+                {needsReceipt && (
+                  <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 space-y-3">
+                    <label htmlFor="receipt-upload" className="block font-bold text-sm text-amber-300">
+                      صورة إيصال التحويل (مطلوبة) *
+                    </label>
+                    <input
+                      id="receipt-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReceiptChange}
+                      className="w-full text-xs text-slate-300 file:ml-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-amber-500 file:text-slate-950 file:font-bold file:text-xs"
+                    />
+                    {receiptUploading && <p className="text-[11px] text-slate-400">جاري رفع الصورة...</p>}
+                    {receiptError && (
+                      <p role="alert" className="text-[11px] font-bold text-rose-400">{receiptError}</p>
+                    )}
+                    {receiptUrl && (
+                      <div className="flex items-center gap-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={receiptUrl} alt="صورة إيصال التحويل" className="w-20 h-20 rounded-xl object-cover border border-amber-500/40" />
+                        <p className="text-[11px] font-bold text-emerald-400">تم رفع الإيصال بنجاح ✓</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

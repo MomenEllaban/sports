@@ -156,6 +156,10 @@ export async function POST(req: Request) {
               subtotal: totals.subtotal,
               taxAmount: vatAmount,
               totalAmount,
+              receiptImage:
+                typeof (body as { receiptImage?: unknown }).receiptImage === 'string'
+                  ? String((body as { receiptImage: string }).receiptImage).slice(0, 500)
+                  : null,
               items: { create: orderItemsData },
             },
           });

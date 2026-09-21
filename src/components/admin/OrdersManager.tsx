@@ -35,6 +35,7 @@ interface OrderRow {
   taxAmount: number;
   orderStatus: string;
   paymentStatus: string;
+  receiptImage?: string | null;
   createdAt: string;
   items: OrderItem[];
   customer: { id: string; name: string | null; phone: string } | null;
@@ -313,6 +314,18 @@ export default function OrdersManager({
                           {ord.discountAmount > 0 && <span className="text-rose-400">{isAr ? 'خصم' : 'Discount'}: -{ord.discountAmount?.toLocaleString()}</span>}
                           <span>{isAr ? 'العنوان' : 'Address'}: {ord.deliveryAddress}</span>
                         </div>
+                        {ord.kind === 'ORDER' && ord.receiptImage && (
+                          <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-amber-500/30 flex items-center gap-3">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={ord.receiptImage} alt={isAr ? 'صورة إيصال التحويل' : 'Transfer receipt'} className="w-24 h-24 rounded-lg object-cover border border-amber-500/40" />
+                            <div className="space-y-1">
+                              <div className="text-[11px] font-black text-amber-300">{isAr ? 'إيصال التحويل مرفق — راجع وحصّل قبل الاعتماد' : 'Transfer receipt attached'}</div>
+                              <a href={ord.receiptImage} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-blue-400 hover:underline">
+                                {isAr ? 'فتح الصورة بالحجم الكامل' : 'Open full image'}
+                              </a>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
