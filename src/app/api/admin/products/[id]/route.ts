@@ -26,6 +26,14 @@ export async function PATCH(
     if (body.size !== undefined) data.size = body.size || null;
     if (body.color !== undefined) data.color = body.color || null;
     if (body.barcode !== undefined) data.barcode = body.barcode || null;
+    // T14: GS1 GTIN for ETA production (digits only, 8/12/13/14).
+    if (body.gs1Code !== undefined) {
+      const gs1 = String(body.gs1Code).trim().replace(/\D/g, '');
+      if (gs1 && ![8, 12, 13, 14].includes(gs1.length)) {
+        return NextResponse.json({ success: false, error: 'GS1 code must be 8/12/13/14 digits' }, { status: 400 });
+      }
+      data.gs1Code = gs1 || null;
+    }
     if (body.images !== undefined) {
       data.images = Array.isArray(body.images)
         ? body.images.map((img: unknown) => String(img).trim()).filter(Boolean)

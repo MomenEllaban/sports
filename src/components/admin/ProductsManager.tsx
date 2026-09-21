@@ -12,6 +12,7 @@ interface ProductRow {
   id: string;
   sku: string;
   barcode: string | null;
+  gs1Code: string | null;
   nameAr: string;
   nameEn: string;
   price: number;
@@ -34,6 +35,7 @@ const EMPTY_PRODUCT = {
   categoryId: '',
   brandId: '',
   barcode: '',
+  gs1Code: '',
   size: '',
   color: '',
   initialStock: '',
@@ -245,6 +247,7 @@ export default function ProductsManager({
       categoryId: p.category.id,
       brandId: p.brand?.id || '',
       barcode: p.barcode || '',
+      gs1Code: p.gs1Code || '',
       size: p.size || '',
       color: p.color || '',
       initialStock: '',
@@ -268,6 +271,7 @@ export default function ProductsManager({
         initialStock: Number(productForm.initialStock) || 0,
         brandId: productForm.brandId || undefined,
         barcode: productForm.barcode || undefined,
+        gs1Code: productForm.gs1Code || undefined,
         size: productForm.size || undefined,
         color: productForm.color || undefined,
         images: productForm.images,
@@ -297,6 +301,7 @@ export default function ProductsManager({
         costPrice: Number(productForm.costPrice) || 0,
         brandId: productForm.brandId || null,
         barcode: productForm.barcode || null,
+        gs1Code: productForm.gs1Code || null,
         size: productForm.size || null,
         color: productForm.color || null,
         images: productForm.images,
@@ -515,6 +520,16 @@ export default function ProductsManager({
             placeholder="123456789012"
             value={productForm.barcode}
             onChange={(e) => setProductForm({ ...productForm, barcode: e.target.value })}
+            className={inputCls}
+            dir="ltr"
+          />
+        </div>
+        <div>
+          <label className={labelCls}>{isAr ? 'كود GS1 للضرائب (ETA)' : 'GS1 code (ETA)'}</label>
+          <input
+            placeholder="8/12/13/14 digits"
+            value={productForm.gs1Code}
+            onChange={(e) => setProductForm({ ...productForm, gs1Code: e.target.value })}
             className={inputCls}
             dir="ltr"
           />

@@ -195,13 +195,17 @@ export async function POST(req: Request) {
           invoiceNumber: saleNumber,
           totalAmount,
           vatAmount,
-          items: priced.map((i) => ({
-            name: 'منتج رياضي',
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-            totalPrice: i.totalPrice,
-            vatAmount: Math.round(i.totalPrice * vatRate * 100) / 100,
-          })),
+          items: priced.map((i) => {
+            const p = byId.get(i.productId);
+            return {
+              name: p ? p.nameAr : 'منتج رياضي',
+              code: p?.gs1Code || p?.sku,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              totalPrice: i.totalPrice,
+              vatAmount: Math.round(i.totalPrice * vatRate * 100) / 100,
+            };
+          }),
         });
         receipt = currentReceipt;
         sale = await prisma.$transaction(async (tx) => {
@@ -280,6 +284,11 @@ export async function POST(req: Request) {
             },
             { status: 400 }
           );
+        }
+        // T16: coupon/points races surface with an HTTP status.
+        const st = (e as { status?: number }).status;
+        if (typeof st === 'number' && st >= 400 && st < 500) {
+          return NextResponse.json({ success: false, error: (e as Error).message }, { status: st });
         }
         throw e;
       }

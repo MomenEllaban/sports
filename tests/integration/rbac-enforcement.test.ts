@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { testPrisma, resetTestDb, makeBranch, makeUser, sessionFor } from '../helpers/factories.js';
+import { testPrisma, resetTestDb, makeBranch, makeUser, sessionFor, openTestShift } from '../helpers/factories.js';
 import { setMockSession } from '../setup-mocks.js';
 import { GET as usersGet } from '../../src/app/api/admin/users/route.js';
 import { PATCH as usersPatch } from '../../src/app/api/admin/users/[id]/route.js';
@@ -65,6 +65,7 @@ describe('RBAC enforcement (T04)', () => {
   it('CASHIER is blocked from expenses (403) but allowed on POS (200)', async () => {
     const c = await makeUser('CASHIER', [branchId]);
     await testPrisma().user.update({ where: { id: c.id }, data: { branchId } });
+    await openTestShift(branchId, c.id); // T05: POS needs an open shift
     setMockSession(sessionFor(c));
     expect((await expensesPost(req({}))).status).toBe(403);
     expect((await posProducts(new Request('http://t/api/pos/products'))).status).toBe(200);

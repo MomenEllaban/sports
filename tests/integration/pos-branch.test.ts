@@ -73,6 +73,7 @@ describe('POS session identity and branch (T05, RED first)', () => {
     const db = testPrisma();
     const cashier = await makeUser('CASHIER', [smouhaId]);
     await db.user.update({ where: { id: cashier.id }, data: { branchId: smouhaId } });
+    await openTestShift(smouhaId, cashier.id); // T05: POS needs an open shift
     setMockSession(sessionFor({ ...cashier, branchId: smouhaId, branchIds: [smouhaId] }));
     const res = await posProducts(new Request(`http://t/api/pos/products?branchId=${smouhaId}`));
     expect(res.status).toBe(200);

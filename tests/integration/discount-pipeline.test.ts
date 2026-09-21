@@ -51,13 +51,23 @@ describe('unified discount pipeline T16', () => {
   it('loyalty overdraft race: balance never negative', async () => {
     const db = testPrisma();
     const cust = await makeCustomer('01000900002');
-    await db.customer.update({ where: { id: cust.id }, data: { loyaltyPoints: 50 } });
+    await db.customer.update({ where: { id: cust.id }, data: { loyaltyPoints: 500 } });
+    // Neutralize earn-back so the race is purely about the 500-point balance.
+    await db.setting.upsert({
+      where: { key: 'loyalty.earnPerEgp' },
+      create: { key: 'loyalty.earnPerEgp', value: '1000000000' },
+      update: { value: '1000000000' },
+    });
+    const { clearSettingsCache } = await import('../../src/lib/settings.js');
+    clearSettingsCache();
     const mk = () =>
-      posSale(saleReq({ paymentMethod: 'CASH', customerId: cust.id, loyaltyPoints: 50, items: [{ productId, quantity: 1 }] }));
+      posSale(saleReq({ paymentMethod: 'CASH', customerId: cust.id, loyaltyPoints: 500, items: [{ productId, quantity: 5 }] }));
     const [r1, r2] = await Promise.all([mk(), mk()]);
     expect([r1.status, r2.status].sort()).toEqual([200, 400]);
     const after = await db.customer.findUniqueOrThrow({ where: { id: cust.id } });
     expect(after.loyaltyPoints).toBeGreaterThanOrEqual(0);
+    await db.setting.deleteMany({ where: { key: 'loyalty.earnPerEgp' } });
+    clearSettingsCache();
   });
 
   it('POS sale records coupon + loyalty attribution', async () => {

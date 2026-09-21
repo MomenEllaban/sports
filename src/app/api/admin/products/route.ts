@@ -21,6 +21,7 @@ export async function POST(req: Request) {
       size,
       color,
       barcode,
+      gs1Code,
     } = body;
 
     if (!sku || !nameAr || !nameEn || price === undefined || !categoryId) {
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
         categoryId,
         brandId: brandId || null,
         barcode: barcode ? String(barcode).trim() : null,
+        gs1Code: gs1Code ? String(gs1Code).trim().replace(/\D/g, '') || null : null,
         size: size ? String(size).trim() : null,
         color: color ? String(color).trim() : null,
         isActive: true,

@@ -175,13 +175,17 @@ export async function POST(req: Request) {
           invoiceNumber: orderNumber,
           totalAmount,
           vatAmount,
-          items: orderItemsData.map((i) => ({
-            name: 'منتج رياضي',
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
-            totalPrice: i.totalPrice,
-            vatAmount: Math.round(i.totalPrice * vatRate * 100) / 100,
-          })),
+          items: orderItemsData.map((i) => {
+            const p = byId.get(i.productId);
+            return {
+              name: p ? p.nameAr : 'منتج رياضي',
+              code: p?.gs1Code || p?.sku,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              totalPrice: i.totalPrice,
+              vatAmount: Math.round(i.totalPrice * vatRate * 100) / 100,
+            };
+          }),
         });
         receipt = currentReceipt;
         const courierResult = await createCourierShipment({

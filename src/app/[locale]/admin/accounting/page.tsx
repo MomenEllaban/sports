@@ -1,5 +1,6 @@
 import React from 'react';
 import ExpensesManager from '@/components/admin/ExpensesManager';
+import EtaRetryButton from '@/components/admin/EtaRetryButton';
 import { StatusBadge } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -10,25 +11,25 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminAccountingPage() {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
-  const [orders, sales, expenses, branches, taxInvoices] = await Promise.all([
+  const [orders, sales, expenses, branches, taxInvoices, gs1Missing] = await Promise.all([
     prisma.order.findMany(),
     prisma.sale.findMany(),
     prisma.expense.findMany({ orderBy: { createdAt: 'desc' }, include: { branch: true } }),
     prisma.branch.findMany({ select: { id: true, name: true, nameEn: true } }),
     prisma.taxInvoice.findMany({ take: 10, orderBy: { createdAt: 'desc' } }),
+    prisma.product.count({ where: { isActive: true, gs1Code: null } }),
   ]);
 
-  const totalOnlineRevenue = orders.reduce((acc, o) => acc + num(o.totalAmount), 0);
-  const totalPosRevenue = sales.reduce((acc, s) => acc + num(s.totalAmount), 0);
+  const totalOnlineRevenue = orders.reduce((acc, o) => acc + num(o.totalAmount), 0);  const totalPosRevenue = sales.reduce((acc, s) => acc + num(s.totalAmount), 0);
   const totalGrossRevenue = totalOnlineRevenue + totalPosRevenue;
   const totalVatCollected = orders.reduce((acc, o) => acc + num(o.taxAmount), 0) + sales.reduce((acc, s) => acc + num(s.taxAmount), 0);
   const totalExpensesAmount = expenses.reduce((acc, e) => acc + num(e.amount), 0);
   const netProfit = totalGrossRevenue - totalExpensesAmount;
 
-  // Real COD reconciliation computed from data
   const codOrders = orders.filter((o) => o.paymentMethod === 'COD');
   const codCollected = codOrders.filter((o) => o.paymentStatus === 'PAID').reduce((s, o) => s + num(o.totalAmount), 0);
   const codPending = codOrders.filter((o) => o.paymentStatus !== 'PAID').reduce((s, o) => s + num(o.totalAmount), 0);
+  const invalidCount = taxInvoices.filter((t) => t.status === 'INVALID').length;
 
   return (
     <>
@@ -83,6 +84,16 @@ export default async function AdminAccountingPage() {
                 <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 سجل إرسالات الإيصالات الإلكترونية لضرائب مصر (ETA Submission Log)
               </h3>
+              {invalidCount > 0 && (
+                <span className="px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/40 text-rose-300 text-[11px] font-bold">
+                  {invalidCount} فاشلة — أعد المحاولة من الجدول
+                </span>
+              )}
+              {gs1Missing > 0 && (
+                <span className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] font-bold">
+                  {gs1Missing} صنف بلا GS1 — لن تُقبل في production
+                </span>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -95,6 +106,7 @@ export default async function AdminAccountingPage() {
                     <th className="p-3">الضريبة 14%</th>
                     <th className="p-3">حالة الضرائب</th>
                     <th className="p-3">تاريخ الإصدار</th>
+                    <th className="p-3">إجراء</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -106,6 +118,7 @@ export default async function AdminAccountingPage() {
                       <td className="p-3 text-emerald-400">{num(tax.vatAmount).toLocaleString()} ج.م</td>
                       <td className="p-3"><StatusBadge value={tax.status} /></td>
                       <td className="p-3 text-slate-400">{tax.createdAt.toLocaleString('ar-EG')}</td>
+                      <td className="p-3">{tax.status === 'INVALID' && <EtaRetryButton id={tax.id} />}</td>
                     </tr>
                   ))}
                 </tbody>

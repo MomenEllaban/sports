@@ -20,6 +20,8 @@
 
 ## الوظائف المجدولة
 - `pnpm orders:expire` — إلغاء الطلبات الإلكترونية غير المدفوعة بعد `orders.unpaidExpiryHours` + تنبيه تسوية. شغّلها كل ساعة (Vercel Cron أو systemd timer).
+- `pnpm refunds:process` — إعادة محاولة الاستردادات العالقة (T10). كل 10 دقائق.
+- `pnpm eta:retry` — إعادة إرسال الإيصالات الفاشلة (T14). كل ساعة.
 - `GET /api/health` — فحص حياة (DB ping). اربطه بأي uptime monitor.
 
 ## معدل الطلبات

@@ -17,7 +17,7 @@
 | T08 | Reviews + Wishlist | DONE | (this commit) | tsc0, lint0 | approval-gated reviews, wishlist, admin queue |
 | T09 | عناوين البورتال في checkout | DONE | (this commit) | tsc0, lint0, build ok | addressId link, snapshot, ownership check |
 | T13 | باركود وجرد | DONE | (this commit) | tsc0, lint0, build ok | EAN-13 labels, stocktake wizard, PO returns, supplier ledger |
-| T14 | ETA إنتاجي | TODO | — | — | — |
+| T14 | ETA إنتاجي | DONE | (this commit) | int eta-guards 2/2, tsc0, lint0 | GS1 UI, signing/code mandates, retry API+worker |
 | T15 | تنظيف نهائي | TODO | — | — | — |
 
 ## Baseline (F0)

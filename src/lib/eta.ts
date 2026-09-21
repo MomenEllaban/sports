@@ -13,6 +13,7 @@ export interface EtaReceiptData {
   customerTaxNumber?: string;
   items: Array<{
     name: string;
+    code?: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
@@ -167,10 +168,9 @@ export interface EtaDocumentPayload {
 
 /**
  * 4.1 — Submit a B2C e-Receipt document to ETA.
- * NOTE: production documents must be electronically signed (CAdES-BES via the
- * customer's HSM/USB token + SDK) before submission — the signing step runs
- * here once the customer provides their signing service endpoint via env
- * ETA_SIGNING_URL; without it the gateway rejects unsigned documents.
+ * T14: production REQUIRES electronic signing (CAdES-BES via the customer's
+ * HSM/USB token + SDK through eta.signingUrl) and REAL GS1 item codes.
+ * Preprod keeps the lenient path for onboarding.
  */
 export async function submitEtaDocument(
   mode: 'preprod' | 'production',
@@ -178,10 +178,16 @@ export async function submitEtaDocument(
   doc: EtaDocumentPayload
 ): Promise<{ uuid: string }> {
   // ETA-spike: signing endpoint from Settings (encrypted) with env fallback.
-  // Still optional here; T14 makes it mandatory in production.
+  // T14: mandatory in production (unsigned submissions refused below).
   const { getSetting } = await import('./settings');
   const signingUrl =
     (await getSetting<string>('eta.signingUrl', '').catch(() => '')) || process.env.ETA_SIGNING_URL;
+  if (mode === 'production' && !signingUrl) {
+    throw new Error('ETA production requires a signing service (eta.signingUrl) — refusing unsigned submission');
+  }
+  if (mode === 'production' && doc.items.some((i) => !i.code)) {
+    throw new Error('ETA production requires GS1 codes for all items — fill them in Products');
+  }
   let signedDocument: unknown = {
     issuer: { registrationNumber: doc.taxRegNumber },
     receiver: {},
@@ -196,7 +202,7 @@ export async function submitEtaDocument(
     invoiceLines: doc.items.map((i) => ({
       description: i.name,
       itemType: 'GS1',
-      itemCode: '1000001',
+      itemCode: i.code || '1000001',
       unitType: 'EA',
       quantity: i.quantity,
       unitValue: { currencySold: 'EGP', amountEGP: i.unitPrice },
