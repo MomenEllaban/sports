@@ -35,6 +35,18 @@ const DEFAULTS: Record<string, unknown> = {
   'receipt.headerAr': 'ابطال الرياضة الإبراهيمية — شكراً لتسوقكم معنا',
   'receipt.footerAr': 'الاستبدال والاسترجاع خلال 14 يوماً بالفاتورة',
   'integrations': { paymob: false, fawry: false, bosta: false, mylerz: false, eta: false, whatsapp: false },
+  // 4.1 ETA eInvoicing — settings-gated (off until the customer fills credentials).
+  'eta.mode': 'off',
+  'eta.clientId': '',
+  'eta.clientSecret': '',
+  'eta.taxRegNumber': '123-456-789',
+  // 4.2 WhatsApp Business Cloud API — settings-gated.
+  'whatsapp.mode': 'off',
+  'whatsapp.phoneId': '',
+  'whatsapp.token': '',
+  'whatsapp.templateOrder': 'order_confirmation',
+  // 4.3 Customer portal toggle.
+  'portal.enabled': true,
 };
 
 export async function seedSettings(db: PrismaClient) {

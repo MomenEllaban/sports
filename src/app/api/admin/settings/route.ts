@@ -12,6 +12,9 @@ const EDITABLE_KEYS = new Set([
   'loyalty.earnPerEgp', 'loyalty.pointsPerUnit',
   'discount.approvalThreshold', 'stock.lowThreshold',
   'receipt.headerAr', 'receipt.footerAr',
+  'eta.mode', 'eta.clientId', 'eta.clientSecret', 'eta.taxRegNumber',
+  'whatsapp.mode', 'whatsapp.phoneId', 'whatsapp.token', 'whatsapp.templateOrder',
+  'portal.enabled',
 ]);
 
 function validateValue(key: string, value: unknown): string | null {
@@ -38,6 +41,18 @@ function validateValue(key: string, value: unknown): string | null {
     }
     case 'payments.methods': {
       if (!Array.isArray(value)) return 'Payment methods must be a list';
+      return null;
+    }
+    case 'eta.mode': {
+      if (value !== 'off' && value !== 'preprod' && value !== 'production') return 'ETA mode must be off, preprod or production';
+      return null;
+    }
+    case 'whatsapp.mode': {
+      if (value !== 'off' && value !== 'cloud') return 'WhatsApp mode must be off or cloud';
+      return null;
+    }
+    case 'portal.enabled': {
+      if (typeof value !== 'boolean') return 'portal.enabled must be true/false';
       return null;
     }
     default: {

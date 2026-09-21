@@ -25,6 +25,18 @@ export const SETTING_KEYS = {
   receiptHeaderAr: 'receipt.headerAr',
   receiptFooterAr: 'receipt.footerAr',
   integrations: 'integrations',
+  // 4.1 ETA eInvoicing (settings-gated: off until the customer fills credentials).
+  etaMode: 'eta.mode',
+  etaClientId: 'eta.clientId',
+  etaClientSecret: 'eta.clientSecret',
+  etaTaxRegNumber: 'eta.taxRegNumber',
+  // 4.2 WhatsApp Business Cloud API (settings-gated).
+  whatsappMode: 'whatsapp.mode',
+  whatsappPhoneId: 'whatsapp.phoneId',
+  whatsappToken: 'whatsapp.token',
+  whatsappTemplateOrder: 'whatsapp.templateOrder',
+  // 4.3 Customer portal toggle.
+  portalEnabled: 'portal.enabled',
 } as const;
 
 const cache = new Map<string, { value: unknown; at: number }>();
@@ -120,4 +132,67 @@ export interface ShippingZone {
 export async function getShippingZones(fallback: ShippingZone[]): Promise<ShippingZone[]> {
   const zones = await getSetting<ShippingZone[]>(SETTING_KEYS.shippingZones, fallback);
   return Array.isArray(zones) && zones.length > 0 ? zones : fallback;
+}
+
+export type EtaMode = 'off' | 'preprod' | 'production';
+
+export interface EtaConfig {
+  mode: EtaMode;
+  clientId: string;
+  clientSecret: string;
+  taxRegNumber: string;
+  /** Fully wired only when mode != off AND credentials are filled. */
+  ready: boolean;
+  /** Human-readable list of what's missing (shown in Settings UI). */
+  missing: string[];
+}
+
+/** SINGLE SOURCE OF TRUTH for ETA activation state (4.1). */
+export async function getEtaConfig(): Promise<EtaConfig> {
+  const [mode, clientId, clientSecret, taxRegNumber] = await Promise.all([
+    getSetting<string>(SETTING_KEYS.etaMode, 'off'),
+    getSetting<string>(SETTING_KEYS.etaClientId, ''),
+    getSetting<string>(SETTING_KEYS.etaClientSecret, ''),
+    getSetting<string>(SETTING_KEYS.etaTaxRegNumber, ''),
+  ]);
+  const m: EtaMode = mode === 'production' || mode === 'preprod' ? mode : 'off';
+  const missing: string[] = [];
+  if (m !== 'off') {
+    if (!clientId.trim()) missing.push('Client ID');
+    if (!clientSecret.trim()) missing.push('Client Secret');
+    if (!taxRegNumber.trim()) missing.push('Tax registration number');
+  }
+  return { mode: m, clientId, clientSecret, taxRegNumber, ready: m !== 'off' && missing.length === 0, missing };
+}
+
+export type WhatsappMode = 'off' | 'cloud';
+
+export interface WhatsAppConfig {
+  mode: WhatsappMode;
+  phoneId: string;
+  token: string;
+  templateOrder: string;
+  ready: boolean;
+  missing: string[];
+}
+
+/** SINGLE SOURCE OF TRUTH for WhatsApp Business activation state (4.2). */
+export async function getWhatsAppConfig(): Promise<WhatsAppConfig> {
+  const [mode, phoneId, token, templateOrder] = await Promise.all([
+    getSetting<string>(SETTING_KEYS.whatsappMode, 'off'),
+    getSetting<string>(SETTING_KEYS.whatsappPhoneId, ''),
+    getSetting<string>(SETTING_KEYS.whatsappToken, ''),
+    getSetting<string>(SETTING_KEYS.whatsappTemplateOrder, 'order_confirmation'),
+  ]);
+  const m: WhatsappMode = mode === 'cloud' ? 'cloud' : 'off';
+  const missing: string[] = [];
+  if (m !== 'off') {
+    if (!phoneId.trim()) missing.push('Phone Number ID');
+    if (!token.trim()) missing.push('API token');
+  }
+  return { mode: m, phoneId, token, templateOrder, ready: m !== 'off' && missing.length === 0, missing };
+}
+
+export async function isPortalEnabled(): Promise<boolean> {
+  return getSetting<boolean>(SETTING_KEYS.portalEnabled, true);
 }

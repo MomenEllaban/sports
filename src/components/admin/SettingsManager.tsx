@@ -214,6 +214,169 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
           ))}
         </div>
       </div>
+
+      <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5 lg:col-span-2">
+        <h3 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">
+          {isAr ? 'التكاملات الخارجية (تُفعَّل من هنا — العميل يملأ البيانات)' : 'External integrations (activate here)'}
+        </h3>
+
+        <IntegrationSection
+          title={isAr ? 'منظومة الفاتورة الإلكترونية ETA' : 'ETA eInvoicing'}
+          status={
+            form['eta.mode'] === 'off' ? (
+              <StatusPill off label={isAr ? 'غير مفعّلة — وضع محلي' : 'Not activated — offline mode'} />
+            ) : !(form['eta.clientId'] && form['eta.clientSecret'] && form['eta.taxRegNumber']) ? (
+              <StatusPill warn label={isAr ? 'مفعّلة جزئياً — ينقصها بيانات' : 'Partially enabled — missing data'} />
+            ) : (
+              <StatusPill on label={isAr ? 'مفعّلة — إرسال حقيقي' : 'Active — live submission'} />
+            )
+          }
+          hint={
+            isAr
+              ? 'تحتاج: حساب preprod/production على بوابة مصلحة الضرائب + Client ID و Client Secret + رقم التسجيل الضريبي + ختم إلكتروني (HSM) للتوقيع. بدونها تبقى الفواتير محلية بـ QR فقط.'
+              : 'Needs: ETA portal account + Client ID/Secret + tax reg number + e-seal (HSM). Otherwise invoices stay local with QR only.'
+          }
+        >
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Field label={isAr ? 'وضع ETA' : 'ETA mode'}>
+                <select
+                  value={String(form['eta.mode'] ?? 'off')}
+                  onChange={(e) => set('eta.mode', e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs"
+                  dir="ltr"
+                >
+                  <option value="off">off (offline)</option>
+                  <option value="preprod">preprod (test)</option>
+                  <option value="production">production (live)</option>
+                </select>
+              </Field>
+            </div>
+            <div className="flex items-end">
+              <button onClick={() => save('eta.mode')} disabled={saving === 'eta.mode'} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs">
+                {isAr ? 'حفظ الوضع' : 'Save mode'}
+              </button>
+            </div>
+          </div>
+          {etaText('eta.clientId', isAr ? 'Client ID' : 'Client ID', 'ETA portal → app credentials', true)}
+          {etaText('eta.clientSecret', isAr ? 'Client Secret' : 'Client Secret', isAr ? 'يُحفظ للإدارة فقط' : 'Admin-only', true)}
+          {etaText('eta.taxRegNumber', isAr ? 'رقم التسجيل الضريبي' : 'Tax registration number', '123-456-789', true)}
+        </IntegrationSection>
+
+        <IntegrationSection
+          title={isAr ? 'واتساب الرسمية (Business Cloud API)' : 'WhatsApp Business Cloud API'}
+          status={
+            form['whatsapp.mode'] === 'off' ? (
+              <StatusPill off label={isAr ? 'غير مفعّلة — روابط wa.me فقط' : 'Not activated — wa.me links only'} />
+            ) : !(form['whatsapp.phoneId'] && form['whatsapp.token']) ? (
+              <StatusPill warn label={isAr ? 'مفعّلة جزئياً — ينقصها بيانات' : 'Partially enabled — missing data'} />
+            ) : (
+              <StatusPill on label={isAr ? 'مفعّلة — إرسال تلقائي' : 'Active — auto send'} />
+            )
+          }
+          hint={
+            isAr
+              ? 'تحتاج: حساب Meta Business + رقم واتساب رسمي + Phone Number ID و API Token + قالب معتمد (مثل order_confirmation). بدونها تصل الإشعارات داخل النظام فقط.'
+              : 'Needs: Meta Business account + official number + Phone ID/token + approved template. Otherwise in-app notifications only.'
+          }
+        >
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Field label={isAr ? 'وضع واتساب' : 'WhatsApp mode'}>
+                <select
+                  value={String(form['whatsapp.mode'] ?? 'off')}
+                  onChange={(e) => set('whatsapp.mode', e.target.value)}
+                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs"
+                  dir="ltr"
+                >
+                  <option value="off">off (links only)</option>
+                  <option value="cloud">cloud (API)</option>
+                </select>
+              </Field>
+            </div>
+            <div className="flex items-end">
+              <button onClick={() => save('whatsapp.mode')} disabled={saving === 'whatsapp.mode'} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs">
+                {isAr ? 'حفظ الوضع' : 'Save mode'}
+              </button>
+            </div>
+          </div>
+          {etaText('whatsapp.phoneId', 'Phone Number ID', 'Meta dashboard → WhatsApp → API', true)}
+          {etaText('whatsapp.token', 'API Token', isAr ? 'توكن دائم (System User)' : 'Permanent system-user token', true)}
+          {etaText('whatsapp.templateOrder', isAr ? 'قالب تأكيد الطلب' : 'Order template name', 'order_confirmation', true)}
+        </IntegrationSection>
+
+        <IntegrationSection
+          title={isAr ? 'بوابة العميل (حسابي)' : 'Customer portal'}
+          status={
+            form['portal.enabled'] ? (
+              <StatusPill on label={isAr ? 'مفعّلة — صفحة /account' : 'Active — /account page'} />
+            ) : (
+              <StatusPill off label={isAr ? 'معطّلة' : 'Disabled'} />
+            )
+          }
+          hint={isAr ? 'الدخول برقم الموبايل + رقم آخر طلب للتحقق. يمكن إيقافها من هنا في أي وقت.' : 'Login with phone + last order number. Can be disabled anytime.'}
+        >
+          <label className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!form['portal.enabled']}
+              onChange={(e) => set('portal.enabled', e.target.checked)}
+              className="w-4 h-4 accent-blue-600"
+            />
+            {isAr ? 'تفعيل بوابة العميل' : 'Enable customer portal'}
+          </label>
+          <button onClick={() => save('portal.enabled')} disabled={saving === 'portal.enabled'} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs">
+            {isAr ? 'حفظ' : 'Save'}
+          </button>
+        </IntegrationSection>
+      </div>
     </div>
   );
+
+  function etaText(key: string, label: string, hint?: string, ltr = false) {
+    return (
+      <div className="flex gap-2 items-end mt-3">
+        <div className="flex-1">
+          <Field label={label} hint={hint}>
+            <input
+              value={String(form[key] ?? '')}
+              dir={ltr ? 'ltr' : undefined}
+              type={key.toLowerCase().includes('secret') || key.toLowerCase().includes('token') ? 'password' : 'text'}
+              onChange={(e) => set(key, e.target.value)}
+              className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+            />
+          </Field>
+        </div>
+        <button
+          onClick={() => save(key)}
+          disabled={saving === key}
+          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs shrink-0"
+        >
+          {saving === key ? '...' : isAr ? 'حفظ' : 'Save'}
+        </button>
+      </div>
+    );
+  }
+}
+
+function IntegrationSection({ title, status, hint, children }: { title: string; status: React.ReactNode; hint: string; children: React.ReactNode }) {
+  return (
+    <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h4 className="font-black text-sm text-slate-100">{title}</h4>
+        {status}
+      </div>
+      <p className="text-[11px] text-slate-400 leading-relaxed">{hint}</p>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function StatusPill({ on, off, warn, label }: { on?: boolean; off?: boolean; warn?: boolean; label: string }) {
+  const cls = on
+    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : warn
+    ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+    : 'bg-slate-500/15 text-slate-400 border-slate-600/40';
+  return <span className={`px-3 py-1 rounded-full text-[11px] font-black border ${cls}`}>{label}</span>;
 }
