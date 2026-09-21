@@ -118,6 +118,23 @@ export default function OrdersManager({
     }
   };
 
+  // T03: retry booking a MANUAL shipment with the real courier.
+  const retryShipment = async (id: string) => {
+    setUpdatingId(id);
+    setError('');
+    try {
+      const res = (await apiFetch(`/api/admin/orders/${id}/ship`, 'POST', {})) as { trackingNumber?: string; labelUrl?: string };
+      toast(`${isAr ? 'تم حجز الشحنة' : 'Shipment booked'}: ${res.trackingNumber || ''}`, 'success');
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t('operationFailed');
+      setError(msg);
+      toast(msg, 'error');
+    } finally {
+      setUpdatingId('');
+    }
+  };
+
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -264,7 +281,18 @@ export default function OrdersManager({
                   </td>
                   <td className="p-3">
                     <span className="font-bold text-blue-400 block">{ord.shippingProvider}</span>
-                    <span className="text-[10px] text-slate-400">{ord.trackingNumber || '—'}</span>
+                    {ord.trackingNumber?.startsWith('MANUAL-') ? (
+                      <button
+                        onClick={() => retryShipment(ord.id)}
+                        disabled={updatingId === ord.id}
+                        title={isAr ? 'شركة الشحن غير محجوزة — اضغط للحجز الآن' : 'Courier not booked — click to book now'}
+                        className="mt-1 min-h-[44px] px-2.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[10px] font-bold hover:bg-amber-500/25 disabled:opacity-60"
+                      >
+                        {isAr ? 'شحنة يدوية — احجز الآن' : 'Manual — book now'}
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">{ord.trackingNumber || '—'}</span>
+                    )}
                   </td>
                   <td className="p-3 text-slate-300"><PayLabel value={ord.paymentMethod} /></td>
                   <td className="p-3 font-black text-slate-100">{ord.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>

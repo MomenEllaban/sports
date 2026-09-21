@@ -32,6 +32,7 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/upload': { methods: { POST: BM } },
   '/api/admin/orders': { methods: { POST: BM } },
   '/api/admin/orders/[id]': { methods: { PATCH: BM } },
+  '/api/admin/orders/[id]/ship': { methods: { POST: BM } },
   '/api/admin/products': { methods: { POST: BM } },
   '/api/admin/products/[id]': { methods: { PATCH: BM, DELETE: BM } },
   '/api/admin/categories': { methods: { GET: BM, POST: BM } },

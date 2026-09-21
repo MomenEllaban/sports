@@ -1,4 +1,7 @@
 import { ShippingProvider } from '@prisma/client';
+import { getCourierConfig } from './couriers-config';
+import { createBostaDelivery } from './bosta';
+import { createMylerzParcel } from './mylerz';
 
 export interface DeliveryZone {
   id: string;
@@ -35,34 +38,62 @@ export interface ShipmentResult {
   labelUrl?: string;
   provider: ShippingProvider;
   estimatedDelivery: string;
+  /** T03: true when no courier was actually booked (admin must ship manually). */
+  manual: boolean;
 }
 
 /**
- * Creates automated shipment with Bosta, Mylerz, or Mrsool API
+ * Creates automated shipment with Bosta/Mylerz (T03: real when configured).
+ * Never fails the order: unconfigured couriers degrade to a MANUAL record
+ * (tracking `MANUAL-<order>`) with a retry action in the order screen.
+ * Mock tracking exists ONLY in test/dev with an explicit provider=mock flag.
  */
 export async function createCourierShipment(params: CreateShipmentParams): Promise<ShipmentResult> {
-  const trackingNumber = `BST-${Math.floor(10000000 + Math.random() * 90000000)}`;
-
   switch (params.provider) {
     case ShippingProvider.BOSTA: {
-      // Calls Bosta API: https://api.bosta.co/api/v10/deliveries
-      return {
-        success: true,
-        trackingNumber,
-        provider: ShippingProvider.BOSTA,
-        labelUrl: `https://bosta.co/tracking?trackingId=${trackingNumber}`,
-        estimatedDelivery: '24-48 hours',
-      };
+      const cfg = await getCourierConfig('BOSTA').catch(() => null);
+      if (cfg?.ready) {
+        try {
+          const r = await createBostaDelivery(cfg, {
+            orderNumber: params.orderNumber,
+            codAmount: params.codAmount,
+            customerName: params.customerName,
+            customerPhone: params.customerPhone,
+            customerAddress: params.customerAddress,
+          });
+          return { success: true, trackingNumber: r.trackingNumber, labelUrl: r.labelUrl, provider: ShippingProvider.BOSTA, estimatedDelivery: '24-48 hours', manual: false };
+        } catch (e) {
+          console.error('Bosta create failed, degrading to manual:', e);
+        }
+      }
+      if (cfg?.mock) {
+        const trackingNumber = `BST-${Math.floor(10000000 + Math.random() * 90000000)}`;
+        return { success: true, trackingNumber, provider: ShippingProvider.BOSTA, labelUrl: `https://bosta.co/tracking?trackingId=${trackingNumber}`, estimatedDelivery: '24-48 hours', manual: false };
+      }
+      return { success: true, trackingNumber: `MANUAL-${params.orderNumber}`, provider: ShippingProvider.BOSTA, estimatedDelivery: 'يحتاج إنشاء شحنة يدوياً', manual: true };
     }
 
     case ShippingProvider.MYLERZ: {
-      const mylerzTracking = `MYL-${Math.floor(10000000 + Math.random() * 90000000)}`;
-      return {
-        success: true,
-        trackingNumber: mylerzTracking,
-        provider: ShippingProvider.MYLERZ,
-        estimatedDelivery: '24-48 hours',
-      };
+      const cfg = await getCourierConfig('MYLERZ').catch(() => null);
+      if (cfg?.ready) {
+        try {
+          const r = await createMylerzParcel(cfg, {
+            orderNumber: params.orderNumber,
+            codAmount: params.codAmount,
+            customerName: params.customerName,
+            customerPhone: params.customerPhone,
+            customerAddress: params.customerAddress,
+          });
+          return { success: true, trackingNumber: r.trackingNumber, labelUrl: r.labelUrl, provider: ShippingProvider.MYLERZ, estimatedDelivery: '24-48 hours', manual: false };
+        } catch (e) {
+          console.error('Mylerz create failed, degrading to manual:', e);
+        }
+      }
+      if (cfg?.mock) {
+        const mylerzTracking = `MYL-${Math.floor(10000000 + Math.random() * 90000000)}`;
+        return { success: true, trackingNumber: mylerzTracking, provider: ShippingProvider.MYLERZ, estimatedDelivery: '24-48 hours', manual: false };
+      }
+      return { success: true, trackingNumber: `MANUAL-${params.orderNumber}`, provider: ShippingProvider.MYLERZ, estimatedDelivery: 'يحتاج إنشاء شحنة يدوياً', manual: true };
     }
 
     case ShippingProvider.MRSOOL: {
@@ -72,6 +103,7 @@ export async function createCourierShipment(params: CreateShipmentParams): Promi
         trackingNumber: mrsoolTracking,
         provider: ShippingProvider.MRSOOL,
         estimatedDelivery: 'Same-day express (2-4 hours)',
+        manual: false,
       };
     }
 
@@ -82,6 +114,7 @@ export async function createCourierShipment(params: CreateShipmentParams): Promi
         trackingNumber: `PICKUP-${params.orderNumber}`,
         provider: ShippingProvider.PICKUP,
         estimatedDelivery: 'Ready for pickup at Flagship Branch (92 Omar Lotfy St)',
+        manual: false,
       };
     }
   }
