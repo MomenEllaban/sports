@@ -17,6 +17,26 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  // T09: portal saved addresses (prefill when logged in).
+  const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; title: string; street: string; building: string | null; city: string; governorate: string }>>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  useEffect(() => {
+    fetch('/api/account/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.success && d.customer) {
+          if (d.customer.phone) setPhone(d.customer.phone);
+          if (d.customer.name) setName(d.customer.name);
+          if (Array.isArray(d.customer.addresses)) {
+            setSavedAddresses(d.customer.addresses);
+            const def = d.customer.addresses[0];
+            if (def) setSelectedAddressId(def.id);
+          }
+          if (typeof d.customer.loyaltyPoints === 'number') setLoyaltyBalance(d.customer.loyaltyPoints);
+        }
+      })
+      .catch(() => null);
+  }, []);
   const [fulfillmentType, setFulfillmentType] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'PAYMOB' | 'FAWRY' | 'INSTAPAY' | 'VODAFONE_CASH'>('COD');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,6 +147,12 @@ export default function CheckoutPage() {
       setFormError('يرجى رفع صورة إيصال التحويل أولاً (InstaPay / فودافون كاش).');
       return;
     }
+    // T09: saved address or typed address required for delivery.
+    const useSavedAddress = fulfillmentType === 'DELIVERY' && selectedAddressId !== '';
+    if (fulfillmentType === 'DELIVERY' && !useSavedAddress && !address.trim()) {
+      setFormError('يرجى إدخال عنوان التوصيل.');
+      return;
+    }
 
     setIsSubmitting(true);
     setFormError('');
@@ -139,6 +165,7 @@ export default function CheckoutPage() {
           phone,
           name: name || 'عميل كريم',
           address: fulfillmentType === 'PICKUP' ? 'استلام من فرع الإبراهيمية (92 شارع عمر لطفى)' : address,
+          addressId: useSavedAddress ? selectedAddressId : undefined,
           fulfillmentType,
           zoneId: selectedZone,
           deliveryFee: finalDeliveryFee,
@@ -301,14 +328,58 @@ export default function CheckoutPage() {
                   <label className="block font-bold text-slate-300 mb-1">
                     {tCheckout('addressLabel')} *
                   </label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="اسم الشارع، المنطقة، رقم العمارة والدور والشقة..."
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 focus:outline-none focus:border-blue-500"
-                  />
+                  {savedAddresses.length > 0 && (
+                    <div className="grid gap-2" role="radiogroup" aria-label="العناوين المحفوظة">
+                      {savedAddresses.map((a) => (
+                        <label
+                          key={a.id}
+                          className={`p-3 rounded-2xl border cursor-pointer flex items-start gap-2 transition-all ${
+                            selectedAddressId === a.id
+                              ? 'bg-blue-600/20 border-blue-500 text-slate-100'
+                              : 'bg-slate-900 border-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="saved-address"
+                            checked={selectedAddressId === a.id}
+                            onChange={() => { setSelectedAddressId(a.id); setAddress(''); }}
+                            className="mt-1 accent-blue-500 w-5 h-5"
+                          />
+                          <span>
+                            <span className="font-bold block">{a.title} — {a.street}</span>
+                            <span className="text-[11px]">{a.building ? `${a.building}، ` : ''}{a.city}، {a.governorate}</span>
+                          </span>
+                        </label>
+                      ))}
+                      <label
+                        className={`p-3 rounded-2xl border cursor-pointer flex items-center gap-2 transition-all ${
+                          selectedAddressId === ''
+                            ? 'bg-blue-600/20 border-blue-500 text-slate-100'
+                            : 'bg-slate-900 border-slate-800 text-slate-400'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="saved-address"
+                          checked={selectedAddressId === ''}
+                          onChange={() => setSelectedAddressId('')}
+                          className="accent-blue-500 w-5 h-5"
+                        />
+                        <span className="font-bold">عنوان جديد...</span>
+                      </label>
+                    </div>
+                  )}
+                  {(savedAddresses.length === 0 || selectedAddressId === '') && (
+                    <textarea
+                      required={selectedAddressId === ''}
+                      rows={3}
+                      placeholder="اسم الشارع، المنطقة، رقم العمارة والدور والشقة..."
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                  )}
                 </div>
               )}
             </div>

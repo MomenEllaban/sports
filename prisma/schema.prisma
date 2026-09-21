@@ -353,6 +353,8 @@ model Order {
   guestPhone       String
   guestName        String?
   deliveryAddress  String
+  // T09: saved portal address used (text snapshot stays for history).
+  addressId        String?
   branchId         String
   deliveryZone     String           @default("Alexandria Central")
   deliveryFee      Decimal @db.Decimal(12, 2)            @default(30.0)

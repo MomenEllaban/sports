@@ -54,6 +54,22 @@ export async function POST(req: Request) {
       });
     }
 
+    // T09: saved portal address (must belong to this customer) → snapshot text.
+    let addressId: string | null = null;
+    let finalAddress = address;
+    const rawAddressId = typeof body.addressId === 'string' ? body.addressId.trim() : '';
+    if (fulfillmentType !== 'PICKUP' && rawAddressId) {
+      const saved = await prisma.address.findFirst({ where: { id: rawAddressId, customerId: customer.id } });
+      if (!saved) {
+        return NextResponse.json({ success: false, error: 'العنوان المحفوظ غير صالح' }, { status: 400 });
+      }
+      addressId = saved.id;
+      finalAddress = [saved.street, saved.building, saved.city, saved.governorate].filter(Boolean).join('، ');
+    }
+    if (fulfillmentType !== 'PICKUP' && !finalAddress.trim()) {
+      return NextResponse.json({ success: false, error: 'عنوان التوصيل مطلوب' }, { status: 400 });
+    }
+
     // 3. Validate items + compute totals from DB prices (T06 semantics). No writes yet.
     const requested: Array<{ productId: string; quantity: number }> = [];
     for (const item of items) {
@@ -173,7 +189,7 @@ export async function POST(req: Request) {
           branchAddress: flagshipBranch.address,
           customerName: name || 'عميل كريم',
           customerPhone: phone,
-          customerAddress: address,
+          customerAddress: finalAddress,
           codAmount: paymentMethod === 'COD' ? totalAmount : 0,
           provider,
         });
@@ -194,7 +210,8 @@ export async function POST(req: Request) {
               customerId: customer.id,
               guestPhone: phone,
               guestName: name,
-              deliveryAddress: address,
+              deliveryAddress: fulfillmentType === 'PICKUP' ? 'استلام من فرع الإبراهيمية (92 شارع عمر لطفى)' : finalAddress,
+              addressId,
               branchId: flagshipBranch.id,
               deliveryZone: zoneId || 'Alexandria Central',
               deliveryFee: Number(deliveryFee || 0),
