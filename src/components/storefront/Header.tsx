@@ -17,6 +17,7 @@ export default function Header() {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const isAr = locale === 'ar';
 
   const totalItemsCount = items.reduce((acc, i) => acc + i.quantity, 0);
 
@@ -120,6 +121,9 @@ export default function Header() {
           <Link href="/tracking" className="hover:text-blue-400 transition-colors">
             {tNav('trackOrder')}
           </Link>
+          <Link href="/account" className="hover:text-blue-400 transition-colors">
+            {isAr ? 'حسابي' : 'My account'}
+          </Link>
         </nav>
 
         {/* Actions */}
@@ -180,6 +184,7 @@ export default function Header() {
               { href: '/catalog', label: tNav('catalog') },
               { href: '/branches', label: tNav('branches') },
               { href: '/tracking', label: tNav('trackOrder') },
+              { href: '/account', label: isAr ? 'حسابي' : 'My account' },
               { href: '/pos', label: t('pos') },
               { href: '/admin', label: t('admin') },
             ].map((link) => (

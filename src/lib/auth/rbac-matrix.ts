@@ -9,7 +9,7 @@ import type { Role } from '@prisma/client';
  */
 export type MatrixEntry = { methods: Record<string, Role[] | 'public'> };
 
-export const PUBLIC_PREFIXES = ['/api/auth/', '/api/orders/'];
+export const PUBLIC_PREFIXES = ['/api/auth/', '/api/orders/', '/api/account/'];
 
 const SUPER: Role[] = ['SUPER_ADMIN'];
 const BM: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER'];
