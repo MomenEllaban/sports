@@ -7,6 +7,7 @@ import { seedCatalog } from './catalog.js';
 import { seedStock } from './stock.js';
 import { seedSuppliers, seedCustomers, seedEmployees, seedExpenses } from './people.js';
 import { seedSettings } from './settings.js';
+import { seedTransactions } from './transactions.js';
 import { MANAGER_PINS } from './users.js';
 
 const prisma = new PrismaClient();
@@ -33,6 +34,7 @@ export async function seedDemo() {
   counts.customers = await seedCustomers(prisma);
   counts.employees = await seedEmployees(prisma);
   counts.expenses = await seedExpenses(prisma);
+  Object.assign(counts, await seedTransactions(prisma));
   return { counts, users };
 }
 
@@ -61,6 +63,13 @@ async function main() {
   if (mode === 'reset') {
     await wipeAppTables();
     console.log('wiped app tables (development only)');
+  }
+  if (mode === 'transactions') {
+    const counts = await seedTransactions(prisma);
+    console.log('\n==== TRANSACTIONS SEED ====');
+    for (const [k, v] of Object.entries(counts)) console.log(`  ${k}: ${v}`);
+    await prisma.$disconnect();
+    return;
   }
   const { counts, users } = mode === 'minimal' ? await seedMinimal() : await seedDemo();
   printSummary(counts, users.map((u) => ({ email: u.email, role: u.role })));
