@@ -2,6 +2,7 @@ import React from 'react';
 import TransfersManager from '@/components/admin/TransfersManager';
 import { prisma } from '@/lib/db';
 import { requirePageRole } from '@/lib/auth/require-page';
+import { Link } from '@/i18n/routing';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,14 @@ export default async function AdminInventoryPage() {
           <div>
             <h1 className="text-2xl font-black text-slate-100">المخزون والتحويلات بين الفروع</h1>
             <p className="text-xs text-slate-400 mt-0.5">متابعة رصيد الأصناف لكل فرع بشكل منفصل وإنشاء أوامر التحويل الداخلي</p>
+            <div className="flex gap-2 mt-3">
+              <Link href="/admin/inventory/count" className="min-h-[44px] px-4 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center">
+                جرد وتسوية
+              </Link>
+              <Link href="/admin/inventory/labels" className="min-h-[44px] px-4 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center">
+                طباعة باركود
+              </Link>
+            </div>
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">

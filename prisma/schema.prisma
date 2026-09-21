@@ -504,6 +504,23 @@ model Supplier {
   createdAt     DateTime @default(now())
 
   purchaseOrders PurchaseOrder[]
+  payments       SupplierPayment[]
+}
+
+// T13: supplier payments ledger (cash paid to suppliers, linked to POs optionally).
+model SupplierPayment {
+  id          String   @id @default(cuid())
+  supplierId  String
+  amount      Decimal @db.Decimal(12, 2)
+  method      String   @default("CASH")
+  reference   String?
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
 }
 
 model PurchaseOrder {

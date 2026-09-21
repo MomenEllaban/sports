@@ -47,6 +47,12 @@ export default function PurchasingManager({
     { productId: products[0]?.id || '', quantityOrdered: 10, unitCost: 0 },
   ]);
   const [receiveQty, setReceiveQty] = useState<Record<string, number>>({});
+  // T13: supplier return modal state.
+  const [returning, setReturning] = useState<PoRow | null>(null);
+  const [returnItemId, setReturnItemId] = useState('');
+  const [returnQty, setReturnQty] = useState(1);
+  const [returnReason, setReturnReason] = useState('');
+  const [returnError, setReturnError] = useState('');
 
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
@@ -75,8 +81,31 @@ export default function PurchasingManager({
     }
   };
 
-  const submitReceive = async (e: React.FormEvent) => {
+  const submitReturn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!returning || !returnItemId || returnQty < 1 || !returnReason.trim()) return;
+    setSaving(true);
+    setReturnError('');
+    try {
+      const item = returning.items.find((i) => i.id === returnItemId);
+      await apiFetch(`/api/admin/purchase-orders/${returning.id}/return`, 'POST', {
+        productId: item?.product.id,
+        quantity: returnQty,
+        reason: returnReason.trim(),
+      });
+      setReturning(null);
+      setReturnReason('');
+      toast(t('operationSuccess'), 'success');
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t('operationFailed');
+      setReturnError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitReceive = async (e: React.FormEvent) => {    e.preventDefault();
     if (!receiving) return;
     setSaving(true);
     setFormError('');
@@ -142,6 +171,21 @@ export default function PurchasingManager({
                     {t('status_CANCELLED')}
                   </ActionButton>
                 )}
+                {po.status === 'RECEIVED' && po.items.some((i) => i.quantityReceived > 0) && (
+                  <button
+                    onClick={() => {
+                      setReturning(po);
+                      const first = po.items.find((i) => i.quantityReceived > 0);
+                      setReturnItemId(first?.id || '');
+                      setReturnQty(1);
+                      setReturnReason('');
+                      setReturnError('');
+                    }}
+                    className="min-h-[44px] px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-bold text-xs"
+                  >
+                    {isAr ? 'مرتجع مورد' : 'Supplier return'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -197,6 +241,33 @@ export default function PurchasingManager({
               + {isAr ? 'إضافة صنف' : 'Add item'}
             </button>
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
+              {saving ? t('loading') : t('confirm')}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {returning && (
+        <Modal title={`${isAr ? 'مرتجع مورد' : 'Supplier return'} - ${returning.poNumber}`} onClose={() => setReturning(null)}>
+          <form onSubmit={submitReturn} className="space-y-3 text-xs">
+            {returnError && <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">{returnError}</div>}
+            <div>
+              <label htmlFor="ret-item" className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الصنف *' : 'Item *'}</label>
+              <select id="ret-item" value={returnItemId} onChange={(e) => setReturnItemId(e.target.value)} className={inputCls}>
+                {returning.items.filter((i) => i.quantityReceived > 0).map((i) => (
+                  <option key={i.id} value={i.id}>{pName(i.product)} ({isAr ? 'المستلم' : 'received'}: {i.quantityReceived})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ret-qty" className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الكمية المرتجعة *' : 'Return qty *'}</label>
+              <input id="ret-qty" type="number" min={1} value={returnQty} onChange={(e) => setReturnQty(Math.max(1, Math.floor(Number(e.target.value) || 1)))} className={inputCls} />
+            </div>
+            <div>
+              <label htmlFor="ret-reason" className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'سبب الإرجاع (إجباري) *' : 'Reason (required) *'}</label>
+              <input id="ret-reason" value={returnReason} onChange={(e) => setReturnReason(e.target.value)} placeholder={isAr ? 'مثال: تالف...' : 'e.g. damaged...'} className={inputCls} />
+            </div>
+            <button type="submit" disabled={saving} className="w-full min-h-[44px] py-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? t('loading') : t('confirm')}
             </button>
           </form>

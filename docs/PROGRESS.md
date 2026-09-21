@@ -16,7 +16,7 @@
 | T07 | Variants + Size Chart | DONE | (this commit) | unit 49/49, tsc0, lint0 | display families, pickers, chart, SafeImage |
 | T08 | Reviews + Wishlist | DONE | (this commit) | tsc0, lint0 | approval-gated reviews, wishlist, admin queue |
 | T09 | عناوين البورتال في checkout | DONE | (this commit) | tsc0, lint0, build ok | addressId link, snapshot, ownership check |
-| T13 | باركود وجرد | TODO | — | — | — |
+| T13 | باركود وجرد | DONE | (this commit) | tsc0, lint0, build ok | EAN-13 labels, stocktake wizard, PO returns, supplier ledger |
 | T14 | ETA إنتاجي | TODO | — | — | — |
 | T15 | تنظيف نهائي | TODO | — | — | — |
 

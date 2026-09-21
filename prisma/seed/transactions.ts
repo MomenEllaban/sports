@@ -519,6 +519,7 @@ export async function seedTransactions(db: PrismaClient) {
 
   // ------------------------------------------- replace previous demo rows
   await db.$transaction([
+    db.supplierPayment.deleteMany({ where: { reference: { startsWith: 'SEED-' } } }),
     db.review.deleteMany({ where: { id: { startsWith: 'review-D-' } } }),
     db.couponUse.deleteMany({ where: { couponId: { startsWith: 'coupon-D-' } } }),
     db.coupon.deleteMany({ where: { id: { startsWith: 'coupon-D-' } } }),
@@ -556,6 +557,25 @@ export async function seedTransactions(db: PrismaClient) {
     db.review.createMany({ data: reviewRows, skipDuplicates: true }),
   ]);
 
+  // T13: demo supplier payments (created separately — needs supplier ids).
+  const paySuppliers = await db.supplier.findMany({ take: 2, select: { id: true } });
+  for (let i = 0; i < paySuppliers.length; i++) {
+    await db.supplierPayment.upsert({
+      where: { id: `pay-D-${i + 1}` },
+      create: {
+        id: `pay-D-${i + 1}`,
+        supplierId: paySuppliers[i].id,
+        amount: 1500 + i * 750,
+        method: i === 0 ? 'BANK' : 'CASH',
+        reference: `SEED-PAY-${i + 1}`,
+        notes: 'دفعة مورد تجريبية',
+        createdById: adminId,
+        createdAt: daysAgo(10 - i * 3),
+      },
+      update: {},
+    });
+  }
+  counts.supplierPayments = paySuppliers.length;
   counts.reviews = reviewRows.length;
   counts.coupons = couponRows.length;
   counts.shifts = shiftRows.length;
