@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Creating a branch backfills zero-qty inventory rows for all products (T12/T15 rule).
     const branch = await prisma.branch.create({
       data: {
         name,
@@ -49,6 +50,14 @@ export async function POST(req: Request) {
         isActive: true,
       },
     });
+
+    const products = await prisma.product.findMany({ select: { id: true } });
+    if (products.length > 0) {
+      await prisma.branchInventory.createMany({
+        data: products.map((p) => ({ branchId: branch.id, productId: p.id, stockQuantity: 0, lowStockThreshold: 5 })),
+        skipDuplicates: true,
+      });
+    }
 
     return NextResponse.json({ success: true, branch }, { status: 201 });
   } catch (err: unknown) {

@@ -532,3 +532,15 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+// T12: audit trail for sensitive actions.
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  branchId  String?
+  metadata  String?
+}

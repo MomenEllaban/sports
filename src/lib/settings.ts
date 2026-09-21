@@ -1,0 +1,123 @@
+import { prisma } from './db.js';
+
+/**
+ * Settings service (T12) — SINGLE SOURCE OF TRUTH for configurable business values.
+ * Backed by the Setting table (JSON-encoded values), with sane fallbacks and a
+ * short in-memory cache. T12 callers must use these getters, never hardcode.
+ */
+
+export const SETTING_KEYS = {
+  storeNameAr: 'store.nameAr',
+  storeNameEn: 'store.nameEn',
+  landline: 'store.landline',
+  whatsapp: 'store.whatsapp',
+  addressAr: 'store.addressAr',
+  addressEn: 'store.addressEn',
+  taxNumber: 'store.taxNumber',
+  vatRate: 'vat.rate',
+  vatMode: 'vat.mode',
+  shippingZones: 'shipping.zones',
+  paymentMethods: 'payments.methods',
+  loyaltyEarnPerEgp: 'loyalty.earnPerEgp',
+  loyaltyPointsPerUnit: 'loyalty.pointsPerUnit',
+  discountThreshold: 'discount.approvalThreshold',
+  lowStockThreshold: 'stock.lowThreshold',
+  receiptHeaderAr: 'receipt.headerAr',
+  receiptFooterAr: 'receipt.footerAr',
+  integrations: 'integrations',
+} as const;
+
+const cache = new Map<string, { value: unknown; at: number }>();
+const TTL_MS = 30_000;
+
+function parse<T>(raw: string | null, fallback: T): T {
+  if (raw === null) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getSetting<T>(key: string, fallback: T): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T;
+  const row = await prisma.setting.findUnique({ where: { key } });
+  const value = parse(row?.value ?? null, fallback);
+  cache.set(key, { value, at: Date.now() });
+  return value;
+}
+
+export async function setSetting(key: string, value: unknown): Promise<void> {
+  await prisma.setting.upsert({
+    where: { key },
+    create: { key, value: JSON.stringify(value) },
+    update: { value: JSON.stringify(value) },
+  });
+  cache.delete(key);
+}
+
+export function clearSettingsCache(): void {
+  cache.clear();
+}
+
+export interface StoreInfo {
+  nameAr: string;
+  nameEn: string;
+  landline: string;
+  whatsapp: string;
+  addressAr: string;
+  addressEn: string;
+  taxNumber: string;
+}
+
+export async function getStoreInfo(): Promise<StoreInfo> {
+  const [nameAr, nameEn, landline, whatsapp, addressAr, addressEn, taxNumber] = await Promise.all([
+    getSetting(SETTING_KEYS.storeNameAr, 'ابطال الرياضة الإبراهيمية'),
+    getSetting(SETTING_KEYS.storeNameEn, 'Sports Champions Alexandria'),
+    getSetting(SETTING_KEYS.landline, '03 5926908'),
+    getSetting(SETTING_KEYS.whatsapp, '01224226876'),
+    getSetting(SETTING_KEYS.addressAr, '92 شارع عمر لطفى، الإبراهيمية، الإسكندرية'),
+    getSetting(SETTING_KEYS.addressEn, '92 Omar Lotfy St, Ibrahimeyah, Alexandria'),
+    getSetting(SETTING_KEYS.taxNumber, '123-456-789'),
+  ]);
+  return { nameAr, nameEn, landline, whatsapp, addressAr, addressEn, taxNumber };
+}
+
+export async function getVatRate(): Promise<number> {
+  const v = await getSetting<number>(SETTING_KEYS.vatRate, 0.14);
+  return typeof v === 'number' && v >= 0 && v <= 1 ? v : 0.14;
+}
+
+export async function getDiscountThreshold(): Promise<number> {
+  const v = await getSetting<number>(SETTING_KEYS.discountThreshold, 100);
+  return typeof v === 'number' && v >= 0 ? v : 100;
+}
+
+export async function getLoyaltyRule(): Promise<{ earnPerEgp: number; pointsPerUnit: number }> {
+  const [earnPerEgp, pointsPerUnit] = await Promise.all([
+    getSetting<number>(SETTING_KEYS.loyaltyEarnPerEgp, 10),
+    getSetting<number>(SETTING_KEYS.loyaltyPointsPerUnit, 1),
+  ]);
+  return {
+    earnPerEgp: earnPerEgp > 0 ? earnPerEgp : 10,
+    pointsPerUnit: pointsPerUnit > 0 ? pointsPerUnit : 1,
+  };
+}
+
+export async function getLowStockThreshold(): Promise<number> {
+  const v = await getSetting<number>(SETTING_KEYS.lowStockThreshold, 5);
+  return typeof v === 'number' && v >= 0 ? Math.floor(v) : 5;
+}
+
+export interface ShippingZone {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  fee: number;
+}
+
+export async function getShippingZones(fallback: ShippingZone[]): Promise<ShippingZone[]> {
+  const zones = await getSetting<ShippingZone[]>(SETTING_KEYS.shippingZones, fallback);
+  return Array.isArray(zones) && zones.length > 0 ? zones : fallback;
+}

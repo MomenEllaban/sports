@@ -13,6 +13,20 @@ export async function PATCH(
     const { id } = await params;
     const body = await req.json();
 
+    // Deactivation is BLOCKED while any stock exists (open shifts checked in T14).
+    if (body.isActive === false) {
+      const stock = await prisma.branchInventory.aggregate({
+        where: { branchId: id },
+        _sum: { stockQuantity: true },
+      });
+      if ((stock._sum.stockQuantity || 0) > 0) {
+        return NextResponse.json(
+          { success: false, error: 'لا يمكن تعطيل فرع به مخزون — انقل المخزون أولاً' },
+          { status: 400 }
+        );
+      }
+    }
+
     const branch = await prisma.branch.update({
       where: { id },
       data: {

@@ -1,22 +1,9 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { getDiscountThreshold } from '@/lib/settings';
 
 const MAX_PIN_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
-
-/** Discount approval threshold (EGP). Interim read until T12 settings service. */
-export async function getDiscountThreshold(): Promise<number> {
-  try {
-    const row = await prisma.setting.findUnique({ where: { key: 'discount.approvalThreshold' } });
-    if (row) {
-      const v = Number(JSON.parse(row.value));
-      if (Number.isFinite(v) && v >= 0) return v;
-    }
-  } catch {
-    /* fall through to default */
-  }
-  return 100;
-}
 
 export class DiscountAuthError extends Error {
   status: number;

@@ -7,6 +7,7 @@ import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { computeTotals, loyaltyEarned as loyaltyRule, num } from '@/lib/pricing';
+import { getLoyaltyRule } from '@/lib/settings';
 import { dispatchNotification } from '@/lib/notifications';
 
 const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -228,7 +229,8 @@ export async function POST(req: Request) {
     // AFTER commit only: loyalty + notifications never roll back or fail the sale.
     let loyaltyEarned = 0;
     if (resolvedCustomerId) {
-      loyaltyEarned = loyaltyRule(totalAmount);
+      const rule = await getLoyaltyRule();
+      loyaltyEarned = loyaltyRule(totalAmount, rule.earnPerEgp);
       if (loyaltyEarned > 0) {
         await prisma.customer.update({
           where: { id: resolvedCustomerId },
