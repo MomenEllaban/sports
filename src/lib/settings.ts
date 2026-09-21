@@ -55,7 +55,21 @@ export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.value as T;
   const row = await prisma.setting.findUnique({ where: { key } });
-  const value = parse(row?.value ?? null, fallback);
+  let value = parse(row?.value ?? null, fallback);
+  // F0: unwrap admin-confirmed envelope { v, _confirmed }.
+  if (value !== null && typeof value === 'object' && !Array.isArray(value) && 'v' in (value as Record<string, unknown>)) {
+    value = (value as unknown as { v: T }).v;
+  }
+  // F0: decrypt sensitive values at the boundary (in-memory only).
+  const { SENSITIVE_KEYS } = await import('./settings-registry');
+  if (SENSITIVE_KEYS.has(key) && typeof value === 'string' && value) {
+    const { decryptSecret } = await import('./settings-secure');
+    try {
+      value = decryptSecret(value) as T;
+    } catch {
+      value = '' as T;
+    }
+  }
   cache.set(key, { value, at: Date.now() });
   return value;
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import SettingsManager from '@/components/admin/SettingsManager';
 import { prisma } from '@/lib/db';
+import { parseStored } from '@/lib/settings-registry';
 import { Settings } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { requirePageRole } from '@/lib/auth/require-page';
@@ -12,11 +13,8 @@ export default async function AdminSettingsPage() {
   const rows = await prisma.setting.findMany();
   const initial: Record<string, unknown> = {};
   for (const r of rows) {
-    try {
-      initial[r.key] = JSON.parse(r.value);
-    } catch {
-      initial[r.key] = r.value;
-    }
+    const { value } = parseStored(r.value, null);
+    initial[r.key] = value;
   }
   const branchCount = await prisma.branch.count();
 

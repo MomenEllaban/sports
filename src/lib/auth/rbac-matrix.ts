@@ -54,6 +54,7 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/pos/customer': { methods: { GET: POS, POST: POS } },
   '/api/admin/audit': { methods: { GET: SUPER } },
   '/api/admin/settings': { methods: { GET: SUPER, PUT: SUPER } },
+  '/api/admin/settings/status': { methods: { GET: SUPER } },
   '/api/upload/receipt': { methods: { POST: 'public' } },
   '/api/webhooks/paymob': { methods: { POST: 'public' } },
   '/api/webhooks/fawry': { methods: { POST: 'public' } },

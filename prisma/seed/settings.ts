@@ -47,6 +47,21 @@ const DEFAULTS: Record<string, unknown> = {
   'whatsapp.templateOrder': 'order_confirmation',
   // 4.3 Customer portal toggle.
   'portal.enabled': true,
+  // F0 — new registry keys (safe defaults, DEFAULT_UNCONFIRMED until admin confirms).
+  'paymob.apiKey': '',
+  'paymob.integrationId': '',
+  'paymob.iframeId': '',
+  'paymob.hmacSecret': '',
+  'fawry.merchantCode': '',
+  'fawry.secureKey': '',
+  'couriers.bostaApiKey': '',
+  'couriers.mylerzApiKey': '',
+  'loyalty.redeemRate': 1,
+  'loyalty.maxRedeemPct': 20,
+  'discount.maxTotalPct': 30,
+  'orders.unpaidExpiryHours': 48,
+  'shifts.openingFloat': 500,
+  'shifts.maxShortage': 50,
 };
 
 export async function seedSettings(db: PrismaClient) {

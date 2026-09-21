@@ -19,6 +19,10 @@
     "test:int": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "check:invariants": "npx tsx scripts/check-invariants.ts",
+    "check:images": "npx tsx scripts/check-images.ts",
+    "check:no-empty": "npx tsx scripts/check-no-empty.ts",
+    "check:i18n": "npx tsx scripts/check-i18n.ts",
+    "docs:client-inputs": "npx tsx scripts/generate-client-inputs.ts",
     "test:smoke": "npx tsx --env-file=.env scripts/smoke-test.ts"
   },
   "dependencies": {

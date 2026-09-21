@@ -6,12 +6,14 @@ import { useLocale } from 'next-intl';
 import { Bell, MapPin, LogOut, ShieldCheck } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import ThemeToggle from './ThemeToggle';
+import { LocaleSwitcher } from '@/components/ui/foundation';
 
 export default function AdminHeader() {
   const { data: session } = useSession();
   const locale = useLocale();
   const isAr = locale === 'ar';
   const [unreadCount, setUnreadCount] = useState(0);
+  const [missingSetup, setMissingSetup] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,6 +23,12 @@ export default function AdminHeader() {
         if (!cancelled && d?.success) setUnreadCount(d.unreadCount);
       })
       .catch(() => { /* silent: badge stays hidden on error */ });
+    fetch('/api/admin/settings/status')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.success) setMissingSetup(d.missingCount);
+      })
+      .catch(() => { /* silent: banner stays hidden on error */ });
     return () => { cancelled = true; };
   }, []);
 
@@ -36,6 +44,15 @@ export default function AdminHeader() {
 
       {/* Notifications & User Session Actions */}
       <div className="flex items-center gap-4 text-xs">
+        {missingSetup !== null && missingSetup > 0 && (
+          <Link
+            href="/admin/settings/setup"
+            className="min-h-[44px] flex items-center gap-1.5 px-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>{isAr ? `التجهيز: ${missingSetup} بنود ناقصة` : `Setup: ${missingSetup} missing`}</span>
+          </Link>
+        )}
         <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/30 font-bold">
           <ShieldCheck className="w-4 h-4" />
           <span>{isAr ? 'منظومة الضرائب ETA: جاهزة' : 'ETA tax system: ready'}</span>
@@ -56,6 +73,9 @@ export default function AdminHeader() {
 
         {/* Theme Toggle */}
         <ThemeToggle />
+
+        {/* Language (F0 §1.3) */}
+        <LocaleSwitcher />
 
         {/* User Profile & Logout */}
         <div className="flex items-center gap-3 border-r border-slate-800 pr-4">

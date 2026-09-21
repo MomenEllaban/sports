@@ -216,5 +216,19 @@
     "invalidCredentials": "Incorrect email or password.",
     "connectionError": "Could not reach the server. Check your connection and try again.",
     "demoAccounts": "Demo accounts for testing:"
+  },
+  "setup": {
+    "title": "Setup checklist — client inputs",
+    "subtitle": "Each missing item gates its feature cleanly until filled. Our defaults need your confirmation.",
+    "confirmed": "Confirmed",
+    "missing": "Missing",
+    "defaultUnconfirmed": "Default — confirm",
+    "edit": "Edit",
+    "banner": "Setup: items missing"
+  },
+  "foundation": {
+    "back": "Back",
+    "confirm": "Confirm",
+    "noData": "No data yet."
   }
 }

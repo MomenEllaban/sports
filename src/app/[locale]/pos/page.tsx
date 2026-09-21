@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
+import { LocaleSwitcher } from '@/components/ui/foundation';
 import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -405,6 +406,7 @@ export default function PosTerminalPage() {
 
         {/* Cashier Info */}
         <div className="flex items-center gap-3 text-xs">
+          <LocaleSwitcher />
           <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1">
             <Check className="w-3.5 h-3.5" /> مصلحة الضرائب ETA متصلة
           </span>

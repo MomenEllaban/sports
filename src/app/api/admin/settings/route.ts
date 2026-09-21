@@ -3,19 +3,11 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { setSetting, clearSettingsCache } from '@/lib/settings';
 import { writeAudit } from '@/lib/audit';
+import { REGISTRY_KEYS, SENSITIVE_KEYS, parseStored } from '@/lib/settings-registry';
+import { encryptSecret, maskSecret } from '@/lib/settings-secure';
 
-// Keys editable via the settings UI (allowlist — nothing else is writable).
-const EDITABLE_KEYS = new Set([
-  'store.nameAr', 'store.nameEn', 'store.landline', 'store.whatsapp',
-  'store.addressAr', 'store.addressEn', 'store.taxNumber',
-  'vat.rate', 'shipping.zones', 'payments.methods',
-  'loyalty.earnPerEgp', 'loyalty.pointsPerUnit',
-  'discount.approvalThreshold', 'stock.lowThreshold',
-  'receipt.headerAr', 'receipt.footerAr',
-  'eta.mode', 'eta.clientId', 'eta.clientSecret', 'eta.taxRegNumber',
-  'whatsapp.mode', 'whatsapp.phoneId', 'whatsapp.token', 'whatsapp.templateOrder',
-  'portal.enabled',
-]);
+// Keys editable via the settings UI: exactly the F0 registry allowlist.
+const EDITABLE_KEYS = REGISTRY_KEYS;
 
 function validateValue(key: string, value: unknown): string | null {
   switch (key) {
@@ -25,8 +17,14 @@ function validateValue(key: string, value: unknown): string | null {
     }
     case 'loyalty.earnPerEgp':
     case 'loyalty.pointsPerUnit':
+    case 'loyalty.redeemRate':
+    case 'loyalty.maxRedeemPct':
     case 'discount.approvalThreshold':
-    case 'stock.lowThreshold': {
+    case 'discount.maxTotalPct':
+    case 'stock.lowThreshold':
+    case 'orders.unpaidExpiryHours':
+    case 'shifts.openingFloat':
+    case 'shifts.maxShortage': {
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return `${key} must be a non-negative number`;
       return null;
     }
@@ -68,14 +66,28 @@ export async function GET() {
     if (error) return error;
     const rows = await prisma.setting.findMany({ orderBy: { key: 'asc' } });
     const settings: Record<string, unknown> = {};
+    const masked: Record<string, string> = {};
     for (const r of rows) {
-      try {
-        settings[r.key] = JSON.parse(r.value);
-      } catch {
-        settings[r.key] = r.value;
+      const { value } = parseStored(r.value, null);
+      if (SENSITIVE_KEYS.has(r.key) && typeof value === 'string' && value) {
+        // Never leak full secrets to the client; UI edits via blank=new value.
+        const { decryptSecret } = await import('@/lib/settings-secure');
+        try {
+          settings[r.key] = '';
+          masked[r.key] = maskSecret(decryptSecret(value));
+        } catch {
+          settings[r.key] = '';
+          masked[r.key] = '••••';
+        }
+      } else {
+        try {
+          settings[r.key] = JSON.parse(r.value);
+        } catch {
+          settings[r.key] = r.value;
+        }
       }
     }
-    return NextResponse.json({ success: true, settings });
+    return NextResponse.json({ success: true, settings, masked });
   } catch {
     return NextResponse.json({ success: false, error: 'Failed to load settings' }, { status: 500 });
   }
@@ -95,7 +107,19 @@ export async function PUT(req: Request) {
     if (problem) {
       return NextResponse.json({ success: false, error: problem }, { status: 400 });
     }
-    await setSetting(key, value);
+    // Sensitive keys are stored encrypted; blank means "keep existing".
+    let toStore: unknown = value;
+    if (SENSITIVE_KEYS.has(key)) {
+      if (typeof value !== 'string') {
+        return NextResponse.json({ success: false, error: `${key} must be text` }, { status: 400 });
+      }
+      if (!value.trim()) {
+        return NextResponse.json({ success: true, kept: true });
+      }
+      toStore = encryptSecret(value.trim());
+    }
+    // Mark admin-confirmed: envelope { v, _confirmed } (see settings-registry).
+    await setSetting(key, { v: toStore, _confirmed: true });
     clearSettingsCache();
     writeAudit({
       actorId: (session?.user as { id?: string })?.id,
