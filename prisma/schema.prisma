@@ -329,6 +329,8 @@ model Product {
   images        String[] @default([])
   // ETA-spike: GS1 GTIN per SKU for production e-invoicing (T14).
   gs1Code       String?
+  // T07: display family for size/color variants (SKUs stay independent).
+  groupSlug     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

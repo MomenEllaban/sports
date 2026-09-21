@@ -52,3 +52,7 @@
 
 ## T12
 31. **الربحية = إيراد − تكلفة من نفس السطور** — مطابقة لدلالات `check:invariants`؛ CSV بترميز BOM للعربية في Excel.
+
+## T07
+32. **التجميع عرضي فقط** — SKUs والمخزون والأسعار مستقلة؛ `groupSlug` مشتق بقاعدة variant-token (لا كسر بيانات).
+33. **صور Cloudinary المكسورة → placeholder محلي** — صفحة المنتج تستخدم `SafeImage` مع `/placeholder-product.svg`.

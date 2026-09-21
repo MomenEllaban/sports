@@ -70,6 +70,10 @@ const DEFAULTS: Record<string, unknown> = {
   'discount.stacking': { allowCouponLoyalty: true, allowCouponPin: false },
   // T12 — dead stock window.
   'reports.deadStockDays': 60,
+  // T07 — size charts per category slug.
+  'sizecharts': [
+    { category: 'apparel-footwear', titleAr: 'جدول مقاسات الملابس', titleEn: 'Apparel size chart', columns: ['المقاس', 'الصدر (سم)', 'الطول (سم)'], rows: [['S', '88-93', '66'], ['M', '94-99', '69'], ['L', '100-105', '71'], ['XL', '106-111', '74'], ['XXL', '112-117', '76']] },
+  ],
   // F1 — rate limits, upload cap, OTP mode (safe defaults).
   'ratelimit.trackPerMin': 30,
   'ratelimit.portalLoginPerMin': 10,

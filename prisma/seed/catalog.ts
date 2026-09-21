@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { mulberry32, ean13, round2 } from './utils.js';
+import { groupSlugForSku } from '../../src/lib/catalog/groups.js';
 
 interface SkuSpec {
   sku: string;
@@ -168,12 +169,14 @@ export async function seedCatalog(db: PrismaClient) {
           isFeatured: s.featured || false,
           isActive: s.active !== false,
           images: s.image === false ? [] : [`/seed-images/${m.img}`],
+          groupSlug: groupSlugForSku(s.sku),
         },
         update: {
           nameAr: s.nameAr, nameEn: s.nameEn, price: s.price,
           size: s.size || null, color: s.color || null,
           isFeatured: s.featured || false, isActive: s.active !== false,
           categoryId: catId(m.cat), brandId: brandId(m.brand),
+          groupSlug: groupSlugForSku(s.sku),
         },
       });
       skuCount++;

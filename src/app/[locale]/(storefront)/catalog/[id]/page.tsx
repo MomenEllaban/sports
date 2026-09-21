@@ -2,6 +2,7 @@ import React from 'react';
 import ProductDetailsClient from './ProductDetailsClient';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
+import { getSetting } from '@/lib/settings';
 import { Link } from '@/i18n/routing';
 import { MapPin, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { notFound } from 'next/navigation';
@@ -26,6 +27,24 @@ export default async function ProductDetailsPage({
   });
 
   if (!product || !product.isActive) notFound();
+
+  // T07: siblings in the same display family + category size chart.
+  const siblings = product.groupSlug
+    ? await prisma.product.findMany({
+        where: { groupSlug: product.groupSlug, isActive: true },
+        select: { id: true, size: true, color: true, price: true, inventories: { select: { stockQuantity: true } } },
+      })
+    : [];
+  const charts = await getSetting<Array<{ category: string; titleAr: string; titleEn: string; columns: string[]; rows: string[][] }>>('sizecharts', []).catch(() => []);
+  const variants = siblings.map((s) => ({
+    id: s.id,
+    size: s.size,
+    color: s.color,
+    price: num(s.price),
+    stock: s.inventories.reduce((t, i) => t + i.stockQuantity, 0),
+  }));
+  const chartRow = (Array.isArray(charts) ? charts : []).find((c) => c.category === product.category.slug);
+  const sizeChart = chartRow && Array.isArray(chartRow.rows) && chartRow.rows.length > 0 ? chartRow : null;
 
   const price = num(product.price);
   const totalStock = product.inventories.reduce((s, i) => s + i.stockQuantity, 0);
@@ -71,8 +90,12 @@ export default async function ProductDetailsPage({
             nameEn: product.nameEn,
             price,
             images: product.images,
+            size: product.size,
+            color: product.color,
           }}
           totalStock={totalStock}
+          variants={variants}
+          sizeChart={sizeChart}
         />
 
         {(product.size || product.color || desc) && (
