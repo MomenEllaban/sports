@@ -1,14 +1,26 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'djseokhow',
-  api_key: process.env.CLOUDINARY_API_KEY || '536896379712448',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'C3zQ1AjZOm8X7oVapjMT8IkHPlk',
-  secure: true,
-});
+/**
+ * F1: no hardcoded credentials. Missing env fails the upload call with a
+ * clear message (never a leaked fallback). Required:
+ * CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET.
+ */
+function ensureConfigured(): void {
+  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    throw new Error('Cloudinary is not configured (missing env credentials)');
+  }
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+}
 
 export async function uploadImageToCloudinary(base64OrUrl: string, folder = 'sports-champions/products'): Promise<string> {
   try {
+    ensureConfigured();
     const result = await cloudinary.uploader.upload(base64OrUrl, {
       folder,
       resource_type: 'auto',
@@ -24,6 +36,7 @@ export async function uploadBufferToCloudinary(
   buffer: Buffer,
   folder = 'sports-champions/products'
 ): Promise<string> {
+  ensureConfigured();
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {

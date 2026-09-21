@@ -3,22 +3,26 @@
 import React, { useState } from 'react';
 import { Search, Package, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
 export default function TrackingPage() {
   const tCommon = useTranslations('common');
   const tTracking = useTranslations('orderTracking');
+  const searchParams = useSearchParams();
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(searchParams.get('order') || '');
+  const [phone, setPhone] = useState(searchParams.get('phone') || '');
   const [loading, setLoading] = useState(false);
   const [orderResult, setOrderResult] = useState<{
     orderNumber: string;
     orderStatus: string;
+    paymentStatus: string;
     shippingProvider: string;
     trackingNumber?: string;
     totalAmount: number;
     guestName?: string;
     guestPhone: string;
-    deliveryAddress: string;
+    deliveryZone: string;
     createdAt: string;
     items: Array<{ name: string; quantity: number; price: number }>;
   } | null>(null);
@@ -33,7 +37,8 @@ export default function TrackingPage() {
     setOrderResult(null);
 
     try {
-      const res = await fetch(`/api/orders/track?query=${encodeURIComponent(query)}`);
+      // F1: phone-only lookups are rejected server-side; send the pair.
+      const res = await fetch(`/api/orders/track?${buildParams(query, phone)}`);
       const data = await res.json();
 
       if (data.success && data.order) {
@@ -48,6 +53,12 @@ export default function TrackingPage() {
     }
   };
 
+  function buildParams(q: string, p: string) {
+    const params = new URLSearchParams({ query: q.trim() });
+    if (/^[\d+\s-]{7,}$/.test(q.trim()) && !/ord/i.test(q) && p.trim()) params.set('order', p.trim());
+    return params.toString();
+  }
+
   return (
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12 space-y-8 w-full">
@@ -59,7 +70,8 @@ export default function TrackingPage() {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} role="search" className="glass-panel p-4 rounded-3xl border border-slate-800 flex gap-3 max-w-2xl mx-auto">
+        <form onSubmit={handleSearch} role="search" className="glass-panel p-4 rounded-3xl border border-slate-800 flex flex-col gap-3 max-w-2xl mx-auto">
+          <div className="flex gap-3">
           <label htmlFor="tracking-search" className="sr-only">{tTracking('inputPlaceholder')}</label>
           <input
             id="tracking-search"
@@ -69,16 +81,31 @@ export default function TrackingPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tTracking('inputPlaceholder')}
             aria-label={tTracking('inputPlaceholder')}
-            className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-semibold placeholder:text-slate-500"
+            className="flex-1 min-h-[44px] px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-semibold placeholder:text-slate-500"
+            dir="ltr"
           />
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
+            className="min-h-[44px] px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
           >
             <Search className="w-4 h-4" />
             {loading ? 'جاري البحث...' : tTracking('searchBtn')}
           </button>
+          </div>
+          <div className="flex gap-3 items-center">
+            <label htmlFor="tracking-phone" className="sr-only">رقم الموبايل (مطلوب عند البحث بالهاتف)</label>
+            <input
+              id="tracking-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="رقم الموبايل — مطلوب فقط عند البحث برقم الهاتف"
+              aria-label="رقم الموبايل (مطلوب عند البحث بالهاتف)"
+              className="flex-1 min-h-[44px] px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-semibold placeholder:text-slate-500"
+              dir="ltr"
+            />
+          </div>
         </form>
 
         {errorMsg && (
@@ -130,9 +157,9 @@ export default function TrackingPage() {
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
                 <div className="font-bold text-slate-200 flex items-center gap-1">
                   <MapPin className="w-4 h-4 text-amber-400" />
-                  عنوان التوصيل:
+                  منطقة التوصيل:
                 </div>
-                <p className="text-slate-400">{orderResult.deliveryAddress}</p>
+                <p className="text-slate-400">{orderResult.deliveryZone}</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">

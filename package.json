@@ -23,6 +23,7 @@
     "check:no-empty": "npx tsx scripts/check-no-empty.ts",
     "check:i18n": "npx tsx scripts/check-i18n.ts",
     "docs:client-inputs": "npx tsx scripts/generate-client-inputs.ts",
+    "orders:expire": "npx tsx scripts/expire-unpaid-orders.ts",
     "test:smoke": "npx tsx --env-file=.env scripts/smoke-test.ts"
   },
   "dependencies": {

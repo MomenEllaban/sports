@@ -62,6 +62,12 @@ const DEFAULTS: Record<string, unknown> = {
   'orders.unpaidExpiryHours': 48,
   'shifts.openingFloat': 500,
   'shifts.maxShortage': 50,
+  // F1 — rate limits, upload cap, OTP mode (safe defaults).
+  'ratelimit.trackPerMin': 30,
+  'ratelimit.portalLoginPerMin': 10,
+  'ratelimit.uploadPerMin': 20,
+  'upload.receiptMaxMb': 5,
+  'portal.otpMode': 'off',
 };
 
 export async function seedSettings(db: PrismaClient) {

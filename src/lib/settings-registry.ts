@@ -46,6 +46,7 @@ export const SETUP_GROUPS = [
   { id: 'eta', ar: 'الفاتورة الإلكترونية ETA', en: 'ETA e-invoicing' },
   { id: 'whatsapp', ar: 'واتساب للأعمال', en: 'WhatsApp Business' },
   { id: 'portal', ar: 'بوابة العميل', en: 'Customer portal' },
+  { id: 'security', ar: 'الأمان والحدود', en: 'Security & limits' },
   { id: 'ops', ar: 'التشغيل (طلبات/ورديات)', en: 'Operations' },
 ] as const;
 
@@ -94,6 +95,12 @@ export const SETTINGS_REGISTRY: SettingDef[] = [
   { key: 'whatsapp.templateOrder', group: 'whatsapp', groupAr: 'واتساب للأعمال', labelAr: 'قالب تأكيد الطلب', labelEn: 'Order confirmation template', helpAr: 'اسم القالب المعتمد في Meta (مثل order_confirmation).', helpEn: 'Approved template name in Meta.', type: 'text', required: false, sensitive: false, featureGate: 'whatsapp', owner: 'CLIENT', defaultValue: 'order_confirmation' },
   // ── Portal ─────────────────────────────────────────────
   { key: 'portal.enabled', group: 'portal', groupAr: 'بوابة العميل', labelAr: 'تفعيل بوابة العميل', labelEn: 'Enable customer portal', helpAr: 'إتاحة دخول العملاء لمتابعة طلباتهم ونقاطهم.', helpEn: 'Lets customers track orders and points.', type: 'boolean', required: false, sensitive: false, featureGate: 'portal', owner: 'CLIENT', defaultValue: true },
+  { key: 'portal.otpMode', group: 'portal', groupAr: 'بوابة العميل', labelAr: 'وضع التحقق OTP', labelEn: 'OTP verification mode', helpAr: 'off: دخول برقم الطلب (حالياً). sms: يتطلب OTP — يُفعّل بعد تركيب مزود SMS (T-مستقبل).', helpEn: 'off: order-number login. sms: requires SMS provider (future).', type: 'select', required: false, sensitive: false, featureGate: 'portal', owner: 'CLIENT', options: ['off', 'sms'], defaultValue: 'off' },
+  // ── Security & limits ──────────────────────────────────
+  { key: 'ratelimit.trackPerMin', group: 'security', groupAr: 'الأمان والحدود', labelAr: 'حد تتبع الطلبات / دقيقة / IP', labelEn: 'Order tracking limit per min per IP', helpAr: 'يمنع تخمين أرقام الطلبات آلياً. الافتراضي 30.', helpEn: 'Blocks order-number enumeration. Default 30.', type: 'number', required: false, sensitive: false, featureGate: 'rate-limit', owner: 'DEV', defaultValue: 30 },
+  { key: 'ratelimit.portalLoginPerMin', group: 'security', groupAr: 'الأمان والحدود', labelAr: 'حد محاولات دخول البورتال / دقيقة', labelEn: 'Portal login attempts per min', helpAr: 'يمنع التخمين على البورتال. الافتراضي 10.', helpEn: 'Throttles portal login. Default 10.', type: 'number', required: false, sensitive: false, featureGate: 'rate-limit', owner: 'DEV', defaultValue: 10 },
+  { key: 'ratelimit.uploadPerMin', group: 'security', groupAr: 'الأمان والحدود', labelAr: 'حد رفع الإيصالات / دقيقة / IP', labelEn: 'Receipt upload limit per min per IP', helpAr: 'يمنع إغراق التخزين. الافتراضي 20.', helpEn: 'Prevents storage abuse. Default 20.', type: 'number', required: false, sensitive: false, featureGate: 'rate-limit', owner: 'DEV', defaultValue: 20 },
+  { key: 'upload.receiptMaxMb', group: 'security', groupAr: 'الأمان والحدود', labelAr: 'أقصى حجم لصورة الإيصال (MB)', labelEn: 'Max receipt image size (MB)', helpAr: 'صور PNG/JPEG/WebP/GIF فقط مع فحص البصمة. الافتراضي 5.', helpEn: 'PNG/JPEG/WebP/GIF with magic-byte check. Default 5.', type: 'number', required: false, sensitive: false, featureGate: 'receipt-upload', owner: 'CLIENT', defaultValue: 5 },
   // ── Ops ────────────────────────────────────────────────
   { key: 'orders.unpaidExpiryHours', group: 'ops', groupAr: 'التشغيل (طلبات/ورديات)', labelAr: 'مهلة إلغاء الطلب غير المدفوع (ساعات)', labelEn: 'Unpaid order expiry (hours)', helpAr: 'بعدها يُلغى تلقائياً مع إرجاع المخزون (F1).', helpEn: 'Then auto-cancelled with restock (F1).', type: 'number', required: false, sensitive: false, featureGate: 'order-expiry', owner: 'CLIENT', defaultValue: 48 },
   { key: 'shifts.openingFloat', group: 'ops', groupAr: 'التشغيل (طلبات/ورديات)', labelAr: 'رصيد بداية الدرج الافتراضي (ج.م)', labelEn: 'Default opening float (EGP)', helpAr: 'يُقترح عند فتح الوردية ويمكن تعديله (T05).', helpEn: 'Suggested on shift open, editable (T05).', type: 'number', required: false, sensitive: false, featureGate: 'shifts', owner: 'CLIENT', defaultValue: 500 },
