@@ -5,7 +5,7 @@ import Reveal from '@/components/storefront/Reveal';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { Link } from '@/i18n/routing';
-import { Trophy, Activity, Waves, Dumbbell, Shield, MapPin, Phone, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Trophy, Activity, Waves, Dumbbell, Shield, MapPin, Phone, ArrowLeft, ArrowRight, Monitor } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { WhatsAppIcon } from '@/components/storefront/WhatsAppButton';
 
@@ -51,6 +51,37 @@ export default async function StorefrontHomePage({
       
       <main className="flex-1 space-y-16 pb-16">
         <HeroBanner />
+
+        {/* ERP Showcase CTA */}
+        <section className="max-w-7xl mx-auto px-4">
+          <Reveal>
+            <Link
+              href="/features"
+              className="glass-panel p-6 sm:p-8 rounded-3xl border border-blue-500/25 bg-gradient-to-r from-blue-950/40 via-slate-950 to-amber-950/30 grid md:grid-cols-12 gap-6 items-center hover:border-amber-500/40 transition-colors duration-300 block"
+            >
+              <div className="md:col-span-8 space-y-2">
+                <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30 inline-flex items-center gap-1.5">
+                  <Monitor className="w-3.5 h-3.5" />
+                  {isAr ? 'نظام إدارة متكامل ERP' : 'All-in-one ERP'}
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-100">
+                  {isAr ? 'تشتغل متجرك بنظام واحد: كاشير + مخزون + محاسبة + ضرائب' : 'Run your store on one system: POS, inventory, accounting & taxes'}
+                </h2>
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  {isAr
+                    ? 'شوف كل مميزات النظام بالتفصيل — المرتجعات، الورديات، التقارير، المتجر الإلكتروني، وأكثر.'
+                    : 'See every feature in detail — returns, shifts, reports, the online store, and more.'}
+                </p>
+              </div>
+              <div className="md:col-span-4 flex md:justify-end">
+                <span className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-amber-500/20">
+                  {isAr ? 'استكشف المميزات' : 'Explore features'}
+                  {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                </span>
+              </div>
+            </Link>
+          </Reveal>
+        </section>
 
         {/* Categories Section */}
         <section className="max-w-7xl mx-auto px-4">

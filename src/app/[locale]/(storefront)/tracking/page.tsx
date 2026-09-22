@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Search, Package, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import { ReturnRequestPanel, ReturnTrackerPanel } from '@/components/storefront/ReturnPortal';
 
 export default function TrackingPage() {
   const tCommon = useTranslations('common');
@@ -183,8 +184,16 @@ export default function TrackingPage() {
                 ))}
               </div>
             </div>
+
+            {/* Return Request (RMA portal) */}
+            <div className="border-t border-slate-800 pt-4">
+              <ReturnRequestPanel orderNumber={orderResult.orderNumber} phone={orderResult.guestPhone} />
+            </div>
           </div>
         )}
+
+        {/* Returns tracker (independent of order lookup) */}
+        <ReturnTrackerPanel />
       </main>
   );
 }

@@ -22,6 +22,7 @@
     "check:images": "npx tsx scripts/check-images.ts",
     "check:no-empty": "npx tsx scripts/check-no-empty.ts",
     "check:i18n": "npx tsx scripts/check-i18n.ts",
+    "test:dashboard": "npx tsx scripts/dashboard-audit.ts",
     "docs:client-inputs": "npx tsx scripts/generate-client-inputs.ts",
     "orders:expire": "npx tsx scripts/expire-unpaid-orders.ts",
     "refunds:process": "npx tsx scripts/process-refunds.ts",

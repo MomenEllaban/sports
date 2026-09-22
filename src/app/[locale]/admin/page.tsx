@@ -2,7 +2,7 @@ import React from 'react';
 import { StatusBadge } from '@/components/admin/ui';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
-import { DollarSign, ShoppingBag, Layers, MapPin, TrendingUp, AlertTriangle, Clock3, Inbox, Wallet } from 'lucide-react';
+import { DollarSign, ShoppingBag, Layers, MapPin, TrendingUp, AlertTriangle, Clock3, Inbox, Wallet, RotateCcw } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { requirePageRole } from '@/lib/auth/require-page';
 
@@ -25,7 +25,7 @@ export default async function AdminDashboardPage() {
   const [
     todayOrdersAgg, todaySalesAgg, todayOrdersCount, todaySalesCount,
     totalOrdersCount, totalSalesCount, branchesCount, productsCount,
-    pendingPay, receiptsToReview, openShifts, weekOrders, weekSales,
+    pendingPay, receiptsToReview, openShifts, pendingReturns, weekOrders, weekSales,
     recentOrders, lowStockItems,
   ] = await Promise.all([
     prisma.order.aggregate({ where: { createdAt: { gte: startOfToday } }, _sum: { totalAmount: true, taxAmount: true } }),
@@ -42,6 +42,7 @@ export default async function AdminDashboardPage() {
     }),
     prisma.order.count({ where: { receiptImage: { not: null }, paymentStatus: 'PENDING' } }),
     prisma.shift.count({ where: { status: 'OPEN' } }),
+    prisma.returnRequest.count({ where: { status: { in: ['REQUESTED', 'RECEIVED', 'REFUND_PENDING'] } } }),
     prisma.order.findMany({ where: { createdAt: { gte: weekAgo } }, select: { createdAt: true, totalAmount: true } }),
     prisma.sale.findMany({ where: { createdAt: { gte: weekAgo } }, select: { createdAt: true, totalAmount: true } }),
     prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' } }),
@@ -80,7 +81,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Action queues */}
-      {(pendingPay._count > 0 || receiptsToReview > 0 || openShifts > 0) && (
+      {(pendingPay._count > 0 || receiptsToReview > 0 || openShifts > 0 || pendingReturns > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {pendingPay._count > 0 && (
             <Link href="/admin/orders" className="min-h-[44px] p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs font-bold text-amber-300 hover:bg-amber-500/20">
@@ -98,6 +99,12 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/shifts" className="min-h-[44px] p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center gap-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20">
               <Clock3 className="w-4 h-4" />
               {openShifts} وردية مفتوحة الآن
+            </Link>
+          )}
+          {pendingReturns > 0 && (
+            <Link href="/admin/returns" className="min-h-[44px] p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center gap-2 text-xs font-bold text-orange-300 hover:bg-orange-500/20">
+              <RotateCcw className="w-4 h-4" />
+              {pendingReturns} مرتجع بانتظار إجراء (استلام / استرداد)
             </Link>
           )}
         </div>

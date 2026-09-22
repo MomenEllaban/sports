@@ -193,8 +193,8 @@ export default function AdminSidebar() {
   );
 
   return (
-    <aside className="w-64 bg-slate-900 border-l border-slate-800 flex flex-col justify-between shrink-0 min-h-screen">
-      <div className="p-4 space-y-6">
+    <aside className="w-64 h-full bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 min-h-0 overflow-y-auto">
+      <div className="p-4 space-y-6 flex-1">
         {/* Brand Header */}
         <Link href="/admin" className="flex items-center gap-3 border-b border-slate-800 pb-4">
           <Image

@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     if (isNaN(+from) || isNaN(+to)) return NextResponse.json({ success: false, error: 'Invalid dates' }, { status: 400 });
 
     const branchFilter = branchId ? { branchId } : {};
-    const [orderItems, saleItems, products, deadCutoff] = await Promise.all([
+    const [orderItems, saleItems, returnItems, products, deadCutoff] = await Promise.all([
       prisma.orderItem.findMany({
         where: { order: { createdAt: { gte: from, lte: to }, ...branchFilter } },
         include: { product: { select: { id: true, nameAr: true, nameEn: true, price: true, costPrice: true } }, order: { select: { branchId: true } } },
@@ -36,25 +36,54 @@ export async function GET(req: Request) {
         },
         take: 2000,
       }),
+      prisma.returnItem.findMany({
+        where: { return: { createdAt: { gte: from, lte: to }, ...branchFilter } },
+        include: {
+          product: { select: { id: true, nameAr: true, nameEn: true } },
+          return: { select: { branchId: true, status: true, channel: true } },
+        },
+        take: 2000,
+      }),
       prisma.product.findMany({ select: { id: true, nameAr: true, costPrice: true, price: true } }),
       new Date(Date.now() - deadDays * 86_400_000),
     ]);
 
-    // Product profitability (revenue − cost).
-    const byProduct = new Map<string, { nameAr: string; qty: number; revenue: number; cost: number }>();
+    // Returns (T-RMA §7): refund denominator subtracted from revenue/profit.
+    const returnsTotal = returnItems.reduce((s, i) => s + num(i.refundAmount), 0);
+    const activeReturns = returnItems.filter((i) => ['REQUESTED', 'RECEIVED', 'REFUND_PENDING'].includes(i.return.status));
+    const byReason = new Map<string, { count: number; amount: number }>();
+    const byReturnProduct = new Map<string, { nameAr: string; qty: number; refund: number }>();
+    for (const it of returnItems) {
+      const r = byReason.get(it.reasonCode) || { count: 0, amount: 0 };
+      r.count += 1;
+      r.amount += num(it.refundAmount);
+      byReason.set(it.reasonCode, r);
+      const p = byReturnProduct.get(it.productId) || { nameAr: it.product.nameAr, qty: 0, refund: 0 };
+      p.qty += it.quantity;
+      p.refund += num(it.refundAmount);
+      byReturnProduct.set(it.productId, p);
+    }
+
+    // Product profitability (net of returns).
+    const byProduct = new Map<string, { nameAr: string; qty: number; revenue: number; cost: number; refund: number }>();
     for (const it of [...orderItems, ...saleItems]) {
-      const cur = byProduct.get(it.productId) || { nameAr: it.product.nameAr, qty: 0, revenue: 0, cost: 0 };
+      const cur = byProduct.get(it.productId) || { nameAr: it.product.nameAr, qty: 0, revenue: 0, cost: 0, refund: 0 };
       cur.qty += it.quantity;
       cur.revenue += num(it.totalPrice);
       cur.cost += num(it.product.costPrice) * it.quantity;
       byProduct.set(it.productId, cur);
     }
+    for (const [id, p] of byReturnProduct) {
+      const entry = byProduct.get(id);
+      if (entry) entry.refund += p.refund;
+      else byProduct.set(id, { nameAr: p.nameAr, qty: p.qty, revenue: 0, cost: 0, refund: p.refund });
+    }
     const productProfit = [...byProduct.entries()]
-      .map(([id, v]) => ({ id, ...v, profit: Math.round((v.revenue - v.cost) * 100) / 100 }))
+      .map(([id, v]) => ({ id, ...v, profit: Math.round((v.revenue - v.cost - v.refund) * 100) / 100 }))
       .sort((a, b) => b.profit - a.profit)
       .slice(0, 50);
 
-    // Branch profitability.
+    // Branch profitability (net of returns).
     const byBranch = new Map<string, { revenue: number; orders: number; sales: number }>();
     for (const it of orderItems) {
       const cur = byBranch.get(it.order.branchId) || { revenue: 0, orders: 0, sales: 0 };
@@ -67,6 +96,11 @@ export async function GET(req: Request) {
       cur.revenue += num(it.totalPrice);
       cur.sales += 1;
       byBranch.set(it.sale.branchId, cur);
+    }
+    for (const it of returnItems) {
+      const cur = byBranch.get(it.return.branchId) || { revenue: 0, orders: 0, sales: 0 };
+      cur.revenue -= num(it.refundAmount);
+      byBranch.set(it.return.branchId, cur);
     }
     const branches = await prisma.branch.findMany({ select: { id: true, name: true } });
     const branchProfit = branches.map((b) => ({ id: b.id, name: b.name, ...(byBranch.get(b.id) || { revenue: 0, orders: 0, sales: 0 }) }));
@@ -129,6 +163,16 @@ export async function GET(req: Request) {
       deadDays,
       deadCutoff: deadCutoff.toISOString(),
       shipping: [...shipByProvider.entries()].map(([provider, v]) => ({ provider, ...v })),
+      returns: {
+        totalRefund: Math.round(returnsTotal * 100) / 100,
+        count: returnItems.length,
+        activeRequests: activeReturns.length,
+        byReason: [...byReason.entries()].map(([code, v]) => ({ code, ...v })).sort((a, b) => b.amount - a.amount),
+        byProduct: [...byReturnProduct.entries()]
+          .map(([id, v]) => ({ id, ...v, refund: Math.round(v.refund * 100) / 100 }))
+          .sort((a, b) => b.refund - a.refund)
+          .slice(0, 20),
+      },
     });
   } catch (e) {
     captureError('admin/reports/summary', e);

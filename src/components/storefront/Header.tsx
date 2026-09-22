@@ -41,6 +41,7 @@ export default function Header() {
   const navLinks = [
     { href: '/', label: tNav('home') },
     { href: '/catalog', label: tNav('catalog') },
+    { href: '/features', label: tNav('features') },
     { href: '/branches', label: tNav('branches') },
     { href: '/tracking', label: tNav('trackOrder') },
     { href: '/account', label: isAr ? 'حسابي' : 'My account' },

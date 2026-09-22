@@ -26,6 +26,8 @@
 | `a0141c9` | feat(seed): داتا ديمو idempotent (orders/sales/POs/transfers/payroll) |
 | `868407d` | perf(db) direct URL + AdminHeader role/ETA + LoginForm + POS header/offline toast + `scripts/cleanup-ops-data.ts` + أول نسخة من هذا الملف |
 | `c8c6ba5` | **merge origin/main** (20 commit ريموت + فض التعارضات + فيكس توست المزامنة) |
+| `876d7dc` + `5eec058` | fix(cleanup): حذف مبيعات الـ POS التجريبية على الـ live (idempotent, مرفوع) + إصلاح تسريب توكن من NEXT_TASK (secret scanning) |
+| *(محلي غير مرفوع)* | sidebar scroll fix (AdminChrome/AdminSidebar) + صفحة `/features` (12 وحدة، live counts) + كارت إيرادات الرئيسية + CTA + زر مميزات في الهيدر (ar/en) + بوابة مرتجعات العميل (ReturnPortal: wizard طلب + متتبع RTN) مربوطة في صفحة `tracking` + كارت مرتجعات الداشبورد + `reports/summary` بخصم المرتجعات + `scripts/dashboard-audit.ts` + `docs/DASHBOARD_TEST_LOG.md` + `docs/CLIENT_REPORT.md` |
 
 ### الـ 20 commit اللي جت من الريموت (متدمجة دلوقتي)
 returns/RMA خدمة موحدة + outbox payout / inventory (باركود labels, stocktake wizard, supplier returns) / ETA production mandates (GS1 UI + retry INVALID) / مدفوعات Paymob حقيقية (Auth→Order→Key→Iframe) + Fawry charge / Bosta+Mylerz عملاء حقيقيين / كوبونات-لويالتي-PIN / refunds (restock-first gateway retry worker) / داش بورد KPI + رسم بياني للايرادات / تقارير profitability-cashier-shipping-dead-stock CSV / variants display families / reviews + guest wishlist / portal saved addresses / rate limits (tracking + verified uploads) / **cashier shifts (POS بيقفل على وردية مفتوحة)** / settings registry + setup checklist + LocaleSwitcher.
@@ -82,7 +84,7 @@ returns/RMA خدمة موحدة + outbox payout / inventory (باركود labels
 - `ETA_SIGNING_URL` (ETA live)
 - `SETTINGS_ENCRYPTION_KEY` (تشفير أسرار الإعدادات)
 - `NEXT_PUBLIC_SITE_URL` (sitemap/metadata)
-- ⚠️ توكن Vercel الصحيح (momenellaban) محفوظ في `.env` فقط (gitignored). ملف `.env` الحالي فيه توكن قديم بحساب momendevelopertech — ممنوع استخدامه. فرق الـ deploy: team `momenellabans-projects`, project `sports`, alias `https://sports-livid-eight.vercel.app`.
+- ⚠️ توكن Vercel الصحيح (momenellaban): يُمرَّر inline فقط (ممنوع كتابته في git). ملف `.env` الحالي فيه توكن قديم بحساب momendevelopertech — ممنوع استخدامه. فرق الـ deploy: team `momenellabans-projects`, project `sports`, alias `https://sports-livid-eight.vercel.app`.
 
 ---
 
@@ -95,11 +97,13 @@ returns/RMA خدمة موحدة + outbox payout / inventory (باركود labels
 
 ## 8. To-Do الجلسة القادمة (بالترتيب)
 
-- [ ] 1. `git push origin main` (رفع الدمج `c8c6ba5`).
-- [ ] 2. `vercel deploy --prod` (توكن momenellaban) + smoke live: سرعة اللوجن (~200ms), زر اللغة في الناف بار, داش بورد فاضي من الديمو, POS شغال بـ shifts.
-- [ ] 3. إضافة مفاتيح الـ env الناقصة (سيكشن 6) لتفعيل المدفوعات/الشحن/ETA الحقيقية — أو إغلاقها تمامًا لو مش هتتستخدم.
-- [ ] 4. قرار مع المستخدم على فجوات HIGH المتبقية: أيونها نصلّح الآن؟ (أقترح: #3 audit log + #2 offline persistence أولًا).
-- [ ] 5. (اختياري) دمج `SYSTEM_AUDIT_AND_GAPS_REPORT.md` مع `docs/FINAL_REPORT.md` اللي جالنا من الريموت.
+- [x] ~1. رفع الدمج `c8c6ba5` → اترفع كـ `876d7dc` + `5eec058`.~
+- [x] ~2. deploy + smoke live (لوجن ~340ms دافي، داش بورد فاضي من الديمو، POS شغال بـ shifts).~
+- [ ] 3. **رفع الشغل المحلي الحالي** (sidebar/features/ReturnPortal/إلخ — السطر الأخير في جدول القسم 2) + `vercel deploy --prod` بع العدّ بناء سليم، ثم smoke live: /features، تتبع بورتال المرتجعات، الداشبورد (كارت مرتجعات), الـ sidebar مش بيرجع لفوق.
+- [ ] 4. إضافة مفاتيح الـ env الناقصة (سيكشن 6) لتفعيل المدفوعات/الشحن/ETA الحقيقية — أو إغلاقها تمامًا لو مش هتتستخدم.
+- [ ] 5. قرار مع المستخدم على فجوات HIGH المتبقية: أيونها نصلّح الآن؟ (أقترح: #3 audit log + #2 offline persistence أولًا).
+- [ ] 6. (اختياري) دمج `SYSTEM_AUDIT_AND_GAPS_REPORT.md` مع `docs/FINAL_REPORT.md` اللي جالنا من الريموت.
+- [ ] 7. تسليم T-RMA الباقية: تقرير مرتجعات في صفحة `/admin/reports` (الـ summary بيشتغل) + وثائق backfillLegacy/eta-retry returns + sandbox refunds اختبار يدوي.
 
 ---
 
@@ -108,6 +112,7 @@ returns/RMA خدمة موحدة + outbox payout / inventory (باركود labels
 - **الأوامر:** `npm run test:unit` • `npm run test:smoke` (`--env-file=.env`) • `npm run check:invariants` • `npx tsx scripts/cleanup-ops-data.ts` (آمن تكرار).
 - **تسجيل دخول الديمو:** `admin@sports-champions.local` / `Test@123456`.
 - **Cloudinary:** `CLOUDINARY_CLOUD_NAME="djseokhow"`.
-- ⚠️ **قاعدة الريبو:** `main` بيمنع **merge commits** (linear history مطلوب). أي دمج قادم = `git pull --rebase` ثم push، ولو في شغل محلي قديم استخدم `git reset --soft origin/main && git commit -m ...` ليصبح commit خطي واحد.
+- ⚠️ **قاعدة الريبو الحقيقية:** GitHub **Secret Scanning Push Protection (GH013)** — الـ push بيترفض لو احتوى على أي سر (توكن/مفتاح). السبب الفعلي لرفض push سابقًا كان توكن Vercel حقيقي داخل `NEXT_TASK.md` (اتشال + amended). الـ merge commits مسموحين. أي شغل محلي قديم = `git pull --rebase` ثم push (وفي حال مشكلة محلية `git reset --soft origin/main && git commit -m ...`).
+- ⚠️ **توكن Vercel الصحيح (momenellaban): زيك باقي الأسرار ممنوع كتابته في أي ملف مُتتبع (git) نهائيًا** — يُمرَّر inline في الأمر فقط (`.env` الحالي فيه التوكن الغلط بحساب momendevelopertech وملف Vercel المرفوع في repo doom‍екти). فرق الـ deploy: `.vercel/project.json` فيه `prj_wTqp2yHueHuT2IZEoXj3lTao19UP` / `team_rJB7wkXqAp13txO1LgdBJHrW` — `vercel deploy --prod --yes` بدون override لـ VERCEL_ORG_ID/PROJECT_ID.
 - ⚠️ الريموت عليه **collaborator نشط** بدفع بانتظام (returns/rea…). دايمًا `git fetch` + `--rebase` قبل الشغل.
 - **Neon:** pooler `DATABASE_URL` vs direct `DIRECT_URL` — الـ client على direct دائمًا (أسرع 5x).
