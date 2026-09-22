@@ -53,6 +53,7 @@ export default function AdminSidebar() {
       labelEn: 'Dashboard Overview',
       href: '/admin',
       icon: <LayoutDashboard className="w-5 h-5 text-blue-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
       key: 'orders',
@@ -60,6 +61,7 @@ export default function AdminSidebar() {
       labelEn: 'Orders Management',
       href: '/admin/orders',
       icon: <ShoppingBag className="w-5 h-5 text-amber-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
       key: 'products',
@@ -67,6 +69,7 @@ export default function AdminSidebar() {
       labelEn: 'Product Catalog',
       href: '/admin/products',
       icon: <Package className="w-5 h-5 text-emerald-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
       key: 'inventory',
@@ -74,6 +77,7 @@ export default function AdminSidebar() {
       labelEn: 'Inventory & Stock Transfers',
       href: '/admin/inventory',
       icon: <Layers className="w-5 h-5 text-purple-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.STAFF],
     },
     {
       key: 'purchasing',
@@ -89,6 +93,7 @@ export default function AdminSidebar() {
       labelEn: 'Customer Directory & Loyalty',
       href: '/admin/customers',
       icon: <Users className="w-5 h-5 text-indigo-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
       key: 'employees',
@@ -168,6 +173,7 @@ export default function AdminSidebar() {
       labelEn: 'Notification Center',
       href: '/admin/notifications',
       icon: <Bell className="w-5 h-5 text-rose-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE, Role.CASHIER, Role.STAFF],
     },
     {
       key: 'users',
@@ -213,12 +219,20 @@ export default function AdminSidebar() {
           </div>
         </Link>
 
-        {/* Quick Role Badge */}
-        <div className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-          <span className="text-slate-400 font-medium">الصلاحية:</span>
-          <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-            {userRole}
-          </span>
+        {/* User & Role Badge */}
+        <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400 text-[10px] font-medium">المستخدم المسجل:</span>
+            <span className="font-black text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+              {userRole}
+            </span>
+          </div>
+          <p className="font-black text-slate-100 text-xs truncate">
+            {session?.user?.name || (session?.user?.email ? session.user.email.split('@')[0] : 'مستخدم النظام')}
+          </p>
+          <p className="text-[10px] text-slate-400 font-mono truncate" dir="ltr">
+            {session?.user?.email || ''}
+          </p>
         </div>
 
         {/* Navigation Items */}

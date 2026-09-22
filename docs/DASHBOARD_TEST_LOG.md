@@ -1,6 +1,6 @@
 # Dashboard Test Log — automated flow
 
-> Generated 2026-09-22T09:05:08.866Z · no-browser audit (pages + loaders + security + link integrity).
+> Generated 2026-09-22T09:48:21.640Z · no-browser audit (pages + loaders + security + link integrity).
 
 ## Summary
 
@@ -52,7 +52,7 @@
 | ✅ | /admin/login/page.tsx | public login, redirects to /admin/dashboard when already signed in |
 | ✅ | /admin/notifications/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER', 'CASHIER', 'STAFF' |
 | ✅ | /admin/orders/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/payroll/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE' |
 | ✅ | /admin/products/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/purchasing/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |

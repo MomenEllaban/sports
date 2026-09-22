@@ -16,7 +16,7 @@ const DAY = 86_400_000;
  * open shifts). Tablet-first responsive.
  */
 export default async function AdminDashboardPage() {
-  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE');
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const weekAgo = new Date(Date.now() - 6 * DAY);

@@ -51,12 +51,34 @@ export async function seedEmployees(db: PrismaClient) {
   ];
   // NOTE: staff.ibrahimeyah user exists once; warehouse staff links to same user (demo data).
   let n = 0;
-  for (const d of defs) {
+  for (let i = 0; i < defs.length; i++) {
+    const d = defs[i];
+    const empId = `emp-${i + 1}-${d.email.split('@')[0]}`;
     const user = await db.user.findUnique({ where: { email: d.email } });
+    // Check if this user is already linked to an employee (since userId is @unique on Employee)
+    const existingEmployee = user ? await db.employee.findUnique({ where: { userId: user.id } }) : null;
+    const canLinkUser = user && (!existingEmployee || existingEmployee.id === empId);
+
     await db.employee.upsert({
-      where: { id: `emp-${d.email.split('@')[0]}` },
-      create: { id: `emp-${d.email.split('@')[0]}`, userId: user?.id || null, name: d.name, phone: d.phone, roleTitle: d.roleTitle, salary: d.salary, salaryType: d.type, commissionRate: d.comm, branchId: d.branch, isActive: true },
-      update: { name: d.name, salary: d.salary, commissionRate: d.comm, isActive: true },
+      where: { id: empId },
+      create: {
+        id: empId,
+        userId: canLinkUser ? user.id : null,
+        name: d.name,
+        phone: d.phone,
+        roleTitle: d.roleTitle,
+        salary: d.salary,
+        salaryType: d.type,
+        commissionRate: d.comm,
+        branchId: d.branch,
+        isActive: true,
+      },
+      update: {
+        name: d.name,
+        salary: d.salary,
+        commissionRate: d.comm,
+        isActive: true,
+      },
     });
     n++;
   }
