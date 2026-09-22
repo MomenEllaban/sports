@@ -24,6 +24,6 @@ describe('seed:minimal idempotency (integration, test schema)', () => {
     await seedSettings(db);
     const c2 = { b: await db.branch.count(), c: await db.category.count(), s: await db.setting.count() };
     expect(c2).toEqual(c1);
-    expect(c1).toEqual({ b: 2, c: 6, s: 52 });
+    expect(c1).toEqual({ b: 2, c: 6, s: 73 });
   }, 180000);
 });

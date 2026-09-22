@@ -46,6 +46,27 @@
 | قالب تأكيد الطلب (`whatsapp.templateOrder`) | واتساب للأعمال | لا | CLIENT | `"order_confirmation"` | اسم القالب المعتمد في Meta (مثل order_confirmation).|
 | تفعيل بوابة العميل (`portal.enabled`) | بوابة العميل | لا | CLIENT | `true` | إتاحة دخول العملاء لمتابعة طلباتهم ونقاطهم.|
 | وضع التحقق OTP (`portal.otpMode`) | بوابة العميل | لا | CLIENT | `"off"` | off: دخول برقم الطلب (حالياً). sms: يتطلب OTP — يُفعّل بعد تركيب مزود SMS (T-مستقبل).|
+| تفعيل المرتجعات (`returns.enabled`) | المرتجعات والاستبدال | نعم | CLIENT | `true` | إتاحة طلبات المرتجع/الاستبدال في كل القنوات.|
+| مدة الاسترجاع (أيام) (`returns.windowDays`) | المرتجعات والاستبدال | نعم | CLIENT | `14` | خلالها يُقبل المرتجع من تاريخ التسليم/البيع.|
+| مدة الاستبدال (أيام) (`returns.exchangeWindowDays`) | المرتجعات والاستبدال | لا | CLIENT | `14` | لتغيير المقاس عادة. اتركها فارغة = نفس مدة الاسترجاع.|
+| أقسام غير قابلة للاسترجاع (`returns.nonReturnableCategories`) | المرتجعات والاستبدال | لا | CLIENT | `["swimming-gear","medical-protection"]` | slugs الأقسام المستثناة (مثل ملابس السباحة والدعامات لأسباب صحية) — قرارك.|
+| الإيصال إجباري في POS؟ (`returns.requireReceipt`) | المرتجعات والاستبدال | لا | CLIENT | `true` | بدونه: البحث برقم الهاتف + موافقة مدير بـ PIN.|
+| أكواد الأسباب (`returns.reasons`) | المرتجعات والاستبدال | لا | CLIENT | `["SIZE_ISSUE","DEFECTIVE","WRONG_ITEM","NOT_AS_DESCRIBED","CHANGED_MIND","OTHER"]` | القائمة المعتمدة للأسباب (SIZE_ISSUE/DEFECTIVE/WRONG_ITEM/NOT_AS_DESCRIBED/CHANGED_MIND/OTHER).|
+| أسباب تتطلب صورة (`returns.requirePhotoForReasons`) | المرتجعات والاستبدال | لا | CLIENT | `["DEFECTIVE"]` | مثل DEFECTIVE — صورة إثبات إجبارية عند الطلب.|
+| سياسة رد التوصيل (`returns.refundDeliveryFee`) | المرتجعات والاستبدال | نعم | ACCOUNTANT | `"FULL_RETURN_OR_OUR_FAULT"` | ALWAYS أو FULL_RETURN_OR_OUR_FAULT أو NEVER — راجعها مع المحاسب.|
+| رسوم إعادة التخزين % (`returns.restockingFeePct`) | المرتجعات والاستبدال | لا | CLIENT | `0` | تُخصم فقط لسبب CHANGED_MIND عند التفعيل (0 = معطلة).|
+| من يدفع شحن الإرجاع؟ (`returns.whoPaysReturnShipping`) | المرتجعات والاستبدال | لا | CLIENT | `"STORE_IF_OUR_FAULT"` | CUSTOMER أو STORE أو STORE_IF_OUR_FAULT.|
+| حد الاسترداد النقدي لموافقة المدير (ج.م) (`returns.cashRefundManagerThreshold`) | المرتجعات والاستبدال | لا | CLIENT | `500` | فوقه يلزم PIN مدير في POS.|
+| سقف الاعتماد التلقائي في POS (ج.م) (`returns.autoApproveMaxValue`) | المرتجعات والاستبدال | لا | CLIENT | `1000` | مرتجع المحل داخله يُعتمد تلقائياً، وفوقه بـ PIN.|
+| حد مرتجعات العميل شهرياً (تحذير) (`returns.maxReturnsPerCustomerPerMonth`) | المرتجعات والاستبدال | لا | CLIENT | `5` | تجاوزه تنبيه فقط لا منع.|
+| طرق الاسترداد المسموحة (`returns.allowedRefundMethods`) | المرتجعات والاستبدال | لا | CLIENT | `["CASH","ORIGINAL_GATEWAY","INSTAPAY","VODAFONE","BANK_TRANSFER"]` | CASH/ORIGINAL_GATEWAY/INSTAPAY/VODAFONE/BANK_TRANSFER.|
+| مدة المعالجة المعلنة (ساعات) (`returns.slaHours`) | المرتجعات والاستبدال | لا | CLIENT | `72` | تظهر للعميل في صفحة الحالة.|
+| نص السياسة (عربي/إنجليزي) (`returns.policyText`) | المرتجعات والاستبدال | لا | CLIENT | `[{"ar":"الاستبدال والاسترجاع خلال 14 يوماً بالفاتورة","en":"Returns within 14 days with receipt"}]` | يظهر في المتجر والإيصال. اكتبه بصياغتك النهائية.|
+| الاستلام الافتراضي (`returns.receiveBranchDefault`) | المرتجعات والاستبدال | لا | CLIENT | `"SALE_BRANCH"` | SALE_BRANCH (فرع البيع) أو معرف فرع ثابت.|
+| شحن الإرجاع العكسي (`returns.reverseCourierEnabled`) | المرتجعات والاستبدال | لا | CLIENT | `false` | يتطلب إعداد Bosta reverse — وإلا الاستلام في الفرع فقط.|
+| السماح بسالب الولاء عند المرتجع (`loyalty.allowNegativeOnReturn`) | المرتجعات والاستبدال | لا | CLIENT | `true` | الافتراضي: سالب صغير مسموح مع منع الاستبدال حتى التعويض.|
+| استعادة الكوبون عند الإرجاع الكامل (`coupons.restoreOnFullReturn`) | المرتجعات والاستبدال | لا | CLIENT | `false` | الافتراضي: لا تُستعاد الاستخدامات.|
+| إشعار واتساب لحالات المرتجع (`returns.notifyWhatsapp`) | المرتجعات والاستبدال | لا | CLIENT | `true` | يعمل فقط لو تكامل واتساب مفعّل.|
 | حد تتبع الطلبات / دقيقة / IP (`ratelimit.trackPerMin`) | الأمان والحدود | لا | DEV | `30` | يمنع تخمين أرقام الطلبات آلياً. الافتراضي 30.|
 | حد محاولات دخول البورتال / دقيقة (`ratelimit.portalLoginPerMin`) | الأمان والحدود | لا | DEV | `10` | يمنع التخمين على البورتال. الافتراضي 10.|
 | حد رفع الإيصالات / دقيقة / IP (`ratelimit.uploadPerMin`) | الأمان والحدود | لا | DEV | `20` | يمنع إغراق التخزين. الافتراضي 20.|

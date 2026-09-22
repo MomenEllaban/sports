@@ -70,6 +70,28 @@ const DEFAULTS: Record<string, unknown> = {
   'discount.stacking': { allowCouponLoyalty: true, allowCouponPin: false },
   // T12 — dead stock window.
   'reports.deadStockDays': 60,
+  // T-RMA returns policy (safe defaults, DEFAULT_UNCONFIRMED).
+  'returns.enabled': true,
+  'returns.windowDays': 14,
+  'returns.exchangeWindowDays': 14,
+  'returns.nonReturnableCategories': ['swimming-gear', 'medical-protection'],
+  'returns.requireReceipt': true,
+  'returns.reasons': ['SIZE_ISSUE', 'DEFECTIVE', 'WRONG_ITEM', 'NOT_AS_DESCRIBED', 'CHANGED_MIND', 'OTHER'],
+  'returns.requirePhotoForReasons': ['DEFECTIVE'],
+  'returns.refundDeliveryFee': 'FULL_RETURN_OR_OUR_FAULT',
+  'returns.restockingFeePct': 0,
+  'returns.whoPaysReturnShipping': 'STORE_IF_OUR_FAULT',
+  'returns.cashRefundManagerThreshold': 500,
+  'returns.autoApproveMaxValue': 1000,
+  'returns.maxReturnsPerCustomerPerMonth': 5,
+  'returns.allowedRefundMethods': ['CASH', 'ORIGINAL_GATEWAY', 'INSTAPAY', 'VODAFONE', 'BANK_TRANSFER'],
+  'returns.slaHours': 72,
+  'returns.policyText': [{ ar: 'الاستبدال والاسترجاع خلال 14 يوماً بالفاتورة', en: 'Returns within 14 days with receipt' }],
+  'returns.receiveBranchDefault': 'SALE_BRANCH',
+  'returns.reverseCourierEnabled': false,
+  'loyalty.allowNegativeOnReturn': true,
+  'coupons.restoreOnFullReturn': false,
+  'returns.notifyWhatsapp': true,
   // T07 — size charts per category slug.
   'sizecharts': [
     { category: 'apparel-footwear', titleAr: 'جدول مقاسات الملابس', titleEn: 'Apparel size chart', columns: ['المقاس', 'الصدر (سم)', 'الطول (سم)'], rows: [['S', '88-93', '66'], ['M', '94-99', '69'], ['L', '100-105', '71'], ['XL', '106-111', '74'], ['XXL', '112-117', '76']] },
