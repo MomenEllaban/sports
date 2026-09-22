@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
+import { useSession } from 'next-auth/react';
 import { LocaleSwitcher, Stepper, ConfirmDialog } from '@/components/ui/foundation';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
@@ -20,6 +21,8 @@ interface DbProduct {
 
 export default function PosTerminalPage() {
   const { toast } = useToast();
+  const { data: session } = useSession();
+  const cashierName = session?.user?.name || (session?.user?.email ? session.user.email.split('@')[0] : '');
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -429,6 +432,9 @@ export default function PosTerminalPage() {
         timestamp: new Date().toISOString(),
       });
       clearTicket();
+      const queuedMsg = 'لا يوجد اتصال: حُفظت الفاتورة محلياً وستُزامن تلقائياً لاحقاً.';
+      setSaleError(queuedMsg);
+      toast(queuedMsg, 'error');
     } finally {
       setProcessing(false);
     }
@@ -438,6 +444,7 @@ export default function PosTerminalPage() {
     if (offlineQueue.length === 0 || syncing) return;
     setSyncing(true);
     setSaleError('');
+    const queuedCount = offlineQueue.length;
     const remaining: typeof offlineQueue = [];
     for (const sale of offlineQueue) {
       try {
@@ -466,7 +473,7 @@ export default function PosTerminalPage() {
       const msg = `تعذر مزامنة ${remaining.length} فاتورة. سيُعاد المحاولة لاحقاً.`;
       setSaleError(msg);
       toast(msg, 'error');
-    } else if (offlineQueue.length > 0) {
+    } else if (queuedCount > 0) {
       toast('تم مزامنة كل الفواتير المعلقة بنجاح', 'success');
     }
     setSyncing(false);
@@ -540,12 +547,12 @@ export default function PosTerminalPage() {
               </button>
             </>
           )}
-          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1">
-            <Check className="w-3.5 h-3.5" /> مصلحة الضرائب ETA متصلة
+          <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-bold flex items-center gap-1">
+            <Check className="w-3.5 h-3.5 text-amber-400" /> مصلحة الضرائب ETA (وضع تجريبي)
           </span>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 text-slate-300">
             <User className="w-4 h-4 text-blue-400" />
-            <span>كاشير: سارة فهمي</span>
+            <span>{cashierName ? `كاشير: ${cashierName}` : 'كاشير'}</span>
           </div>
         </div>
       </header>

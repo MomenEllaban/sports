@@ -9,8 +9,8 @@ import Image from 'next/image';
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const t = useTranslations('auth');
-  const [email, setEmail] = useState('admin@sports-champions.local');
-  const [password, setPassword] = useState('Test@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
@@ -110,15 +110,6 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           {loading ? t('loading') : t('submit')}
         </button>
       </form>
-
-      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-        <div className="font-bold text-slate-200">{t('demoAccounts')}</div>
-        <div className="font-mono" dir="ltr">password for all: Test@123456</div>
-        <div>• Admin: admin@sports-champions.local</div>
-        <div>• Manager: manager.ibrahimeyah@sports-champions.local</div>
-        <div>• Cashier: cashier.ibrahimeyah@sports-champions.local</div>
-        <div>• Finance: finance@sports-champions.local</div>
-      </div>
     </div>
   );
 }
