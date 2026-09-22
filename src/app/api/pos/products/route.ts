@@ -40,6 +40,7 @@ export async function GET(req: Request) {
     const role = session!.user?.role as Role | undefined;
     const userId = session!.user?.id;
     const branchParam = new URL(req.url).searchParams.get('branchId');
+    const q = (new URL(req.url).searchParams.get('q') || '').trim().slice(0, 60);
 
     let ctx;
     try {
@@ -63,7 +64,20 @@ export async function GET(req: Request) {
     }
 
     const products = await prisma.product.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(q
+          ? {
+              OR: [
+                { nameAr: { contains: q, mode: 'insensitive' } },
+                { nameEn: { contains: q, mode: 'insensitive' } },
+                { sku: { contains: q, mode: 'insensitive' } },
+                { barcode: { contains: q } },
+              ],
+            }
+          : {}),
+      },
+      ...(q ? { take: 50 } : {}),
       include: {
         inventories: {
           where: { branchId: ctx.branch.id },

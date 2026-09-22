@@ -38,6 +38,8 @@ interface OrderRow {
   paymentStatus: string;
   receiptImage?: string | null;
   refund?: { id: string; status: string; amount: number; lastError?: string | null } | null;
+  returnStatus?: string;
+  returns?: Array<{ id: string; returnNumber: string; status: string }>;
   createdAt: string;
   items: OrderItem[];
   customer: { id: string; name: string | null; phone: string } | null;
@@ -415,6 +417,31 @@ export default function OrdersManager({
                           >
                             {isAr ? 'استرداد الطلب...' : 'Refund order...'}
                           </button>
+                        )}
+                        {/* T-RMA returns section */}
+                        {ord.kind === 'ORDER' && (
+                          <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
+                            <div className="flex flex-wrap justify-between items-center gap-2">
+                              <span className="font-bold text-slate-300">
+                                {isAr ? 'المرتجعات' : 'Returns'}:
+                                <span className={`ml-1 px-2 py-0.5 rounded-lg text-[10px] ${ord.returnStatus === 'FULL' ? 'bg-emerald-500/15 text-emerald-400' : ord.returnStatus === 'PARTIAL' ? 'bg-amber-500/15 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>
+                                  {ord.returnStatus === 'FULL' ? (isAr ? 'كامل' : 'Full') : ord.returnStatus === 'PARTIAL' ? (isAr ? 'جزئي' : 'Partial') : (isAr ? 'بلا' : 'None')}
+                                </span>
+                              </span>
+                              <Link href={`/admin/returns/new?orderNumber=${encodeURIComponent(ord.orderNumber)}`} className="min-h-[44px] px-3 rounded-lg bg-orange-600/20 border border-orange-500/40 text-orange-300 font-bold flex items-center">
+                                {isAr ? 'طلب مرتجع' : 'New return'}
+                              </Link>
+                            </div>
+                            {(ord.returns || []).length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {(ord.returns || []).map((rm) => (
+                                  <Link key={rm.id} href={`/admin/returns/${rm.id}`} className="font-mono text-[11px] text-amber-400 hover:underline" dir="ltr">
+                                    {rm.returnNumber} ({rm.status})
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         )}
                         {ord.kind === 'ORDER' && ord.receiptImage && (
                           <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-amber-500/30 flex items-center gap-3">

@@ -18,6 +18,7 @@ import {
   BarChart3,
   Bell,
   Clock3,
+  RotateCcw,
   Star,
   TicketPercent,
   Settings,
@@ -120,6 +121,14 @@ export default function AdminSidebar() {
       href: '/admin/cod-settlement',
       icon: <HandCoins className="w-5 h-5 text-teal-400" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
+    },
+    {
+      key: 'returns',
+      labelAr: 'المرتجعات والاستبدال',
+      labelEn: 'Returns & Exchange',
+      href: '/admin/returns',
+      icon: <RotateCcw className="w-5 h-5 text-orange-400" />,
+      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
       key: 'reviews',
