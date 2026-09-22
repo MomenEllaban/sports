@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
 import { LocaleSwitcher, Stepper, ConfirmDialog } from '@/components/ui/foundation';
+import PosReturnWizard from '@/components/pos/ReturnWizard';
 import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -109,6 +110,8 @@ export default function PosTerminalPage() {
   const [closeBusy, setCloseBusy] = useState(false);
   const [closeError, setCloseError] = useState('');
   const [closeResult, setCloseResult] = useState<{ expected: number; actual: number; difference: number } | null>(null);
+  // T-RMA return/exchange wizard.
+  const [showReturnWizard, setShowReturnWizard] = useState(false);
 
   const fetchShiftStatus = async () => {
     try {
@@ -518,6 +521,12 @@ export default function PosTerminalPage() {
         {/* Cashier Info */}
         <div className="flex items-center gap-3 text-xs">
           <LocaleSwitcher />
+          <button
+            onClick={() => setShowReturnWizard(true)}
+            className="min-h-[44px] px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-1"
+          >
+            مرتجع / استبدال
+          </button>
           {shift && (
             <>
               <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
@@ -1050,8 +1059,7 @@ export default function PosTerminalPage() {
       </div>
       )}
 
-      {/* Close-shift wizard */}
-      {showClose && closePreview && (
+      {/* Close-shift wizard */}      {showClose && closePreview && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70" onClick={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }}>
           <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <Stepper steps={['عد النقدية بالدرج', 'راجع الفرق', 'تأكيد الإغلاق']} active={closeResult ? 2 : 1} />
@@ -1111,6 +1119,11 @@ export default function PosTerminalPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* T-RMA return/exchange wizard */}
+      {showReturnWizard && (
+        <PosReturnWizard onClose={() => setShowReturnWizard(false)} onDone={() => { fetchPosProducts(); }} />
       )}
 
       {/* Printable Receipt Modal with ETA QR Code */}
