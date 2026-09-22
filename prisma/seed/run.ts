@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { assertDevelopment } from '../../src/lib/env-guard.js';
 import { seedBranches } from './branches.js';
@@ -10,7 +11,9 @@ import { seedSettings } from './settings.js';
 import { seedTransactions } from './transactions.js';
 import { MANAGER_PINS } from './users.js';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.DIRECT_URL || process.env.DATABASE_URL } },
+});
 const SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Test@123456';
 
 export async function seedMinimal() {
@@ -65,6 +68,12 @@ async function main() {
     console.log('wiped app tables (development only)');
   }
   if (mode === 'transactions') {
+    console.log('Seeding suppliers, customers, employees, expenses...');
+    await seedSuppliers(prisma);
+    await seedCustomers(prisma);
+    await seedEmployees(prisma);
+    await seedExpenses(prisma);
+    console.log('Seeding transactions...');
     const counts = await seedTransactions(prisma);
     console.log('\n==== TRANSACTIONS SEED ====');
     for (const [k, v] of Object.entries(counts)) console.log(`  ${k}: ${v}`);

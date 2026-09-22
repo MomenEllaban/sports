@@ -173,7 +173,7 @@ async function main() {
   console.log(`  RESULT: ${pass} passed, ${fail} failed`);
   console.log(LINE);
 
-  let md = `# Dashboard Test Log — automated flow\n\n> Generated ${new Date().toISOString()} · no-browser audit (pages + loaders + security + link integrity).\n\n## Summary\n\n- **Passed:** ${pass}\n- **Failed:** ${fail}\n\n## Checks\n\n| Status | Check | Detail |\n| --- | --- | --- |\n${rows.join('\n')}\n${fail ? `\n## Failures\n- ${failLines.join('\n- ')}` : '\n## Failures\n\nNone — all checks passed.'}\n`;
+  const md = `# Dashboard Test Log — automated flow\n\n> Generated ${new Date().toISOString()} · no-browser audit (pages + loaders + security + link integrity).\n\n## Summary\n\n- **Passed:** ${pass}\n- **Failed:** ${fail}\n\n## Checks\n\n| Status | Check | Detail |\n| --- | --- | --- |\n${rows.join('\n')}\n${fail ? `\n## Failures\n- ${failLines.join('\n- ')}` : '\n## Failures\n\nNone — all checks passed.'}\n`;
   mkdirSync(join(ROOT, 'docs'), { recursive: true });
   writeFileSync(join(ROOT, 'docs', 'DASHBOARD_TEST_LOG.md'), md, 'utf8');
   console.log(`Log written to docs/DASHBOARD_TEST_LOG.md`);

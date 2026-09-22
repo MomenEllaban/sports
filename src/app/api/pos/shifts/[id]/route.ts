@@ -12,9 +12,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const { error, session } = await requireRole(...POS_ROLES);
     if (error) return error;
     const { id } = await params;
-    const shift = await prisma.shift.findUnique({ where: { id } });
+    const shift = await prisma.shift.findUnique({ where: { id }, include: { branch: true, cashier: true } });
     const cashierId = (session?.user as { id?: string })?.id;
-    if (!shift || shift.cashierId !== cashierId) return NextResponse.json({ success: false, error: 'الوردية غير موجودة' }, { status: 404 });
+    const role = session?.user?.role;
+    const isPrivileged = role === 'SUPER_ADMIN' || role === 'BRANCH_MANAGER' || role === 'FINANCE';
+    if (!shift || (!isPrivileged && shift.cashierId !== cashierId)) {
+      return NextResponse.json({ success: false, error: 'الوردية غير موجودة' }, { status: 404 });
+    }
     if (shift.status !== 'OPEN') return NextResponse.json({ success: false, error: 'الوردية مغلقة بالفعل' }, { status: 409 });
     const expected = await expectedCashFor(shift.id, num(shift.openingFloat));
     const maxShortage = await getSetting<number>('shifts.maxShortage', 50).catch(() => 50);
@@ -36,15 +40,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (error) return error;
     const { id } = await params;
     const cashierId = (session?.user as { id?: string })?.id;
+    const role = session?.user?.role;
     if (!cashierId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    const isPrivileged = role === 'SUPER_ADMIN' || role === 'BRANCH_MANAGER' || role === 'FINANCE';
+    const shift = await prisma.shift.findUnique({ where: { id } });
+    if (!shift || (!isPrivileged && shift.cashierId !== cashierId)) {
+      return NextResponse.json({ success: false, error: 'الوردية غير موجودة' }, { status: 404 });
+    }
     const body = await req.json();
     const maxShortage = await getSetting<number>('shifts.maxShortage', 50).catch(() => 50);
+    const closeNote = isPrivileged && shift.cashierId !== cashierId
+      ? `[إغلاق إداري بواسطة ${session?.user?.name || role}]: ${body.closeNote || 'تسوية إدارية'}`
+      : typeof body.closeNote === 'string' ? body.closeNote : undefined;
     try {
       const r = await closeShift({
         shiftId: id,
-        cashierId,
+        cashierId: shift.cashierId,
         actualCash: Number(body.actualCash),
-        closeNote: typeof body.closeNote === 'string' ? body.closeNote : undefined,
+        closeNote,
         maxShortage,
       });
       return NextResponse.json({ success: true, ...r });

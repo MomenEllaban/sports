@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
 import { useSession } from 'next-auth/react';
-import { LocaleSwitcher, Stepper, ConfirmDialog } from '@/components/ui/foundation';
+import { LocaleSwitcher, Stepper } from '@/components/ui/foundation';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
-import { ShoppingCart, Search, Barcode, Printer, User, Check, Tag, Award, X } from 'lucide-react';
+import PosPaymentModal from '@/components/pos/PosPaymentModal';
+import PosReceiptModal, { type PosReceiptData } from '@/components/pos/PosReceiptModal';
+import { ShoppingCart, Barcode, Printer, User, Check, X, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface DbProduct {
@@ -27,33 +29,19 @@ export default function PosTerminalPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [receiptData, setReceiptData] = useState<{
-    saleNumber: string;
-    items: Array<{ name: string; qty: number; price: number; total: number }>;
-    subtotal: number;
-    vat: number;
-    discount: number;
-    total: number;
-    paymentMethod: 'CASH' | 'CARD' | 'INSTAPAY';
-    tendered: number;
-    change: number;
-    reference: string | null;
-    customerName: string | null;
-    customerPhone: string | null;
-    loyaltyEarned: number;
-    qrCodeUrl: string;
-    timestamp: string;
-  } | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [posReceipt, setPosReceipt] = useState<PosReceiptData | null>(null);
 
-  const [managerPin, setManagerPin] = useState('');
+  // Discount & coupon state
   const [discountInput, setDiscountInput] = useState('');
+  const [managerPin, setManagerPin] = useState('');
   const [pinError, setPinError] = useState(false);
   // T16: coupon + loyalty inputs (server recomputes authoritatively).
   const [couponInput, setCouponInput] = useState('');
   const [loyaltyInput, setLoyaltyInput] = useState('');
 
   // Payment step state: method tabs + tendered/change + confirm
-  const [payMethod, setPayMethod] = useState<'CASH' | 'CARD' | 'INSTAPAY'>('CASH');
+  const [payMethod, setPayMethod] = useState<'CASH' | 'CARD' | 'INSTAPAY' | 'FAWRY' | 'VODAFONE_CASH'>('CASH');
   const [tenderedInput, setTenderedInput] = useState('');
   const [referenceInput, setReferenceInput] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -67,7 +55,6 @@ export default function PosTerminalPage() {
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerLoading, setNewCustomerLoading] = useState(false);
-  const customerInputRef = useRef<HTMLInputElement>(null);
 
   const {
     ticketItems,
@@ -87,17 +74,26 @@ export default function PosTerminalPage() {
   const [loadError, setLoadError] = useState('');
   const [saleError, setSaleError] = useState('');
   const [syncing, setSyncing] = useState(false);
-  const [lastChange, setLastChange] = useState(0);
-
-  const total = getTotalAmount();
-  const tendered = Number(tenderedInput) || 0;
-  const change = payMethod === 'CASH' && tenderedInput !== '' ? Math.max(0, Math.round((tendered - total) * 100) / 100) : 0;
-  const tenderedShort = payMethod === 'CASH' && tenderedInput !== '' && tendered < total;
 
   useEffect(() => {
     fetchPosProducts();
     fetchShiftStatus();
-  }, []);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F10') {
+        e.preventDefault();
+        if (ticketItems.length > 0) {
+          setShowPaymentModal(true);
+        }
+      } else if (e.key === 'Escape') {
+        setShowPaymentModal(false);
+        setShowReceiptModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [ticketItems.length]);
 
   // ── T05 shift gate ─────────────────────────────────────
   const [shift, setShift] = useState<{ id: string; branchId: string; branchName: string; openedAt: string; openingFloat: number } | null>(null);
@@ -133,11 +129,16 @@ export default function PosTerminalPage() {
     e.preventDefault();
     setOpenBusy(true);
     setOpenError('');
+    const chosenBranch = posBranchId || (branchOptions.length > 0 ? branchOptions[0].id : undefined);
     try {
       const res = await fetch('/api/pos/shifts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branchId: posBranchId || undefined, openingFloat: openFloat === '' ? undefined : Number(openFloat), openNote: openNote || undefined }),
+        body: JSON.stringify({
+          branchId: chosenBranch || undefined,
+          openingFloat: openFloat === '' ? undefined : Number(openFloat),
+          openNote: openNote || undefined,
+        }),
       });
       const data = await res.json();
       if (data.success && data.shift) {
@@ -145,7 +146,7 @@ export default function PosTerminalPage() {
         setOpenFloat('');
         setOpenNote('');
         await fetchShiftStatus();
-        await fetchPosProducts();
+        await fetchPosProducts(chosenBranch);
       } else {
         setOpenError(data.error || 'تعذر فتح الوردية');
       }
@@ -283,19 +284,21 @@ export default function PosTerminalPage() {
     }
   };
 
-  const searchCustomer = async () => {
-    if (!customerPhone || customerPhone.length < 5) return;
+  const searchCustomer = async (overridePhone?: string) => {
+    const phone = typeof overridePhone === 'string' ? overridePhone.trim() : customerPhone.trim();
+    if (!phone || phone.length < 5) return;
+    setCustomerPhone(phone);
     setCustomerSearching(true);
     setCustomerError('');
     try {
-      const res = await fetch(`/api/pos/customer?phone=${encodeURIComponent(customerPhone)}`);
+      const res = await fetch(`/api/pos/customer?phone=${encodeURIComponent(phone)}`);
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.customer) {
         setCustomer(data.customer);
         setCustomerError('');
       } else {
         setCustomer(null);
-        setCustomerError('العميل غير موجود — سيتم البيع بدون ربط');
+        setCustomerError('العميل غير مسجل — يمكنك الضغط على عميل جديد سريع');
       }
     } catch {
       setCustomerError('تعذر البحث');
@@ -341,6 +344,9 @@ export default function PosTerminalPage() {
     if (ticketItems.length === 0 || processing) return;
     setSaleError('');
 
+    const total = getTotalAmount();
+    const tendered = Number(tenderedInput) || 0;
+
     // Cash validation: tendered must cover total
     if (payMethod === 'CASH' && tenderedInput !== '' && tendered < total) {
       setSaleError(`المبلغ المستلم (${tendered.toLocaleString()}) أقل من الإجمالي (${total.toLocaleString()})`);
@@ -376,38 +382,44 @@ export default function PosTerminalPage() {
 
       const data = await res.json();
       if (data.success) {
-        setLastChange(paidChange);
-        toast(`تم حفظ الفاتورة ${data.saleNumber} بنجاح`, 'success');
-        setReceiptData({
+        setPosReceipt({
           saleNumber: data.saleNumber,
+          branchName: activeBranch?.name || 'الفرع الرئيسي',
+          cashierName: cashierName || 'الكاشير',
+          createdAt: new Date().toISOString(),
           items: ticketItems.map((i) => ({
-            name: i.nameAr,
-            qty: i.quantity,
-            price: i.unitPrice,
-            total: i.unitPrice * i.quantity,
+            nameAr: i.nameAr,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
           })),
           subtotal: data.subtotal ?? getSubtotal(),
           vat: data.vatAmount ?? getVatAmount(),
           discount: data.discountAmount ?? discountAmount,
-          total: data.totalAmount,
-          paymentMethod: payMethod,
-          tendered: paidTendered,
-          change: paidChange,
-          reference: referenceInput.trim() || null,
-          customerName: customer?.name || null,
-          customerPhone: customer?.phone || null,
-          loyaltyEarned: data.loyaltyEarned ?? 0,
-          qrCodeUrl: data.qrCodeDataUrl,
-          timestamp: new Date().toLocaleString('ar-EG'),
+          total: data.totalAmount ?? getTotalAmount(),
+          paymentMethod:
+            payMethod === 'CASH'
+              ? 'كاش (نقداً)'
+              : payMethod === 'CARD'
+              ? 'بطاقة / فيزا'
+              : payMethod === 'INSTAPAY'
+              ? 'انستاباي'
+              : payMethod === 'FAWRY'
+              ? 'فوري كود'
+              : 'محفظة إلكترونية',
+          tendered: payMethod === 'CASH' && tenderedInput ? Number(tenderedInput) : undefined,
+          change: payMethod === 'CASH' && tenderedInput ? paidChange : undefined,
+          customerName: customer?.name || undefined,
+          customerPhone: customer?.phone || undefined,
         });
 
         setShowReceiptModal(true);
+        setShowPaymentModal(false);
         clearTicket();
         setTenderedInput('');
         setReferenceInput('');
         setCouponInput('');
         setLoyaltyInput('');
-        fetchPosProducts(); // Refresh stock
+        fetchPosProducts(posBranchId || undefined); // Refresh stock
       } else {
         const msg = data.error || 'حدث خطأ أثناء حفظ الفاتورة.';
         setSaleError(msg);
@@ -566,6 +578,30 @@ export default function PosTerminalPage() {
             <p className="text-xs text-slate-400 leading-relaxed">
               أول مرة؟ عد الكاش الموجود بالدرج واكتبه هنا. كل فواتيرك ستُنسب لهذه الوردية، وعند الإغلاق ستقارن المتوقع بالمعدود.
             </p>
+            {branchOptions.length > 0 && (
+              <div>
+                <label htmlFor="open-branch" className="block text-xs font-bold text-slate-300 mb-1">الفرع *</label>
+                <select
+                  id="open-branch"
+                  value={posBranchId}
+                  onChange={(e) => {
+                    const chosen = e.target.value;
+                    setBranchIdState(chosen);
+                    try { localStorage.setItem('pos:branchId', chosen); } catch {}
+                    const found = branchOptions.find((b) => b.id === chosen);
+                    if (found) setActiveBranch(found);
+                  }}
+                  className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 font-bold focus:outline-none focus:border-amber-500 text-xs"
+                >
+                  <option value="">-- اختر الفرع لبدء الوردية --</option>
+                  {branchOptions.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label htmlFor="open-float" className="block text-xs font-bold text-slate-300 mb-1">رصيد الافتتاح (ج.م) *</label>
               <input
@@ -745,32 +781,48 @@ export default function PosTerminalPage() {
                 ticketItems.map((item) => (
                   <div
                     key={item.id}
-                    className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center text-xs"
+                    className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex justify-between items-center text-xs hover:border-slate-700 transition-all shadow-sm"
                   >
-                    <div className="space-y-0.5">
-                      <div className="font-bold text-slate-100 line-clamp-1">{item.nameAr}</div>
-                      <div className="text-[10px] text-slate-400">
-                        {item.unitPrice.toLocaleString()} ج.م x {item.quantity}
+                    <div className="space-y-1 flex-1 pr-2">
+                      <div className="font-bold text-slate-100 line-clamp-1 text-xs">{item.nameAr}</div>
+                      <div className="text-[11px] text-slate-400">
+                        {item.unitPrice.toLocaleString()} ج.م للقطعة
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
-                        className="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                        className="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold"
-                      >
-                        +
-                      </button>
-                      <span className="font-black text-blue-400 min-w-[60px] text-left">
+                      <div className="flex items-center bg-slate-950 rounded-xl border border-slate-800 p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-sm active:scale-95 transition-all"
+                          title="إنقاص الكمية"
+                        >
+                          -
+                        </button>
+                        <span className="font-black text-sm min-w-[28px] text-center text-slate-100">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-sm active:scale-95 transition-all"
+                          title="زيادة الكمية"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <span className="font-black text-amber-400 min-w-[65px] text-left text-xs tabular-nums">
                         {(item.unitPrice * item.quantity).toLocaleString()} ج.م
                       </span>
+
+                      <button
+                        type="button"
+                        onClick={() => removeItemFromTicket(item.id)}
+                        className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="حذف من السلة"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -778,289 +830,91 @@ export default function PosTerminalPage() {
             </div>
           </div>
 
-          {/* Customer Search Section */}
-          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs shrink-0">
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-300 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-blue-400" />
-                العميل (اختياري):
-              </span>
-              {customer && (
-                <button onClick={clearCustomer} className="text-rose-400 hover:text-rose-300">
-                  <X className="w-3.5 h-3.5" />
+          {/* Tablet Ergonomic Order Summary Panel */}
+          <div className="p-4 rounded-3xl bg-slate-950 border border-slate-800 space-y-3 shrink-0 shadow-2xl">
+            {/* Offline sync alert if queued */}
+            {offlineQueue.length > 0 && (
+              <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold flex justify-between items-center">
+                <span>فواتير أوفلاين معلقة: {offlineQueue.length}</span>
+                <button
+                  onClick={handleSyncOffline}
+                  disabled={syncing}
+                  className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-bold text-xs"
+                >
+                  {syncing ? 'مزامنة...' : 'مزامنة الآن'}
                 </button>
-              )}
-            </div>
-            {customer ? (
-              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-blue-300">{customer.name || customer.phone}</div>
-                  <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                    <Award className="w-3 h-3 text-amber-400" />
-                    {customer.loyaltyPoints} نقطة ولاء
-                  </div>
-                </div>
-                <Check className="w-4 h-4 text-emerald-400" />
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-12 gap-2">
-                  <input
-                    ref={customerInputRef}
-                    type="tel"
-                    placeholder="رقم موبايل العميل..."
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && searchCustomer()}
-                    className="col-span-9 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100"
-                    dir="ltr"
-                  />
-                  <button
-                    onClick={searchCustomer}
-                    disabled={customerSearching}
-                    className="col-span-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-lg text-xs flex items-center justify-center"
-                  >
-                    {customerSearching ? '...' : <Search className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  {customerError ? (
-                    <p className="text-[10px] text-amber-400">{customerError}</p>
-                  ) : <span />}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewCustomerPhone(customerPhone);
-                      setShowQuickCustomerModal(true);
-                    }}
-                    className="text-[10px] text-blue-400 hover:text-blue-300 font-bold underline"
-                  >
-                    + عميل جديد سريع
-                  </button>
-                </div>
               </div>
             )}
-          </div>
 
-          {/* Discounts & Totals Drawer */}
-          <div className="space-y-3 pt-3 border-t border-slate-800 shrink-0">
             {saleError && (
               <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
                 {saleError}
               </div>
             )}
-            {offlineQueue.length > 0 && (
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold flex justify-between items-center">
-                <span>فواتير معلقة (عدم اتصال): {offlineQueue.length}</span>
-                <button onClick={handleSyncOffline} disabled={syncing} className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-bold">
-                  {syncing ? 'جاري المزامنة...' : 'مزامنة الآن'}
+
+            {/* Quick Customer Pill */}
+            <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800/80">
+              <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
+                <User className="w-3.5 h-3.5 text-blue-400" />
+                العميل:
+              </span>
+              {customer ? (
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-blue-300">{customer.name || customer.phone}</span>
+                  <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    {customer.loyaltyPoints} نقطة
+                  </span>
+                  <button onClick={clearCustomer} className="text-slate-500 hover:text-rose-400 p-0.5">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="text-blue-400 hover:text-blue-300 font-bold text-[11px] hover:underline"
+                >
+                  + تحديد عميل / نقاط ولاء
                 </button>
-              </div>
-            )}
-            {/* Manager Discount Section */}
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-slate-300 flex items-center gap-1">
-                  <Tag className="w-3.5 h-3.5 text-amber-400" />
-                  خصم المدير:
-                </span>
-                {discountAmount > 0 && (
-                  <span className="text-emerald-400 font-bold">تم تطبيق خصم {discountAmount} ج.م</span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-12 gap-2">
-                <div className="col-span-5">
-                  <label htmlFor="pos-discount" className="block text-[10px] font-bold text-slate-400 mb-1">مبلغ الخصم (ج.م)</label>
-                  <input
-                    id="pos-discount"
-                    type="number"
-                    min={0}
-                    placeholder="مثال: 50"
-                    value={discountInput}
-                    onChange={(e) => setDiscountInput(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
-                  />
-                </div>
-                <div className="col-span-4">
-                  <label htmlFor="pos-pin" className="block text-[10px] font-bold text-slate-400 mb-1">PIN المدير (للخصم فوق 100)</label>
-                  <input
-                    id="pos-pin"
-                    type="password"
-                    inputMode="numeric"
-                    placeholder="••••"
-                    value={managerPin}
-                    onChange={(e) => { setManagerPin(e.target.value); setPinError(false); }}
-                    className="w-full p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
-                  />
-                </div>
-                <div className="col-span-3 flex items-end">
-                  <button
-                    onClick={handleApplyDiscount}
-                    aria-label="تطبيق الخصم"
-                    className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs"
-                  >
-                    تطبيق
-                  </button>
-                </div>
-              </div>
-              {pinError && <p className="text-[10px] text-rose-400">مبلغ الخصم غير صالح</p>}
+              )}
             </div>
 
-            {/* T16: coupon + loyalty at POS */}
-            <div className="p-3 rounded-xl bg-slate-950 border border-purple-500/30 space-y-2 text-xs">
-              <div className="grid grid-cols-12 gap-2">
-                <div className="col-span-7">
-                  <label htmlFor="pos-coupon" className="block text-[10px] font-bold text-slate-400 mb-1">كود الخصم</label>
-                  <input
-                    id="pos-coupon"
-                    type="text"
-                    placeholder="SAVE10"
-                    dir="ltr"
-                    value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value)}
-                    className="w-full min-h-[44px] p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 font-mono font-bold placeholder:text-slate-500"
-                  />
-                </div>
-                <div className="col-span-5">
-                  <label htmlFor="pos-loyalty" className="block text-[10px] font-bold text-slate-400 mb-1">
-                    نقاط الولاء {customer ? `(${customer.loyaltyPoints})` : ''}
-                  </label>
-                  <input
-                    id="pos-loyalty"
-                    type="number"
-                    min={0}
-                    placeholder="0"
-                    value={loyaltyInput}
-                    onChange={(e) => setLoyaltyInput(e.target.value)}
-                    className="w-full min-h-[44px] p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-              <p className="text-[10px] text-slate-500">الكوبون والولاء يُحتسبان مع خصم المدير بسقف موحد — المراجعة النهائية عند التأكيد.</p>
-            </div>
-
-            {/* Calculations Breakdown */}
-            <div className="space-y-1 text-xs">
+            {/* Financial Summary */}
+            <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-slate-400">
-                <span>المجموع:</span>
-                <span>{getSubtotal().toLocaleString()} ج.م</span>
+                <span>المجموع الفرعي:</span>
+                <span className="font-medium text-slate-200 tabular-nums">{getSubtotal().toLocaleString()} ج.م</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-400 font-bold">
+                  <span>الخصم المطبق:</span>
+                  <span className="tabular-nums">-{discountAmount.toLocaleString()} ج.م</span>
+                </div>
+              )}
               <div className="flex justify-between text-slate-400">
-                <span>ضريبة القيمة المضافة 14%:</span>
-                <span>{getVatAmount().toLocaleString()} ج.م</span>
+                <span>ضريبة القيمة المضافة (14%):</span>
+                <span className="font-medium text-slate-200 tabular-nums">{getVatAmount().toLocaleString()} ج.م</span>
               </div>
-              <div className="flex justify-between text-base font-black text-slate-100 pt-1 border-t border-slate-800">
+              <div className="flex justify-between text-base font-black text-slate-100 pt-2 border-t border-slate-800">
                 <span>الإجمالي النهائي:</span>
-                <span className="text-amber-400">{getTotalAmount().toLocaleString()} ج.م</span>
+                <span className="text-amber-400 text-xl tabular-nums">{getTotalAmount().toLocaleString()} ج.م</span>
               </div>
             </div>
 
-            {/* Step 3: Payment & Confirm */}
-            <div className="p-3 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black text-[11px] flex items-center justify-center">3</span>
-                <span className="font-black text-slate-100 text-sm">الدفع وإنهاء البيع</span>
-              </div>
-
-              {/* Method tabs */}
-              <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="طريقة الدفع">
-                {(
-                  [
-                    { key: 'CASH', label: 'نقداً (كاش)', cls: 'emerald' },
-                    { key: 'CARD', label: 'فيزا / بطاقة', cls: 'blue' },
-                    { key: 'INSTAPAY', label: 'انستا باي', cls: 'purple' },
-                  ] as const
-                ).map((m) => (
-                  <button
-                    key={m.key}
-                    role="tab"
-                    aria-selected={payMethod === m.key}
-                    onClick={() => { setPayMethod(m.key); setSaleError(''); }}
-                    className={`py-2.5 rounded-xl font-extrabold text-xs transition-all border-2 ${
-                      payMethod === m.key
-                        ? m.cls === 'emerald'
-                          ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg'
-                          : m.cls === 'blue'
-                            ? 'bg-blue-600 text-white border-blue-400 shadow-lg'
-                            : 'bg-purple-600 text-white border-purple-400 shadow-lg'
-                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-600'
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Cash: tendered + change */}
-              {payMethod === 'CASH' && (
-                <div className="space-y-2 animate-fade-in">
-                  <div>
-                    <label htmlFor="pos-tendered" className="block text-[11px] font-bold text-slate-300 mb-1">
-                      المبلغ المستلم من العميل (ج.م)
-                    </label>
-                    <input
-                      id="pos-tendered"
-                      type="number"
-                      min={0}
-                      inputMode="decimal"
-                      placeholder={`مثال: ${Math.ceil(total).toLocaleString()}`}
-                      value={tenderedInput}
-                      onChange={(e) => setTenderedInput(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-black text-slate-100 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500 placeholder:font-normal"
-                    />
-                  </div>
-                  <div className={`flex justify-between items-center p-2.5 rounded-xl font-black ${tenderedShort ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                    <span>الباقي للعميل:</span>
-                    <span className="text-base">{tenderedShort ? 'المبلغ ناقص!' : `${change.toLocaleString()} ج.م`}</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {[total, Math.ceil(total / 10) * 10, Math.ceil(total / 50) * 50, Math.ceil(total / 100) * 100]
-                      .filter((v, i, a) => a.indexOf(v) === i)
-                      .map((v) => (
-                        <button
-                          key={v}
-                          onClick={() => setTenderedInput(String(v))}
-                          className="py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[11px] font-bold text-slate-300 hover:border-emerald-500"
-                        >
-                          {v.toLocaleString()}
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Card / InstaPay: reference */}
-              {payMethod !== 'CASH' && (
-                <div className="animate-fade-in">
-                  <label htmlFor="pos-reference" className="block text-[11px] font-bold text-slate-300 mb-1">
-                    {payMethod === 'CARD' ? 'رقم الموافقة / آخر 4 أرقام (اختياري)' : 'رقم مرجع التحويل (اختياري)'}
-                  </label>
-                  <input
-                    id="pos-reference"
-                    type="text"
-                    dir="ltr"
-                    placeholder={payMethod === 'CARD' ? 'e.g. 4821' : 'e.g. TRX-123456'}
-                    value={referenceInput}
-                    onChange={(e) => setReferenceInput(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
-                  />
-                </div>
-              )}
-
-              {/* Big confirm */}
-              <button
-                onClick={handleCompleteSale}
-                disabled={ticketItems.length === 0 || processing || tenderedShort}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 text-slate-950 font-black text-base shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2"
-              >
-                {processing ? (
-                  'جاري حفظ الفاتورة...'
-                ) : (
-                  <>تأكيد البيع • {total.toLocaleString()} ج.م</>
-                )}
-              </button>
-            </div>
+            {/* Action Touch Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (ticketItems.length > 0) setShowPaymentModal(true);
+              }}
+              disabled={ticketItems.length === 0}
+              className="w-full min-h-[52px] py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-slate-950 font-black text-sm md:text-base shadow-xl shadow-amber-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <span>متابعة الدفع وإنهاء البيع (F10)</span>
+              <span className="px-2 py-0.5 rounded-lg bg-slate-950/20 text-slate-950 text-xs font-mono font-bold">
+                {getTotalAmount().toLocaleString()} ج.م
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -1133,137 +987,7 @@ export default function PosTerminalPage() {
         <PosReturnWizard onClose={() => setShowReturnWizard(false)} onDone={() => { fetchPosProducts(); }} />
       )}
 
-      {/* Printable Receipt Modal with ETA QR Code */}
-      {showReceiptModal && receiptData && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 print:p-0 print:bg-white print:static print:block">
-          <div id="pos-receipt" className="bg-white text-slate-900 p-6 rounded-2xl max-w-sm w-full space-y-3 shadow-2xl dir-rtl max-h-[90vh] overflow-y-auto print:max-h-none print:shadow-none print:rounded-none print:w-full print:max-w-none">
-            {/* Store header */}
-            <div className="text-center space-y-1 border-b-2 border-dashed border-slate-300 pb-3">
-              <h2 className="font-black text-xl text-slate-900">ابطال الرياضة الإبراهيمية</h2>
-              <p className="text-[11px] text-slate-600">92 شارع عمر لطفى - الإبراهيمية - الإسكندرية</p>
-              <p className="text-[11px] text-slate-600">
-                هاتف: <span dir="ltr" className="tabular-nums font-bold">03 5926908</span> | واتساب: <span dir="ltr" className="tabular-nums font-bold">0122 422 6876</span>
-              </p>
-              <p className="text-[10px] text-slate-500">سجل تجاري / ر.ض: <span dir="ltr" className="tabular-nums font-medium">123-456-789</span></p>
-            </div>
 
-            {/* Sale meta */}
-            <div className="text-[11px] text-slate-700 space-y-0.5 border-b border-dashed border-slate-200 pb-2">
-              <div className="flex justify-between">
-                <span>رقم الفاتورة:</span>
-                <span className="font-black" dir="ltr">{receiptData.saleNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>التاريخ:</span>
-                <span className="font-bold">{receiptData.timestamp}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>الكاشير:</span>
-                <span className="font-bold">سارة فهمي</span>
-              </div>
-              <div className="flex justify-between">
-                <span>طريقة الدفع:</span>
-                <span className="font-bold">
-                  {receiptData.paymentMethod === 'CASH' ? 'نقداً' : receiptData.paymentMethod === 'CARD' ? 'فيزا / بطاقة' : 'انستا باي'}
-                  {receiptData.reference ? ` (${receiptData.reference})` : ''}
-                </span>
-              </div>
-              {receiptData.customerName && (
-                <div className="flex justify-between">
-                  <span>العميل:</span>
-                  <span className="font-bold">{receiptData.customerName} <span dir="ltr" className="tabular-nums">({receiptData.customerPhone})</span></span>
-                </div>
-              )}
-            </div>
-
-            {/* Items with unit prices */}
-            <div className="space-y-1.5 text-xs border-b border-dashed border-slate-200 pb-2">
-              {receiptData.items.map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between font-bold text-slate-900">
-                    <span className="line-clamp-1">{item.name}</span>
-                    <span className="shrink-0 tabular-nums">{item.total.toLocaleString()} ج.م</span>
-                  </div>
-                  <div className="text-[10px] text-slate-500 tabular-nums" dir="ltr">
-                    {item.qty} x {item.price.toLocaleString()} EGP
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Totals */}
-            <div className="space-y-1 text-xs font-semibold">
-              <div className="flex justify-between text-slate-600">
-                <span>المجموع الفرعي:</span>
-                <span className="tabular-nums">{receiptData.subtotal.toLocaleString()} ج.م</span>
-              </div>
-              {receiptData.discount > 0 && (
-                <div className="flex justify-between text-emerald-700">
-                  <span>خصم المدير:</span>
-                  <span className="tabular-nums">- {receiptData.discount.toLocaleString()} ج.م</span>
-                </div>
-              )}
-              <div className="flex justify-between text-slate-600">
-                <span>ضريبة القيمة المضافة (14%):</span>
-                <span className="tabular-nums">{receiptData.vat.toLocaleString()} ج.م</span>
-              </div>
-              <div className="flex justify-between text-base font-black text-slate-900 pt-1 border-t-2 border-slate-900">
-                <span>الإجمالي:</span>
-                <span className="tabular-nums">{receiptData.total.toLocaleString()} ج.م</span>
-              </div>
-              {receiptData.paymentMethod === 'CASH' && (
-                <>
-                  <div className="flex justify-between text-slate-600">
-                    <span>المستلم:</span>
-                    <span className="tabular-nums">{receiptData.tendered.toLocaleString()} ج.م</span>
-                  </div>
-                  <div className="flex justify-between font-black text-slate-900">
-                    <span>الباقي:</span>
-                    <span className="tabular-nums">{receiptData.change.toLocaleString()} ج.م</span>
-                  </div>
-                </>
-              )}
-              {receiptData.loyaltyEarned > 0 && (
-                <div className="flex justify-between text-amber-700 font-bold">
-                  <span>نقاط الولاء المكتسبة:</span>
-                  <span>+{receiptData.loyaltyEarned} نقطة</span>
-                </div>
-              )}
-            </div>
-
-            {/* ETA Verification QR Code */}
-            {receiptData.qrCodeUrl && (
-              <div className="text-center space-y-1 pt-2 border-t border-dashed border-slate-200">
-                <Image
-                  src={receiptData.qrCodeUrl}
-                  alt="ETA QR Code"
-                  width={140}
-                  height={140}
-                  className="mx-auto"
-                />
-                <p className="text-[9px] text-slate-500">رمز التحقق الإلكتروني - مصلحة الضرائب المصرية</p>
-              </div>
-            )}
-
-            <p className="text-center text-[10px] text-slate-500 pt-1">شكراً لتسوقكم معنا — نراكم قريباً!</p>
-
-            <div className="grid grid-cols-2 gap-2 pt-2 print:hidden">
-              <button
-                onClick={() => window.print()}
-                className="py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1"
-              >
-                <Printer className="w-4 h-4" /> طباعة
-              </button>
-              <button
-                onClick={() => { setShowReceiptModal(false); setLastChange(0); }}
-                className="py-2.5 rounded-xl bg-slate-200 text-slate-800 font-bold text-xs"
-              >
-                بيع جديد
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Quick Customer Modal */}
       {showQuickCustomerModal && (
@@ -1332,6 +1056,55 @@ export default function PosTerminalPage() {
           </div>
         </div>
       )}
+
+      {/* Modern Dedicated Tablet Payment Modal */}
+      <PosPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        subtotal={getSubtotal()}
+        vat={getVatAmount()}
+        discountAmount={discountAmount}
+        total={getTotalAmount()}
+        customer={customer}
+        onSearchCustomer={searchCustomer}
+        onClearCustomer={clearCustomer}
+        onOpenNewCustomer={() => {
+          setNewCustomerPhone(customerPhone);
+          setShowQuickCustomerModal(true);
+        }}
+        customerSearching={customerSearching}
+        customerError={customerError}
+        discountInput={discountInput}
+        setDiscountInput={setDiscountInput}
+        managerPin={managerPin}
+        setManagerPin={setManagerPin}
+        onApplyDiscount={handleApplyDiscount}
+        pinError={pinError}
+        couponInput={couponInput}
+        setCouponInput={setCouponInput}
+        loyaltyInput={loyaltyInput}
+        setLoyaltyInput={setLoyaltyInput}
+        payMethod={payMethod}
+        setPayMethod={setPayMethod}
+        tenderedInput={tenderedInput}
+        setTenderedInput={setTenderedInput}
+        referenceInput={referenceInput}
+        setReferenceInput={setReferenceInput}
+        processing={processing}
+        onCompleteSale={handleCompleteSale}
+        saleError={saleError}
+      />
+
+      {/* Modern Thermal Receipt Modal */}
+      <PosReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        data={posReceipt}
+        onNewSale={() => {
+          clearTicket();
+          setShowReceiptModal(false);
+        }}
+      />
     </div>
   );
 }

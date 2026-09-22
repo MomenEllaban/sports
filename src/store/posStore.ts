@@ -58,6 +58,23 @@ interface PosState {
   getTotalAmount: () => number;
 }
 
+const getSavedOfflineQueue = (): OfflineSaleQueue[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('pos:offlineQueue');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveOfflineQueue = (q: OfflineSaleQueue[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('pos:offlineQueue', JSON.stringify(q));
+  } catch {}
+};
+
 export const usePosStore = create<PosState>((set, get) => ({
   activeBranchId: '',
   cashierId: '',
@@ -67,7 +84,7 @@ export const usePosStore = create<PosState>((set, get) => ({
   customerName: '',
   discountAmount: 0,
   managerPinApproved: false,
-  offlineQueue: [],
+  offlineQueue: getSavedOfflineQueue(),
 
   setActiveBranch: (branchId) => set({ activeBranchId: branchId }),
   
@@ -144,10 +161,16 @@ export const usePosStore = create<PosState>((set, get) => ({
       managerPinApproved: false,
     }),
 
-  queueOfflineSale: (sale) =>
-    set({ offlineQueue: [...get().offlineQueue, sale] }),
+  queueOfflineSale: (sale) => {
+    const nextQueue = [...get().offlineQueue, sale];
+    saveOfflineQueue(nextQueue);
+    set({ offlineQueue: nextQueue });
+  },
 
-  clearOfflineQueue: () => set({ offlineQueue: [] }),
+  clearOfflineQueue: () => {
+    saveOfflineQueue([]);
+    set({ offlineQueue: [] });
+  },
 
   getSubtotal: () => {
     return computeTotals({

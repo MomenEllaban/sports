@@ -26,6 +26,7 @@ import {
   PackageSearch,
   CheckCircle2,
   Gem,
+  ExternalLink,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -38,150 +39,189 @@ type Module = {
   descEn: string;
   pointsAr: string[];
   pointsEn: string[];
+  href: string;
+  ctaAr: string;
+  ctaEn: string;
 };
 
 const MODULES: Module[] = [
   {
     icon: <MonitorPlay className="w-6 h-6 text-amber-400" />,
-    titleAr: 'نقطة البيع (POS)',
+    titleAr: 'نقطة البيع السريعة (POS)',
     titleEn: 'Point of Sale (POS)',
     descAr:
-      'كاشير احترافي مخصص لمتاجر الرياضة: مسح باركود، بحث فوري، خصومات يدوية وكوبونات، تحويل فضة ورديات (فتح/غلق الدرج)، وحفظ الفواتير محلياً عند انقطاع النت.',
+      'كاشير متطور ومخصص للأجهزة اللوحية (التابلت) والشاشات اللمسية: مسح باركود، بحث فوري، نافذة دفع مستقلة، فئات كاش ذكية، وحفظ فواتير الأوفلاين محلياً.',
     descEn:
-      'A professional cashier terminal built for sports retail: barcode scanning, instant search, manual discounts & coupons, open/close cash drawer shifts, and offline-safe invoicing.',
-    pointsAr: ['وردية مفتوحة لكل كاشير مع رصيد افتتاحي', 'فرت الماء (Offline Queue) يحفظ الفاتورة ويواكبها تلقائياً', 'فواتير برقم + متوافقة مع منظومة الضرائب'],
-    pointsEn: ['Per-cashier shifts with opening float', 'Offline queue stores invoices and auto-syncs', 'Numbered, tax-compliant receipts'],
+      'Advanced tablet-optimized cashier terminal: barcode scanning, instant search, dedicated checkout modal, smart cash denominations, and local offline persistence.',
+    pointsAr: ['وردية مفتوحة لكل كاشير مع رصيد افتتاحي محمي', 'حفظ الفواتير محلياً (Offline Queue) والمزامنة الفورية', 'طباعة إيصالات حرارية 80mm وإيصالات ضريبية'],
+    pointsEn: ['Per-cashier shifts with protected opening float', 'Local offline queue with automatic sync', '80mm thermal receipt printing and tax invoices'],
+    href: '/pos',
+    ctaAr: 'افتح شاشة الكاشير (POS)',
+    ctaEn: 'Launch POS Terminal',
   },
   {
     icon: <ClipboardList className="w-6 h-6 text-blue-400" />,
     titleAr: 'إدارة الطلبات (أونلاين / كاشير / واتساب)',
     titleEn: 'Orders (Online / POS / WhatsApp)',
     descAr:
-      'طلبات المتجر الإلكتروني وطلبات الكاشير والوافد بهاتف في مكان واحد: حالات اكتمال، شحن جاهز، تسليم COD، وتتبع للعميل لحظة بلحظة.',
+      'طلبات المتجر الإلكتروني وطلبات الكاشير والطلبات الهاتفية في مكان واحد: حالات تنفيذ الطلب، شحن جاهز، تسليم COD، وتتبع لحظي للعميل.',
     descEn:
-      'Online, POS and phone orders in one place: fulfilment states, ready-to-ship, COD delivery, and live customer tracking.',
-    pointsAr: ['تكامل شحن فعلي (Bosta + Mylerz)', 'حالة تتبع تظهر للعميل في صفحة "تبع طلبك"', 'طباعة بوليصة + تسليم واستلام COD'],
-    pointsEn: ['Real courier integrations (Bosta + Mylerz)', 'Status timeline shown on the customer tracking page', 'Shipping label print + COD pickup'],
+      'Online, POS and phone orders in one unified hub: fulfillment states, ready-to-ship, COD delivery, and live customer tracking.',
+    pointsAr: ['تكامل شحن فعلي مع (Bosta + Mylerz)', 'صفحة تتبع حية للعميل مع جدول زمني للطلب', 'طباعة بوليصة الشحن وتسوية متحصلات الدفع عند الاستلام'],
+    pointsEn: ['Real shipping integrations with Bosta & Mylerz', 'Live customer tracking timeline', 'Shipping label printing and COD reconciliation'],
+    href: '/admin/orders',
+    ctaAr: 'استعراض شاشة الطلبات',
+    ctaEn: 'View Orders Manager',
   },
   {
     icon: <Boxes className="w-6 h-6 text-emerald-400" />,
-    titleAr: 'المخزون والفروع',
+    titleAr: 'المخزون المتعدد والفروع',
     titleEn: 'Multi-Branch Inventory',
     descAr:
-      'مخزون منفصل لكل فرع، تحويلات بين الفروع، تنبيه انخفاض المخزون، جرد دوري (Stocktake)، وباركودات طباعة للرفوف.',
+      'مخزون مستقل لكل فرع، تحويلات بين الفروع، تنبيه انخفاض المخزون، جرد دوري (Stocktake) مع تسوية الفروقات آلياً، وطباعة باركودات المنتجات.',
     descEn:
-      'Per-branch stock, inter-branch transfers, low-stock alerts, periodic stocktaking, and printable shelf barcode labels.',
-    pointsAr: ['نقل الكميات بين الفروع محاسبي الحسم', 'جرد بالعرب (Wizard) مع فروقات تلقائية', '384 صنفاً مع أصناف متعددة والأهلية'],
-    pointsEn: ['Accounted stock transfers between branches', 'Guided stocktake wizard with auto-differences', 'Multi-variant catalog with eligibility tracking'],
+      'Independent per-branch stock, inter-branch transfers, low-stock alerts, periodic stocktaking with auto-variance, and barcode printing.',
+    pointsAr: ['تحويل كميات بين الفروع مع تسجيل محاسبي', 'معالج الجرد الفعلي (Wizard) مع حساب العجز والزيادة', 'كتالوج متكامل مع تتبع الألوان والمقاسات'],
+    pointsEn: ['Inter-branch stock transfers with accounting trail', 'Stocktake wizard calculating variance', 'Variant catalog tracking sizes and colors'],
+    href: '/admin/inventory',
+    ctaAr: 'شاشة المخزون والجرد',
+    ctaEn: 'Manage Inventory & Stock',
   },
   {
     icon: <RotateCcw className="w-6 h-6 text-orange-400" />,
     titleAr: 'المرتجعات والاستبدال (RMA)',
     titleEn: 'Returns & Exchange (RMA)',
     descAr:
-      'نظام مرتجعات متكامل: ارجاع من الكاشير، استبدال بفرق سعر، أو استرداد، مع خصم تلقائي من المخزون وإرجاع للأهبة (Restock-First) وإشعار ائتمان.',
+      'نظام مرتجعات متكامل: إرجاع أو استبدال فوري بفرق سعر من الكاشير، بوابة إرجاع ذاتية للعميل، إعادة المخزون أولاً، وإشعارات دائنة للمحاسبة.',
     descEn:
-      'A complete returns engine: cashier returns, exchange with price difference or refund, automatic restock-first inventory reversal and credit notes.',
-    pointsAr: ['أسباب مرتجعات مُصنفة (SIZE_ISSUE…) مع تقرير إبراز', 'متابعة لكل حالة حتى المعالجة (Outbox)', 'استرداد عبر Paymob/Fawry + إشعار ائتمان للمحاسب'],
-    pointsEn: ['Categorized return causes (SIZE_ISSUE…) with highlight report', 'Per-case follow-up until resolution (Outbox)', 'Paymob/Fawry refunds + accountant credit note'],
+      'Complete returns engine: cashier returns and price-difference exchanges, self-service customer portal, restock-first logic, and credit notes.',
+    pointsAr: ['تصنيف أسباب المرتجع (مقاس غير مناسب، عيب صناعة...)', 'معالج استبدال سريع في الـ POS بحساب فرق السعر', 'استرداد إلكتروني Paymob/Fawry مع إشعار دائن'],
+    pointsEn: ['Categorized return reasons (Size issue, defect...)', 'POS quick exchange wizard with price difference', 'Paymob/Fawry refunds and accounting credit notes'],
+    href: '/admin/returns',
+    ctaAr: 'إدارة المرتجعات والاستبدال',
+    ctaEn: 'Returns & RMA Center',
+  },
+  {
+    icon: <Clock3 className="w-6 h-6 text-amber-400" />,
+    titleAr: 'الورديات ودرج النقدية (Shifts)',
+    titleEn: 'Shifts & Cash Drawer',
+    descAr:
+      'فتح وردية برصيد افتتاحي لكل كاشير، منع البيع نهائياً خارج الوردية، مقارنة النقدية المتوقعة بالمعدود الفعلي، وتسوية وإغلاق إداري من لوحة التحكم.',
+    descEn:
+      'Cash drawer session per cashier, strict POS selling gate, expected vs counted cash variance, and manager administrative reconciliation.',
+    pointsAr: ['حماية صارمة: لا يمكن إصدار فاتورة بدون وردية مفتوحة', 'جرد تلقائي للنقدية والمبيعات والمرتجعات المستردة كاش', 'طباعة تقرير تقفيل الدرج (Z-Report) وتسوية الإدارة'],
+    pointsEn: ['Strict shift gate: no sales outside an open session', 'Automatic audit of cash sales, floats and cash refunds', 'Z-Report printout and administrative close'],
+    href: '/admin/shifts',
+    ctaAr: 'إدارة الورديات وتقارير الدرج',
+    ctaEn: 'Shifts & Cash Drawer',
   },
   {
     icon: <Landmark className="w-6 h-6 text-emerald-300" />,
-    titleAr: 'الحسابات و P&L',
+    titleAr: 'الحسابات و P&L والربحية',
     titleEn: 'Accounting & P&L',
     descAr:
-      'مصاريف، أرباح تقريبية لكل فرع، تسوية تحصيل نقدي (COD)، مدفوعات موردين، ومراجعة شاملة لكل حركة حسابية.',
+      'إدارة المصروفات التشغيلية، حساب الأرباح الصافية لكل فرع، تسوية تحصيل مناديب الشحن (COD)، وسجل مالي موثق لكل حركة نقدية.',
     descEn:
-      'Expenses, per-branch P&L, COD settlement, supplier payments, and a full audit trail of every money movement.',
-    pointsAr: ['أرباح فعلية بعد احتساب التكلفة والمرتجعات', 'تسوية COD بين المندوب والفروع', 'مصروفات مرتبطة بفرع بتاريخ وموظف'],
-    pointsEn: ['True profit after COGS and returns', 'COD settlement between courier and branches', 'Branch-dated expenses with owner'],
+      'Operating expenses, net P&L per branch, courier COD settlements, and an audit trail of every monetary movement.',
+    pointsAr: ['صافي ربح حقيقي بعد خصم تكلفة البضاعة والمرتجعات والمصروفات', 'تسوية تحصيل الشحن COD ومطابقة كشوف المناديب', 'مصروفات مرتبطة بالفروع والأقسام مع تصنيف مالي'],
+    pointsEn: ['True net profit after COGS, returns, and OPEX', 'Courier COD settlement and remittance matching', 'Branch-scoped categorized expenses'],
+    href: '/admin/accounting',
+    ctaAr: 'شاشة الحسابات والأرباح',
+    ctaEn: 'Accounting & Finance',
   },
   {
     icon: <ReceiptText className="w-6 h-6 text-rose-400" />,
-    titleAr: 'منظومة الضرائب (ETA)',
-    titleEn: 'E-Invoicing (ETA)',
+    titleAr: 'منظومة الفاتورة الإلكترونية (ETA)',
+    titleEn: 'E-Invoicing (ETA Compliance)',
     descAr:
-      'إصدار الفاتورة الإلكترونية المصرية تلقائياً مع GS1، ومتابعة مراحل الـ INVALID وإعادة الإرسال، وصندوق الضرائب كله تحت السيطرة.',
+      'إصدار فواتير وإيصالات إلكترونية متوافقة مع مصلحة الضرائب المصرية، دعم أكواد GS1 لكل صنف، وإعادة إرسال الفواتير غير الصالحة آلياً.',
     descEn:
-      'Automatic Egyptian e-invoice issuance with GS1, tracked INVALID retries and full tax compliance under control.',
-    pointsAr: ['تكامل مع منظومة الضرائب المصرية فور توفر مفاتيح ETA', 'حالة كل فاتورة (مُقبولة/فاشلة/قيد الإعادة)', 'أرقام ضريبية للفروع قابلة للإعداد'],
-    pointsEn: ['Egyptian Tax Authority integration (ready for ETA keys)', 'Every invoice status tracked (accepted/failed/retrying)', 'Per-branch tax numbers configurable'],
+      'Egyptian Tax Authority (ETA) e-invoicing compliance, GS1 barcode per SKU, QR code generation, and automated retry pipeline.',
+    pointsAr: ['توليد رمز الاستجابة السريعة QR المتوافق مع متطلبات الضرائب', 'متابعة الفواتير المعتمدة والمرفوضة وطابور إعادة المحاولة', 'إشعارات دائنة ضريبية للمرتجعات والاستبدال'],
+    pointsEn: ['Tax-compliant QR code on invoices', 'Retry queue for invalid receipts with status tracking', 'Automated tax credit notes on returns'],
+    href: '/admin/accounting',
+    ctaAr: 'متابعة الضرائب والفواتير',
+    ctaEn: 'ETA Invoicing Hub',
   },
   {
     icon: <HeartHandshake className="w-6 h-6 text-indigo-400" />,
-    titleAr: 'العملاء والولاء',
-    titleEn: 'Customers & Loyalty',
+    titleAr: 'العملاء، الولاء، والكوبونات',
+    titleEn: 'Customers, Loyalty & Coupons',
     descAr:
-      'سجل عملاء كامل (محفوظ تواصل، عناوين محفوظة، طلبات سابقة)، نقاط ولاء، كوبونات وعروض، وتقييمات بعد الشراء.',
+      'سجل عملاء موحد يربط مشتريات المتجر والـ POS، اكتساب واستبدال نقاط الولاء بلمسة واحدة، كوبونات ترويجية بنسبة أو مبلغ ثابت، وخصومات المدير بـ PIN.',
     descEn:
-      'A full customer directory (contacts, saved addresses, order history), loyalty points, coupons & promos, and post-purchase reviews.',
-    pointsAr: ['نقاط ولاء تصرف على خصومات', 'كوبونات (نسبة / مبلغ / شحن مجاني) مع PIN', 'تقييمات ومراجعات تنشر في المتجر'],
-    pointsEn: ['Loyalty points redeemable as discounts', 'Coupons (percent/amount/free-shipping) with PIN', 'Reviews published on the storefront'],
+      'Unified customer directory linking storefront and POS, 1-tap loyalty points redemption, percentage and fixed promo coupons, and manager PIN discounts.',
+    pointsAr: ['نقاط ولاء تكتسب وتستبدل في الكاشير والمتجر', 'كوبونات ترويجية مع قيود الاستخدام وسقف الخصم', 'حفظ عناوين العملاء لسرعة إتمام الطلبات'],
+    pointsEn: ['Earn and redeem loyalty points in POS & online', 'Promo coupon campaigns with caps and limits', 'Saved delivery addresses for fast checkout'],
+    href: '/admin/coupons',
+    ctaAr: 'الكوبونات وبرامج الخصم',
+    ctaEn: 'Coupons & Loyalty',
   },
   {
     icon: <BarChart3 className="w-6 h-6 text-blue-500" />,
-    titleAr: 'التقارير والتحليلات',
+    titleAr: 'التقارير المتقدمة وتصدير CSV',
     titleEn: 'Reports & Analytics',
     descAr:
-      'لوحة أرقام KPI ورسوم بيانية للإيرادات، تقارير ربحية وتقارير كاشير شاملة، وتصدير CSV لكل تقرير لحسابات أكسل اليدوية.',
+      'لوحة مؤشرات أداء KPI حية، شارت إيرادات، تقارير ربحية الأصناف، أداء الكاشيرية، تكاليف الشحن، تقرير الأصناف الراكدة، وتصدير إكسل بنقرة زر.',
     descEn:
-      'A KPI dashboard with revenue charts, per-cashier and profitability reports, and one-click CSV export replacing manual Excel work.',
-    pointsAr: ['إيرادات اليوم/الأسبوع/الشهر لكل فرع', 'أكثر المنتجات ربحاً والأصناف الراكدة', 'تصدير CSV لـ Excel خلال ثانية'],
-    pointsEn: ['Daily/weekly/monthly revenue per branch', 'Top-grossing products and dead stock', 'One-click CSV to Excel export'],
-  },
-  {
-    icon: <Clock3 className="w-6 h-6 text-cyan-400" />,
-    titleAr: 'الورديات والدرج النقدي',
-    titleEn: 'Shifts & Cash Drawer',
-    descAr:
-      'كل كاشير بيفتح ورديته برصيد افتتاحي ويقفلها بإقرار فعلي — المبيعات لا تتم إلا في وردية مفتوحة، وفرق النقدية يظهر فوراً.',
-    descEn:
-      'Every cashier opens their shift with a float and closes with a declaration — sales only happen on an open shift, differences surface instantly.',
-    pointsAr: ['Gate إجباري: لا بيع خارج الوردية', 'تسوية متوقعة مقابل الفعلي عند الإغلاق', 'سجل تاريخي لكل وردية'],
-    pointsEn: ['Hard gate: no sales outside an open shift', 'Expected vs declared reconciliation on close', 'Historical record of every shift'],
-  },
-  {
-    icon: <ShieldCheck className="w-6 h-6 text-teal-400" />,
-    titleAr: 'الصلاحيات والأمان',
-    titleEn: 'Access Control & Security',
-    descAr:
-      'أدوار محددة (مدير / محاسب / كاشير) لكل شاشة وزر، حماية مسارات API، تقييد معدلات (Rate Limit)، وتبديل أمان عبر JWT.',
-    descEn:
-      'Granular role-based access (manager/accounting/cashier) on every screen and button, protected API routes, rate limiting and secure JWT sessions.',
-    pointsAr: ['Matrix صلاحيات لكل endpoint', 'تقييد محاولات الوصول والتحميلات', 'جلسات آمنة ومنتهية الصلاحية'],
-    pointsEn: ['Per-endpoint RBAC ~matrix enforced', 'Rate-limited endpoints and uploads', 'Expiring secure JWT sessions'],
-  },
-  {
-    icon: <Globe2 className="w-6 h-6 text-fuchsia-400" />,
-    titleAr: 'متجر إلكتروني مزدوج اللغة',
-    titleEn: 'Bilingual Storefront',
-    descAr:
-      'متجر عربي/إنجليزي بالكامل: كتالوج أقسام، صفحة منتج، سلة، إتمام شراء بعناوين محفوظة، أمنيات، وتقييمات — كله على نطاق واحد.',
-    descEn:
-      'A fully Arabic/English store: categorized catalog, product pages, cart, checkout with saved addresses, wishlist and reviews — all on one domain.',
-    pointsAr: ['سلة وعطل مشتركة مع طلب كاشير', 'اطلب واتساب مباشر بضغطة واحدة', 'استلام من الفرع بدون رسوم شحن'],
-    pointsEn: ['Shared cart that also feeds POS orders', 'One-tap WhatsApp ordering', 'Free in-branch pickup'],
+      'Live KPI dashboard, revenue charts, product profitability, cashier performance, shipping costs, dead-stock analysis, and 1-click CSV exports.',
+    pointsAr: ['إيرادات وأرباح يومية وأسبوعية وشهرية لكل فرع', 'تحليل الأصناف الراكدة التي لم تبع خلال 60 يوماً', 'تصدير كامل لكافة التقارير بصيغة CSV لإكسل'],
+    pointsEn: ['Daily/weekly/monthly revenue and margin per branch', 'Dead stock detection for unsold SKUs', '1-click CSV export ready for Excel'],
+    href: '/admin/reports',
+    ctaAr: 'شاشة التقارير وتصدير CSV',
+    ctaEn: 'Reports & Analytics',
   },
   {
     icon: <Factory className="w-6 h-6 text-slate-300" />,
-    titleAr: 'المشتريات والموردون',
+    titleAr: 'المشتريات وإدارة الموردين',
     titleEn: 'Purchasing & Suppliers',
     descAr:
-      'أوامر شراء برقم، استلام بفرق سعر، رجوع مورد (Supplier Return)، دفعات موردين، وربط كل صنف بأهلية الشراء.',
+      'أوامر شراء معتمدة، استلام جزئي أو كلي مع تسوية الأسعار، مرتجعات البضاعة للموردين، وسجل مدفوعات وسداد أرصدة الموردين.',
     descEn:
-      'Numbered purchase orders, receives with price variance, supplier returns, supplier payments, and purchase eligibility tracking.',
-    pointsAr: ['استلام جزئي/كلي مع اعتماد', 'رقم مرجعي لكل أمر توريد', 'دفعات جارية وتاريخية للمورد'],
-    pointsEn: ['Partial or full receives with approval', 'Reference number for every PO', 'Current and historical supplier payments'],
+      'Purchase orders, partial and full receives with cost reconciliation, supplier returns, and supplier payment ledger.',
+    pointsAr: ['دورة أمر الشراء من المسودة حتى الاستلام والاعتماد', 'تسجيل مدفوعات الموردين النقدية والبنكية', 'ربط تكلفة الشراء بتسعير وربحية المنتجات'],
+    pointsEn: ['Full purchase order lifecycle from draft to received', 'Supplier payment recording (cash/transfer)', 'Cost tracking linked to product profitability'],
+    href: '/admin/purchasing',
+    ctaAr: 'إدارة المشتريات والموردين',
+    ctaEn: 'Purchasing & Suppliers',
+  },
+  {
+    icon: <ShieldCheck className="w-6 h-6 text-teal-400" />,
+    titleAr: 'المستخدمون والصلاحيات والأمان',
+    titleEn: 'RBAC Security & Permissions',
+    descAr:
+      'صلاحيات محددة بدقة (مدير عام، مدير فرع، محاسب، كاشير)، حماية كافة مسارات الـ API عبر مصفوفة RBAC صارمة، وجلسات مؤمنة بـ JWT.',
+    descEn:
+      'Granular roles (Super Admin, Branch Manager, Finance, Cashier), full RBAC matrix guarding all APIs and pages, and hardened JWT sessions.',
+    pointsAr: ['حماية خاصة لـ POS الكاشير حسب الفرع المخصص له', 'تقييد معدلات الطلبات (Rate Limiting) لحماية التتبع والرفع', 'سجل عمليات وتشفير أسرار النظام'],
+    pointsEn: ['Branch-scoped authorization for cashiers', 'Rate limiting protecting tracking and uploads', 'Secure encrypted configuration storage'],
+    href: '/admin/users',
+    ctaAr: 'إدارة المستخدمين والأدوار',
+    ctaEn: 'Users & Permissions',
+  },
+  {
+    icon: <Globe2 className="w-6 h-6 text-fuchsia-400" />,
+    titleAr: 'المتجر الإلكتروني B2C',
+    titleEn: 'Bilingual Storefront',
+    descAr:
+      'متجر عصري ثنائي اللغة بالكامل (عربي / إنجليزي): كتالوج رياضي مصنف، عائلات مقاسات وألوان، سلة شراء سريعة، تقييمات معتمدة، وقائمة رغبات.',
+    descEn:
+      'Modern bilingual storefront: categorized sports catalog, size/color variant families, fast cart, approval-gated reviews, and customer wishlist.',
+    pointsAr: ['طلب سريع عبر واتساب مدمج بضغطة زر واحدة', 'توصيل للمنزل أو استلام مجاني من أقرب فرع', 'بوابة حساب عميل لمتابعة الطلبات ونقاط الولاء والعناوين'],
+    pointsEn: ['1-tap WhatsApp direct order flow', 'Home delivery or free in-branch pickup', 'Customer portal for orders, loyalty and addresses'],
+    href: '/catalog',
+    ctaAr: 'تصفح المتجر والكتالوج',
+    ctaEn: 'Explore Storefront',
   },
 ];
 
 const QUICK = [
-  { icon: <MonitorPlay className="w-5 h-5 text-amber-400" />, ar: 'كاشير POS', en: 'POS Terminal' },
-  { icon: <Boxes className="w-5 h-5 text-emerald-400" />, ar: 'فروع متعددة بعرب', en: 'Multi-branch inventory' },
-  { icon: <ReceiptText className="w-5 h-5 text-rose-400" />, ar: 'فواتير إلكترونية ETA', en: 'ETA e-invoicing' },
-  { icon: <RotateCcw className="w-5 h-5 text-orange-400" />, ar: 'مرتجعات واستبدال', en: 'Returns & exchange' },
-  { icon: <HeartHandshake className="w-5 h-5 text-indigo-400" />, ar: 'ولاء وكوبونات', en: 'Loyalty & coupons' },
-  { icon: <Landmark className="w-5 h-5 text-emerald-300" />, ar: 'محاسبة وربحية', en: 'Accounting & P&L' },
+  { icon: <MonitorPlay className="w-5 h-5 text-amber-400" />, ar: 'كاشير POS', en: 'POS Terminal', href: '/pos' },
+  { icon: <Boxes className="w-5 h-5 text-emerald-400" />, ar: 'المخزون والجرد', en: 'Inventory & Stock', href: '/admin/inventory' },
+  { icon: <Clock3 className="w-5 h-5 text-amber-400" />, ar: 'الورديات والدرج', en: 'Cashier Shifts', href: '/admin/shifts' },
+  { icon: <RotateCcw className="w-5 h-5 text-orange-400" />, ar: 'المرتجعات (RMA)', en: 'Returns & RMA', href: '/admin/returns' },
+  { icon: <HeartHandshake className="w-5 h-5 text-indigo-400" />, ar: 'الولاء والكوبونات', en: 'Loyalty & Coupons', href: '/admin/coupons' },
+  { icon: <BarChart3 className="w-5 h-5 text-blue-400" />, ar: 'التقارير والأرباح', en: 'Reports & P&L', href: '/admin/reports' },
 ];
 
 export default async function FeaturesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -198,12 +238,9 @@ export default async function FeaturesPage({ params }: { params: Promise<{ local
   const stats = [
     { value: branchCount, labelAr: 'فروع مرتبطة في النظام', labelEn: 'linked branches' },
     { value: productCount, labelAr: 'صنف في الكتالوج', labelEn: 'catalog products' },
-    { value: categoryCount, labelAr: 'تصنيفات', labelEn: 'categories' },
+    { value: categoryCount, labelAr: 'تصنيفات رئيسية', labelEn: 'categories' },
     { value: userCount, labelAr: 'مستخدم يعمل على النظام', labelEn: 'team accounts' },
   ];
-
-  const howToAr = ['سجّل وادخل على اللوحة', 'أضف أصناف وفروع', 'بيع من الكاشير أو المتجر', 'تتبع الأرباح والمرتجعات'];
-  const howToEn = ['Sign in and open the dashboard', 'Add products and branches', 'Sell from the POS or the store', 'Track profit and returns'];
 
   return (
     <main className="flex-1 pb-20">
@@ -213,34 +250,49 @@ export default async function FeaturesPage({ params }: { params: Promise<{ local
         <div className="relative max-w-6xl mx-auto px-4 pt-16 pb-12 text-center">
           <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold">
             <Cpu className="w-3.5 h-3.5" />
-            {isAr ? 'نظام إدارة متكامل ERP — الرياضة الأخنبرية' : 'All-in-one ERP for Sports Retail'}
+            {isAr ? 'نظام إدارة متكامل ERP — الرياضة السكندرية' : 'All-in-one ERP for Sports Retail'}
           </span>
           <h1 className="mt-5 text-3xl sm:text-5xl font-black text-slate-100 leading-tight">
-            {isAr ? 'كل تجارتك في نظام واحد' : 'Your whole business on one system'}
+            {isAr ? 'كل منظومة تجارتك في شاشة واحدة' : 'Your Whole Business in One System'}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base text-slate-400 leading-relaxed">
             {isAr
-              ? 'من لحظة البيع في الكاشير أو المتجر، مروراً بالمخزون والمرتجعات والضرائب، حتى تقارير الأرباح — بتهجّب النتيجة كلها على Levantine واحدة. وداعاً للأعشاب والدفاتر الورقية.'
-              : 'From the moment of sale at the POS or online, through inventory, returns and taxes, to profit reports — everything reconciles into one ledger. No more loose Excel files.'}
+              ? 'من لحظة البيع في كاشير التابلت أو المتجر، مروراً بالمخزون والمرتجعات والضرائب، حتى تقارير الأرباح — كل حركة مسجلة ومتوافقة محاسبياً ولحظياً.'
+              : 'From tablet POS or online checkout, through inventory, returns and e-invoicing, to profit reports — fully reconciled in real time.'}
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-xs font-bold">
-            <Link href="/admin" className="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/25 inline-flex items-center gap-2 transition-all">
-              <span>{isAr ? 'ادخل لوحة التحكم' : 'Open the Dashboard'}</span>
+            <Link
+              href="/pos"
+              className="px-6 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xl shadow-amber-500/25 inline-flex items-center gap-2 transition-all font-black text-sm"
+            >
+              <MonitorPlay className="w-4 h-4" />
+              <span>{isAr ? 'شغل كاشير الـ POS الآن' : 'Launch POS Terminal'}</span>
             </Link>
-            <Link href="/catalog" className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 inline-flex items-center gap-2 transition-all">
-              {isAr ? 'تصفح المتجر' : 'Browse the store'} {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+            <Link
+              href="/admin"
+              className="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 inline-flex items-center gap-2 transition-all font-bold text-sm"
+            >
+              <span>{isAr ? 'لوحة التحكم الإدارية' : 'Admin Dashboard'}</span>
+              {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Link>
           </div>
 
-          {/* quick strip */}
-          <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {/* Quick interactive strip */}
+          <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {QUICK.map((q, i) => (
-              <Reveal key={i} delay={i * 60}>
-                <div className="glass-card p-4 rounded-2xl border border-slate-800 flex flex-col items-center gap-2 text-center">
-                  {q.icon}
-                  <span className="text-[11px] font-bold text-slate-200">{isAr ? q.ar : q.en}</span>
-                </div>
+              <Reveal key={i} delay={i * 50}>
+                <Link
+                  href={q.href}
+                  className="glass-card p-4 rounded-2xl border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 flex flex-col items-center gap-2 text-center transition-all group active:scale-95"
+                >
+                  <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 group-hover:border-amber-500/40 transition-colors">
+                    {q.icon}
+                  </div>
+                  <span className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition-colors">
+                    {isAr ? q.ar : q.en}
+                  </span>
+                </Link>
               </Reveal>
             ))}
           </div>
@@ -248,7 +300,7 @@ export default async function FeaturesPage({ params }: { params: Promise<{ local
       </section>
 
       {/* STATS */}
-      <section className="max-w-6xl mx-auto px-4">
+      <section className="max-w-6xl mx-auto px-4 mt-6">
         <Reveal>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((s, i) => (
@@ -261,101 +313,119 @@ export default async function FeaturesPage({ params }: { params: Promise<{ local
         </Reveal>
       </section>
 
-      {/* MODULES */}
+      {/* MODULES WITH DIRECT LINKS */}
       <section className="max-w-6xl mx-auto px-4 mt-16">
         <Reveal>
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-100">{isAr ? 'ما الذي يشمله النظام؟' : 'What the system covers'}</h2>
-            <p className="mt-2 text-sm text-slate-400">{isAr ? '12 وحدة تعمل معاً كمنظومة واحدة' : '12 modules working as one system'}</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-100">
+              {isAr ? 'وحدات المنظومة ومميزات النظام' : 'System Modules & Features'}
+            </h2>
+            <p className="mt-2 text-sm text-slate-400">
+              {isAr ? '12 وحدة تشغيلية متكاملة — اضغط على أي وحدة لتجربتها مباشرة' : '12 integrated modules — click any module to open directly'}
+            </p>
           </div>
         </Reveal>
-        <div className="grid md:grid-cols-2 gap-6">
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {MODULES.map((m, i) => (
-            <Reveal key={i} delay={Math.min(i * 50, 300)}>
-              <div className="glass-card h-full p-6 rounded-2xl border border-slate-800 hover:border-blue-500/40 transition-colors duration-300 flex flex-col gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">{m.icon}</div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-100">{isAr ? m.titleAr : m.titleEn}</h3>
-                  <p className="mt-1.5 text-sm text-slate-400 leading-relaxed">{isAr ? m.descAr : m.descEn}</p>
+            <Reveal key={i} delay={Math.min(i * 40, 300)}>
+              <div className="glass-card h-full p-5 rounded-3xl border border-slate-800 hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between bg-slate-950/60 shadow-lg">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
+                      {m.icon}
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400">
+                      وحدة جاهزة ✓
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-black text-slate-100">{isAr ? m.titleAr : m.titleEn}</h3>
+                    <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">{isAr ? m.descAr : m.descEn}</p>
+                  </div>
+
+                  <ul className="space-y-1.5 pt-2 border-t border-slate-800/60">
+                    {(isAr ? m.pointsAr : m.pointsEn).map((p, j) => (
+                      <li key={j} className="flex items-start gap-2 text-[11px] font-semibold text-slate-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="mt-auto space-y-1.5">
-                  {(isAr ? m.pointsAr : m.pointsEn).map((p, j) => (
-                    <li key={j} className="flex items-start gap-2 text-xs font-semibold text-slate-300">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>{p}</span>
-                    </li>
-                  ))}
-                </ul>
+
+                {/* Direct Action Link */}
+                <Link
+                  href={m.href}
+                  className="mt-5 pt-3.5 border-t border-slate-800/80 flex items-center justify-between text-xs font-black text-amber-400 hover:text-amber-300 group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>{isAr ? m.ctaAr : m.ctaEn}</span>
+                  </span>
+                  {isAr ? (
+                    <ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
+                  ) : (
+                    <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                  )}
+                </Link>
               </div>
             </Reveal>
           ))}
         </div>
       </section>
 
-      {/* WHY BUY */}
+      {/* WHY CHOOSE THIS SYSTEM */}
       <section className="max-w-6xl mx-auto px-4 mt-20">
         <Reveal>
           <div className="glass-panel p-8 sm:p-12 rounded-3xl border border-amber-500/25 bg-gradient-to-br from-slate-900 via-slate-950 to-blue-950/40">
             <div className="grid lg:grid-cols-2 gap-10 items-center">
               <div>
                 <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
-                  {isAr ? 'لماذا تشتري هذا النظام؟' : 'Why choose this system?'}
+                  {isAr ? 'لماذا تختار هذا النظام لمتجرك؟' : 'Why Choose This ERP?'}
                 </span>
                 <h2 className="mt-4 text-2xl sm:text-3xl font-black text-slate-100">
-                  {isAr ? 'تحكم كامل، أرعب من النت، وجاهز للضرائب' : 'Full control, offline-safe, tax-ready'}
+                  {isAr ? 'سرعة فائقة، أمان أوفلاين، وجاهز للضرائب المصرية' : 'High Speed, Offline Safe, Tax Ready'}
                 </h2>
                 <p className="mt-3 text-sm text-slate-400 leading-relaxed">
                   {isAr
-                    ? 'أوفر لك المصروفات الثابتة للأقزام، وأعطيك أداة واحدة تبيع وتشتري وتطلب وتدير. الفرق بين تقدير العميل والتجربة الحقيقية يظهر من أول وردية.'
-                    : 'Cut the fixed cost of scattered tools. One instrument that sells, buys, returns and manages. The difference shows from the very first shift.'}
+                    ? 'وفر تكاليف البرامج المنفصلة وتشتت الدفاتر. نظام واحد يدير الكاشير والمخازن والمرتجعات والحسابات بضغطة زر وبدون تعقيد.'
+                    : 'Consolidate multiple disconnected tools into one fast, reliable, tax-compliant system.'}
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { icon: <Zap className="w-5 h-5 text-amber-400" />, t: isAr ? 'أسرع 5×' : '5× faster', d: isAr ? 'وصل مباشر لقاعدة البيانات: لوجن ~0.3 ثانية' : 'Direct DB connection: ~0.3s login' },
-                  { icon: <Wifi className="w-5 h-5 text-blue-400" />, t: isAr ? 'يشتغل بدون نت' : 'Offline-safe', d: isAr ? 'الفاتورة تحفظ محلياً وتتواكب تلقائياً' : 'Invoices store locally and auto-sync' },
-                  { icon: <Banknote className="w-5 h-5 text-emerald-400" />, t: isAr ? 'مدفوعات حقيقية' : 'Real payments', d: isAr ? 'Paymob + Fawry وثبات مرتجعات' : 'Paymob + Fawry and refunds' },
-                  { icon: <PackageSearch className="w-5 h-5 text-rose-400" />, t: isAr ? 'شحن وتتبع' : 'Shipping + tracking', d: isAr ? 'Bosta + Mylerz مع صفحة تتبع للعميل' : 'Bosta + Mylerz with customer tracking' },
+                  {
+                    icon: <Zap className="w-5 h-5 text-amber-400" />,
+                    t: isAr ? 'أسرع 5× في الأداء' : '5× Faster',
+                    d: isAr ? 'اتصال مباشر بقاعدة البيانات: لوجن في ~0.2 ثانية' : 'Direct DB pool: ~0.2s login',
+                  },
+                  {
+                    icon: <Wifi className="w-5 h-5 text-blue-400" />,
+                    t: isAr ? 'يعمل بدون إنترنت' : 'Offline Safe',
+                    d: isAr ? 'فواتير الكاشير تُحفظ محلياً وتُزامن فور عودة النت' : 'Local storage offline queue auto-syncs',
+                  },
+                  {
+                    icon: <Banknote className="w-5 h-5 text-emerald-400" />,
+                    t: isAr ? 'مدفوعات ومرتجعات' : 'Payments & RMA',
+                    d: isAr ? 'كاش، فيزا، انستاباي، فوري، ومحفظة إلكترونية' : 'Cash, Card, InstaPay, Fawry, Wallets',
+                  },
+                  {
+                    icon: <PackageSearch className="w-5 h-5 text-rose-400" />,
+                    t: isAr ? 'بوالص شحن وتتبع' : 'Shipping & Tracking',
+                    d: isAr ? 'تكامل مع Bosta و Mylerz وتتبع بالهاتف' : 'Bosta and Mylerz integration',
+                  },
                 ].map((c, i) => (
                   <div key={i} className="rounded-2xl bg-slate-950/60 border border-slate-800 p-4">
-                    <div className="flex items-center gap-2">{c.icon}<span className="text-sm font-black text-slate-100">{c.t}</span></div>
-                    <p className="mt-1 text-xs text-slate-400">{c.d}</p>
+                    <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center mb-2.5">
+                      {c.icon}
+                    </div>
+                    <div className="font-bold text-xs text-slate-200">{c.t}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{c.d}</div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="max-w-6xl mx-auto px-4 mt-16">
-        <Reveal>
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-100">{isAr ? 'تبدأ في 4 خطوات' : 'Start in 4 steps'}</h2>
-          </div>
-          <div className="grid sm:grid-cols-4 gap-4">
-            {(isAr ? howToAr : howToEn).map((h, i) => (
-              <div key={i} className="glass-card p-5 rounded-2xl border border-slate-800 text-center relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center">{i + 1}</div>
-                <p className="mt-3 text-sm font-bold text-slate-200">{h}</p>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="max-w-6xl mx-auto px-4 mt-16">
-        <Reveal>
-          <div className="text-center glass-panel p-10 rounded-3xl border border-slate-800">
-            <Gem className="w-8 h-8 text-amber-400 mx-auto" />
-            <h2 className="mt-4 text-2xl font-black text-slate-100">{isAr ? 'جاهز تشغّل متجرك عليه؟' : 'Ready to run your store on it?'}</h2>
-            <p className="mt-2 text-sm text-slate-400">{isAr ? 'لوحة التحكم مرفوعة الآن وكل الوحدات شغالة.' : 'The dashboard is live now and every module works.'}</p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Link href="/admin" className="px-8 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-amber-500/25">
-                {isAr ? 'ادخل اللوحة الآن' : 'Open the dashboard'}
-              </Link>
             </div>
           </div>
         </Reveal>

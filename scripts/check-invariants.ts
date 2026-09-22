@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { runChecks } from '../src/lib/invariants.js';
-
-const db = new PrismaClient();
+import { prisma as db } from '../src/lib/db';
+import { runChecks } from '../src/lib/invariants';
 
 async function main() {
   const findings = await runChecks(db);

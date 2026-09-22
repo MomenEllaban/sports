@@ -539,6 +539,7 @@ export async function seedTransactions(db: PrismaClient) {
     db.payrollItem.deleteMany({ where: { id: { startsWith: 'payroll-' } } }),
     db.payrollRun.deleteMany({ where: { id: { startsWith: 'payroll-' } } }),
     db.auditLog.deleteMany({ where: { id: { startsWith: 'audit-D-' } } }),
+    db.shift.createMany({ data: shiftRows, skipDuplicates: true }),
     db.sale.createMany({ data: saleRows, skipDuplicates: true }),
     db.saleItem.createMany({ data: saleItemRows, skipDuplicates: true }),
     db.order.createMany({ data: orderRows, skipDuplicates: true }),
@@ -552,7 +553,6 @@ export async function seedTransactions(db: PrismaClient) {
     db.inventoryLog.createMany({ data: invLogRows, skipDuplicates: true }),
     db.taxInvoice.createMany({ data: taxInvoiceRows, skipDuplicates: true }),
     db.auditLog.createMany({ data: auditRows, skipDuplicates: true }),
-    db.shift.createMany({ data: shiftRows, skipDuplicates: true }),
     db.coupon.createMany({ data: couponRows, skipDuplicates: true }),
     db.review.createMany({ data: reviewRows, skipDuplicates: true }),
   ]);

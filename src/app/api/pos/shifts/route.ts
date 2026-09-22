@@ -34,12 +34,19 @@ export async function POST(req: Request) {
     if (!cashierId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const body = await req.json();
     const role = session!.user?.role;
-    let branchId = typeof body.branchId === 'string' ? body.branchId : null;
-    if (role === 'CASHIER') {
+    let branchId = typeof body.branchId === 'string' && body.branchId.trim() ? body.branchId.trim() : null;
+    if (!branchId || role === 'CASHIER') {
       const me = await prisma.user.findUnique({ where: { id: cashierId } });
-      branchId = me?.branchId || null;
+      if (me?.branchId) {
+        branchId = me.branchId;
+      }
     }
-    if (!branchId) return NextResponse.json({ success: false, error: 'حدد الفرع أولاً' }, { status: 422 });
+    // Fallback to first active branch if still unassigned
+    if (!branchId) {
+      const firstActive = await prisma.branch.findFirst({ where: { isActive: true } });
+      branchId = firstActive?.id || null;
+    }
+    if (!branchId) return NextResponse.json({ success: false, error: 'لا يوجد فروع نشطة في النظام' }, { status: 422 });
     const fallbackFloat = await getSetting<number>('shifts.openingFloat', 500).catch(() => 500);
     const openingFloat = body.openingFloat === undefined ? fallbackFloat : Number(body.openingFloat);
     try {
