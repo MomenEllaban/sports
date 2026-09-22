@@ -24,6 +24,16 @@ async function main() {
   await del('inventoryLogs', db.inventoryLog.deleteMany({ where: { id: { startsWith: 'invlog-' } } }));
   await del('saleItems', db.saleItem.deleteMany({ where: { id: { startsWith: 'saleitem-D-' } } }));
   await del('sales', db.sale.deleteMany({ where: { saleNumber: { startsWith: 'SALE-D-' } } }));
+
+  // Manual live POS smoke-test sales created by the dev (real-format numbers).
+  const testSaleNumbers = ['POS-2026-33742', 'POS-2026-39455'];
+  const testSales = await db.sale.findMany({ where: { saleNumber: { in: testSaleNumbers } }, select: { id: true } });
+  const testSaleIds = testSales.map((s) => s.id);
+  if (testSaleIds.length > 0) {
+    await del('testSaleItems', db.saleItem.deleteMany({ where: { saleId: { in: testSaleIds } } }));
+    await del('testTaxInvoices', db.taxInvoice.deleteMany({ where: { saleId: { in: testSaleIds } } }));
+    await del('testSales', db.sale.deleteMany({ where: { id: { in: testSaleIds } } }));
+  }
   await del('orderItems', db.orderItem.deleteMany({ where: { id: { startsWith: 'orderitem-D-' } } }));
   await del('orders', db.order.deleteMany({ where: { orderNumber: { startsWith: 'ORD-D-' } } }));
   await del('poItems', db.purchaseOrderItem.deleteMany({ where: { id: { startsWith: 'poitem-D-' } } }));
