@@ -113,7 +113,7 @@ describe('order state machine and restock (T08, RED first)', () => {
     expect(res.status).toBe(400);
   });
 
-  it('SHIPPED -> DELIVERED does not restock; DELIVERED -> RETURNED does', async () => {
+  it('SHIPPED -> DELIVERED does not restock; direct RETURNED is closed (use RMA)', async () => {
     const db = testPrisma();
     const order = await makeOrder('SHIPPED', 1);
     const before = (await db.branchInventory.findUniqueOrThrow({
@@ -124,10 +124,12 @@ describe('order state machine and restock (T08, RED first)', () => {
       where: { branchId_productId: { branchId, productId } },
     })).stockQuantity;
     expect(mid).toBe(before);
-    expect((await patch(order.id, { orderStatus: 'RETURNED' })).status).toBe(200);
+    // T-RMA single path: direct RETURNED flips are rejected; stock untouched.
+    const res = await patch(order.id, { orderStatus: 'RETURNED' });
+    expect(res.status).toBe(400);
     const after = (await db.branchInventory.findUniqueOrThrow({
       where: { branchId_productId: { branchId, productId } },
     })).stockQuantity;
-    expect(after).toBe(before + 1);
+    expect(after).toBe(before);
   });
 });

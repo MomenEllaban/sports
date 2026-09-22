@@ -28,10 +28,11 @@ export async function authorizeDiscount(
   actorId: string,
   actorRole: string,
   amount: number,
-  pin?: string | null
+  pin?: string | null,
+  thresholdOverride?: number
 ): Promise<DiscountDecision> {
   if (!(amount > 0)) return { approvedById: null };
-  const threshold = await getDiscountThreshold();
+  const threshold = thresholdOverride ?? (await getDiscountThreshold());
   if (amount <= threshold) return { approvedById: null };
 
   const actor = await prisma.user.findUnique({ where: { id: actorId } });

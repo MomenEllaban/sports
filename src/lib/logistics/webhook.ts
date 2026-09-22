@@ -1,16 +1,17 @@
 import { prisma } from '@/lib/db';
 import { transitionOrder } from '@/lib/orders/status';
+import { requestReturn, approveReturn, receiveReturn } from '@/lib/returns/service';
 import type { OrderStatus } from '@prisma/client';
 
 const FORWARD: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 
 /**
- * Shared courier-webhook applier (3.2). Walks the order state machine toward
- * the target so webhooks stay idempotent and never violate transitions:
+ * Shared courier-webhook applier (3.2 + T-RMA). Walks the order state machine
+ * toward the target so webhooks stay idempotent and never violate transitions:
  * - DELIVERED/SHIPPED/PROCESSING: step forward along the chain.
- * - RETURNED: restocks via transitionOrder (from SHIPPED/DELIVERED), or
- *   CANCELLED (also restocking) when the courier never picked it up.
- * Already-there states return replay:true.
+ * - RETURNED: opens an AUTO_COURIER RMA (auto-approved + received, RESTOCK)
+ *   through the single Return Service instead of flipping status directly.
+ *   Already-there states return replay:true.
  */
 export async function applyCourierStatus(
   orderId: string,
@@ -25,9 +26,29 @@ export async function applyCourierStatus(
   }
 
   if (target === 'RETURNED') {
-    const to: OrderStatus = current === 'SHIPPED' || current === 'DELIVERED' ? 'RETURNED' : 'CANCELLED';
+    if (current !== 'SHIPPED' && current !== 'DELIVERED') {
+      try {
+        await transitionOrder(orderId, 'CANCELLED');
+      } catch {
+        /* concurrent change: report current */
+      }
+      return { replay: false, orderStatus: (await fresh()).orderStatus as OrderStatus };
+    }
     try {
-      await transitionOrder(orderId, to);
+      const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
+      const { request } = await requestReturn({
+        orderId,
+        channel: 'AUTO_COURIER',
+        items: order.items.map((i) => ({ refId: i.id, productId: i.productId, quantity: i.quantity, reasonCode: 'OTHER' })),
+        customerPhone: order.guestPhone,
+        notes: 'مرتجع شركة شحن تلقائي',
+        clientRequestId: `courier-${orderId}`,
+      });
+      await approveReturn(request.id, undefined);
+      const withItems = await prisma.returnRequest.findUniqueOrThrow({ where: { id: request.id }, include: { items: true } });
+      await receiveReturn(request.id, undefined, withItems.items.map((ri) => ({
+        returnItemId: ri.id, condition: 'GOOD', disposition: 'RESTOCK',
+      })), {});
     } catch {
       return { replay: true, orderStatus: (await fresh()).orderStatus as OrderStatus };
     }

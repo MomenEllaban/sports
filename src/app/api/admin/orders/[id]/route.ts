@@ -21,10 +21,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
-    // Order status goes through the state machine (restock on cancel/return, T08).
+    // Order status goes through the state machine (T08). Direct RETURNED is
+    // closed: all returns flow through the single Return Service (T-RMA).
     if (orderStatus) {
       if (!ORDER_STATUSES.includes(orderStatus)) {
         return NextResponse.json({ success: false, error: 'Invalid order status' }, { status: 400 });
+      }
+      if (orderStatus === 'RETURNED') {
+        return NextResponse.json(
+          { success: false, error: 'استخدم مسار المرتجعات (/admin/returns) بدلاً من قلب الحالة مباشرة' },
+          { status: 400 }
+        );
       }
       try {
         const actorId = (session?.user as { id?: string } | undefined)?.id;

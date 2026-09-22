@@ -152,6 +152,10 @@ export async function POST(req: Request) {
     const wantPoints = resolvedCustomerId ? Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0)) : 0;
     if (wantPoints > 0 && resolvedCustomerId) {
       const bal = (await prisma.customer.findUnique({ where: { id: resolvedCustomerId }, select: { loyaltyPoints: true } }))?.loyaltyPoints || 0;
+      // T-RMA: negative loyalty (after returns) blocks new redemptions until covered.
+      if (bal < 0) {
+        return NextResponse.json({ success: false, error: 'رصيد النقاط سالب — لا يمكن الاستبدال حتى تعويضه' }, { status: 400 });
+      }
       if (wantPoints > bal) {
         return NextResponse.json({ success: false, error: 'رصيد النقاط لا يكفي' }, { status: 400 });
       }

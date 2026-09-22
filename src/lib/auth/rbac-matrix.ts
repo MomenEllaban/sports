@@ -9,7 +9,7 @@ import type { Role } from '@prisma/client';
  */
 export type MatrixEntry = { methods: Record<string, Role[] | 'public'> };
 
-export const PUBLIC_PREFIXES = ['/api/auth/', '/api/orders/', '/api/account/', '/api/payments/', '/api/discounts/', '/api/reviews', '/api/products/'];
+export const PUBLIC_PREFIXES = ['/api/auth/', '/api/orders/', '/api/account/', '/api/payments/', '/api/discounts/', '/api/reviews', '/api/products/', '/api/returns/'];
 
 const SUPER: Role[] = ['SUPER_ADMIN'];
 const BM: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER'];
@@ -55,12 +55,16 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/purchase-orders/[id]': { methods: { PATCH: BM } },
   '/api/admin/purchase-orders/[id]/return': { methods: { POST: BM } },
   '/api/admin/inventory/adjust': { methods: { POST: BM } },
+  '/api/admin/returns': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], POST: BM } },
+  '/api/admin/returns/[id]': { methods: { POST: BM } },
+  '/api/admin/returns/refunds/[id]': { methods: { POST: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'] } },
   '/api/admin/tax-invoices/[id]/retry': { methods: { POST: FIN } },
   '/api/admin/inventory/adjust-info': { methods: { GET: BM } },
   '/api/admin/supplier-payments': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], POST: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'] } },
   '/api/admin/purchase-orders/[id]/receive': { methods: { POST: BM } },
   '/api/pos/products': { methods: { GET: POS } },
   '/api/pos/sale': { methods: { POST: POS } },
+  '/api/pos/returns': { methods: { POST: POS } },
   '/api/pos/shifts': { methods: { GET: POS, POST: POS } },
   '/api/pos/shifts/[id]': { methods: { GET: POS, POST: POS } },
   '/api/pos/customer': { methods: { GET: POS, POST: POS } },

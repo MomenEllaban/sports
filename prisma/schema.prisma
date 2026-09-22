@@ -701,6 +701,10 @@ model ReturnRequest {
   source         String   @default("NEW") // NEW | LEGACY
   notes          String?
   exchangeSaleId String?
+  // T-RMA idempotency for double-submit protection (nullable unique).
+  clientRequestId String?  @unique
+  // T-RMA ETA credit-note marker: NONE | SENT | PENDING_ETA.
+  etaStatus      String   @default("NONE")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

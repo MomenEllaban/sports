@@ -18,7 +18,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     if (shift.status !== 'OPEN') return NextResponse.json({ success: false, error: 'الوردية مغلقة بالفعل' }, { status: 409 });
     const expected = await expectedCashFor(shift.id, num(shift.openingFloat));
     const maxShortage = await getSetting<number>('shifts.maxShortage', 50).catch(() => 50);
-    return NextResponse.json({ success: true, expected, openingFloat: num(shift.openingFloat), maxShortage, openedAt: shift.openedAt });
+    const cashRefunds = await prisma.refund.aggregate({
+      where: { shiftId: shift.id, status: 'DONE', method: 'CASH' },
+      _sum: { amount: true },
+    });
+    return NextResponse.json({ success: true, expected, openingFloat: num(shift.openingFloat), maxShortage, openedAt: shift.openedAt, cashRefunded: num(cashRefunds._sum.amount) });
   } catch (e) {
     captureError('pos/shifts/[id] GET', e);
     return NextResponse.json({ success: false, error: 'تعذر جلب الوردية' }, { status: 500 });

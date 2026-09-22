@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     }
 
     // 2.4: commission base = ACTUAL POS sales by this employee's linked user in the payroll month.
+    // T-RMA: DONE refunds on those sales reduce the base (visible as returnsDeduction).
     const monthStart = new Date(periodYear, periodMonth - 1, 1);
     const monthEnd = new Date(periodYear, periodMonth, 1);
     const salesTotals = await prisma.sale.groupBy({
@@ -37,11 +38,23 @@ export async function POST(req: Request) {
       _sum: { totalAmount: true },
     });
     const salesByCashier = new Map(salesTotals.map((s) => [s.cashierId, num(s._sum.totalAmount ?? 0)]));
+    const refundRows = await prisma.refund.findMany({
+      where: { status: 'DONE', updatedAt: { gte: monthStart, lt: monthEnd }, return: { saleId: { not: null } } },
+      select: { amount: true, return: { select: { sale: { select: { cashierId: true } } } } },
+    });
+    const refundsByCashier = new Map<string, number>();
+    for (const r of refundRows) {
+      const cid = r.return.sale?.cashierId;
+      if (!cid) continue;
+      refundsByCashier.set(cid, (refundsByCashier.get(cid) || 0) + num(r.amount));
+    }
 
     const salesByEmployee: Record<string, number> = {};
     const items = employees.map((e) => {
       const salary = num(e.salary);
-      const salesTotal = e.userId ? salesByCashier.get(e.userId) ?? 0 : 0;
+      const gross = e.userId ? salesByCashier.get(e.userId) ?? 0 : 0;
+      const clawback = e.userId ? refundsByCashier.get(e.userId) ?? 0 : 0;
+      const salesTotal = Math.max(0, money(gross - clawback));
       salesByEmployee[e.id] = salesTotal;
       const commission = money(salesTotal * e.commissionRate);
       return {
