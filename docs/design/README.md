@@ -12,7 +12,7 @@
 | 05 — Main Pages | `group-05-pages.md` | Done (verified) | `84af03e` |
 | 06 — Responsive | `group-06-responsive.md` | **Done** | `fc6eac6` |
 | 07 — RTL / LTR | `group-07-rtl.md` | **Done** | `d0c270f` |
-| 08 — Accessibility | `group-08-a11y.md` | **Next — Pending** | - |
-| 09 — Final Polish | `group-09-polish.md` | Pending | - |
+| 08 — Accessibility | `group-08-a11y.md` | **Done** | `17718b4` |
+| 09 — Final Polish | `group-09-polish.md` | **Next — Pending** | - |
 
 ترتيب التنفيذ المقترح: 06 ← 07 ← 08 ← 09 (كل جروب commit + push مستقل).

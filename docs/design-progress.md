@@ -109,14 +109,14 @@ Status: Done (تفصيل: `docs/design/group-07-rtl.md`)
 
 ## Group 08 — Accessibility
 
-- [ ] focus-visible rings
-- [ ] Modal trap / Escape / labels
-- [ ] Contrast fixes
+- [x] focus-visible rings
+- [x] Modal trap / Escape / labels
+- [x] Contrast fixes
 
 Commit:
--
+`17718b4`
 
-Status: Pending
+Status: Done (تفصيل: `docs/design/group-08-a11y.md`)
 
 ---
 

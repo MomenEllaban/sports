@@ -1,6 +1,6 @@
 # Group 08 — Accessibility — Done
 
-Commit: `PENDING` — Status: Done (2026-09-23).
+Commit: `17718b4` — Status: Done (2026-09-23).
 
 ## ما تم
 - [x] `focus-visible` rings عامة في `globals.css` (مرئية دائماً — ممنوع إزالتها)
