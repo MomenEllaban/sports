@@ -22,6 +22,8 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
   const [form, setForm] = useState({ supplierId: suppliers[0]?.id || '', amount: '', method: 'CASH', reference: '', notes: '' });
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState('');
+  const PAGE_SIZE = 8;
+  const [page, setPage] = useState(1);
 
   const reload = async () => {
     const res = await fetch('/api/admin/supplier-payments');
@@ -95,6 +97,9 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
       )}
       <DataTable
         rows={rows}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
         emptyTitle={isAr ? 'لا مدفوعات مسجلة' : 'No payments yet'}
         columns={[
           { key: 'supplier', header: 'المورد', render: (r) => <span className="font-bold">{r.supplier.name}</span> },

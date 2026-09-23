@@ -177,7 +177,7 @@ export default function ProductDetailsClient({
             )}
             {showChart && sizeChart && (
               <div className="overflow-x-auto rounded-xl border border-slate-800">
-                <table className="w-full text-[11px] text-right">
+                <table className="w-full text-[11px] text-start">
                   <caption className="p-2 font-bold text-slate-200">{sizeChart.titleAr}</caption>
                   <thead className="bg-slate-950 text-slate-400">
                     <tr>{sizeChart.columns.map((col) => <th key={col} className="p-2 whitespace-nowrap">{col}</th>)}</tr>

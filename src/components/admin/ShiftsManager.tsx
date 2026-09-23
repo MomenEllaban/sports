@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Clock3, DollarSign, AlertCircle, CheckCircle2, Search, Filter, Printer, X } from 'lucide-react';
@@ -41,6 +41,12 @@ export default function ShiftsManager({
   const [branchFilter, setBranchFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShift, setSelectedShift] = useState<ShiftRow | null>(null);
+  const PAGE_SIZE = 8;
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, branchFilter, searchQuery, setPage]);
 
   // Close modal state
   const [closeTarget, setCloseTarget] = useState<ShiftRow | null>(null);
@@ -279,6 +285,9 @@ export default function ShiftsManager({
       {/* Shifts Table */}
       <DataTable
         rows={filteredRows}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
         emptyTitle={isAr ? 'لا توجد ورديات مطابقة' : 'No matching shifts found'}
         emptyHint={isAr ? 'جرب تغيير فلاتر البحث أو تصفية الحالات' : 'Try adjusting search or status filters'}
         columns={[

@@ -43,24 +43,24 @@ Status: Done
 - [x] Badge (StatusBadge stays in admin/ui, shared tone spec)
 - [x] EmptyState + Skeleton (`Skeleton` added to foundation kit)
 
-Commit:
--
+Commit: `b57cdad`
 
-Status: In Progress
+Status: Done
 
 ---
 
 ## Group 04 — Data Components
 
-- [ ] DataTable upgrade (hover, pagination, density)
-- [ ] Standardize StatusBadge across all enum surfaces
-- [ ] Pagination everywhere
-- [ ] Unify empty + loading states
+- [x] DataTable upgrade (shared table spec + built-in pagination, logical `text-start`)
+- [x] Standardize StatusBadge across all enum surfaces (verified coherent `/20`+`/30` pill spec)
+- [x] Pagination everywhere (shared `Pagination` in foundation; Shifts/Returns/Reviews/SupplierPayments/Coupons wired; reports = top-N summaries, exempt)
+- [x] Unify empty + loading states
+- [x] Unify all raw `<table>` literals + thead treatments (14 surfaces; single canonical style)
 
 Commit:
 -
 
-Status: Pending
+Status: In Progress
 
 ---
 

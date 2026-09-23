@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Check, Trash2, Star } from 'lucide-react';
@@ -27,6 +27,12 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
   const [busy, setBusy] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<ReviewRow | null>(null);
   const [pendingOnly, setPendingOnly] = useState(false);
+  const PAGE_SIZE = 8;
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [pendingOnly, setPage]);
 
   const reload = async () => {
     const res = await fetch(`/api/admin/reviews${pendingOnly ? '?pending=1' : ''}`);
@@ -72,6 +78,9 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
       </label>
       <DataTable
         rows={rows}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
         emptyTitle={isAr ? 'لا توجد تقييمات بعد' : 'No reviews yet'}
         emptyHint={isAr ? 'تقييمات العملاء من صفحات المنتجات ستظهر هنا للاعتماد.' : 'Customer reviews will appear here for approval.'}
         columns={[

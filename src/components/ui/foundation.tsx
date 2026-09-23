@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image, { type ImageProps } from 'next/image';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/routing';
-import { AlertTriangle, Globe, Inbox, X } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Globe, Inbox, X } from 'lucide-react';
 
 // ── Button (F0 §1.4): one primary/secondary/danger/ghost spec ──
 export type ButtonVariant = 'primary' | 'success' | 'danger' | 'secondary' | 'ghost';
@@ -77,31 +77,128 @@ export function SafeImage({ alt, fallbackSrc = '/placeholder-product.svg', ...pr
   return <Image {...props} src={src} alt={alt} onError={() => setSrc(fallbackSrc)} />;
 }
 
+// ── Table (F0 §1.5): one consistent data-table spec ─────
+export const tableCls = 'w-full text-xs text-start';
+export const tableHeadCls = 'text-slate-400 bg-slate-950 border-b border-slate-800';
+export const tableHeadCellCls = 'p-3 whitespace-nowrap';
+export const tableRowCls = 'hover:bg-slate-900/50';
+export const tableCellCls = 'p-3';
+
+// ── Pagination (F0 §1.5): shared pager for every list ───
+function pageWindow(page: number, total: number, width = 2): (number | '…')[] {
+  const pages = new Set<number>([1, total]);
+  for (let i = Math.max(1, page - width); i <= Math.min(total, page + width); i++) pages.add(i);
+  const sorted = [...pages].sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (prev && p - prev > 1) out.push('…');
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
+
+export function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+  ariaLabel,
+}: {
+  page: number;
+  totalPages: number;
+  onPageChange: (p: number) => void;
+  ariaLabel?: string;
+}) {
+  const locale = useLocale();
+  const isRtl = locale === 'ar';
+
+  if (totalPages <= 1) return null;
+
+  const btn =
+    'flex h-10 min-w-10 items-center justify-center rounded-control border border-slate-700 px-2 text-xs font-bold transition-colors';
+
+  return (
+    <nav aria-label={ariaLabel || 'Pagination'} className="pt-4">
+      <div className={`flex items-center gap-1.5 ${isRtl ? 'flex-row-reverse' : ''}`}>
+        <button
+          type="button"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          aria-label="Previous page"
+          aria-disabled={page <= 1}
+          className={`${btn} text-slate-300 hover:bg-slate-800 hover:text-slate-100 disabled:pointer-events-none disabled:opacity-40`}
+        >
+          <ChevronRight className={`h-4 w-4 ${isRtl ? 'rtl-flip' : ''}`} />
+        </button>
+
+        {pageWindow(page, totalPages).map((p, i) =>
+          p === '…' ? (
+            <span key={`gap-${i}`} className="px-1 text-slate-500">
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onPageChange(p)}
+              aria-current={p === page ? 'page' : undefined}
+              className={`${btn} ${
+                p === page
+                  ? 'border-blue-500 bg-blue-600 text-white shadow-control'
+                  : 'text-slate-300 hover:bg-slate-800 hover:text-slate-100'
+              }`}
+            >
+              {p}
+            </button>
+          )
+        )}
+
+        <button
+          type="button"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+          aria-label="Next page"
+          aria-disabled={page >= totalPages}
+          className={`${btn} text-slate-300 hover:bg-slate-800 hover:text-slate-100 disabled:pointer-events-none disabled:opacity-40`}
+        >
+          <ChevronLeft className={`h-4 w-4 ${isRtl ? 'rtl-flip' : ''}`} />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 // ── DataTable (responsive: cards on small screens) ───────
 export interface Column<T> { key: string; header: string; render: (row: T) => React.ReactNode; hideOnMobile?: boolean }
-export function DataTable<T extends { id: string }>({ rows, columns, emptyTitle, emptyHint, actionLabel, onAction }: {
+export function DataTable<T extends { id: string }>({ rows, columns, emptyTitle, emptyHint, actionLabel, onAction, page, pageSize, onPageChange }: {
   rows: T[]; columns: Column<T>[]; emptyTitle: string; emptyHint?: string; actionLabel?: string; onAction?: () => void;
+  page?: number; pageSize?: number; onPageChange?: (p: number) => void;
 }) {
   if (rows.length === 0) return <EmptyState title={emptyTitle} hint={emptyHint} actionLabel={actionLabel} onAction={onAction} />;
+  const showPager = typeof page === 'number' && typeof pageSize === 'number' && onPageChange;
+  const totalPages = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+  const safePage = showPager ? Math.min(Math.max(1, page!), totalPages) : 1;
+  const visible = showPager ? rows.slice((safePage - 1) * pageSize!, safePage * pageSize!) : rows;
   return (
     <>
       {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-800">
-        <table className="w-full text-xs text-right">
-          <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
-            <tr>{columns.map((c) => <th key={c.key} className="p-3 whitespace-nowrap">{c.header}</th>)}</tr>
+      <div className="hidden md:block overflow-x-auto rounded-card border border-slate-800 shadow-card">
+        <table className={tableCls}>
+          <thead className={tableHeadCls}>
+            <tr>{columns.map((c) => <th key={c.key} className={tableHeadCellCls}>{c.header}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-900/50">{columns.map((c) => <td key={c.key} className="p-3">{c.render(r)}</td>)}</tr>
+            {visible.map((r) => (
+              <tr key={r.id} className={tableRowCls}>{columns.map((c) => <td key={c.key} className={tableCellCls}>{c.render(r)}</td>)}</tr>
             ))}
           </tbody>
         </table>
       </div>
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
-        {rows.map((r) => (
-          <div key={r.id} className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs space-y-1.5">
+        {visible.map((r) => (
+          <div key={r.id} className="p-3.5 rounded-card bg-slate-900 border border-slate-800 text-xs space-y-1.5 shadow-card">
             {columns.filter((c) => !c.hideOnMobile).map((c) => (
               <div key={c.key} className="flex justify-between gap-2">
                 <span className="text-slate-500 shrink-0">{c.header}</span>
@@ -111,6 +208,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyTitle,
           </div>
         ))}
       </div>
+      {showPager && <Pagination page={safePage} totalPages={totalPages} onPageChange={onPageChange!} />}
     </>
   );
 }

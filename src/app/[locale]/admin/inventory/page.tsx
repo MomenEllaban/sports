@@ -86,8 +86,8 @@ export default async function AdminInventoryPage() {
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
             <h3 className="font-extrabold text-sm text-slate-100">سجل حركات المخزون (Audit Log)</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-right">
-                <thead className="text-slate-400 border-b border-slate-800">
+              <table className="w-full text-xs text-start">
+                <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                   <tr>
                     <th className="pb-2">التاريخ</th>
                     <th className="pb-2">الفرع</th>

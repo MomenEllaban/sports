@@ -33,6 +33,8 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
   const [form, setForm] = useState({ code: '', kind: 'PERCENT', value: '', capAmount: '', minTotal: '', usageLimit: '', endsAt: '' });
   const [formError, setFormError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<Coupon | null>(null);
+  const PAGE_SIZE = 8;
+  const [page, setPage] = useState(1);
 
   const reload = async () => {
     const res = await fetch('/api/admin/coupons');
@@ -145,6 +147,9 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
 
       <DataTable
         rows={rows}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
         emptyTitle={isAr ? 'لا توجد كوبونات بعد' : 'No coupons yet'}
         emptyHint={isAr ? 'أنشئ أول كوبون خصم لحملاتك من الزر أعلاه.' : 'Create your first promo code above.'}
         columns={[

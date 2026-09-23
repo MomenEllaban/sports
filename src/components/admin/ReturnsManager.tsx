@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
@@ -48,6 +48,12 @@ export default function ReturnsManager({ initial, branches, counts }: {
   const [branch, setBranch] = useState('');
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
+  const PAGE_SIZE = 8;
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [status, channel, branch, q, setPage]);
 
   const load = async () => {
     setLoading(true);
@@ -120,6 +126,9 @@ export default function ReturnsManager({ initial, branches, counts }: {
       ) : (
         <DataTable
           rows={rows.map((r) => ({ ...r }))}
+          page={page}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
           emptyTitle="لا توجد مرتجعات"
           columns={[
             {
