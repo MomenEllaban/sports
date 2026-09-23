@@ -53,7 +53,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/85 backdrop-blur-md">
       {/* Top Announcement Bar */}
-      <div className="bg-gradient-to-r from-blue-900 via-slate-900 to-amber-950 px-3 sm:px-4 py-1.5 text-xs text-slate-300 border-b border-slate-800/60">
+      <div className="bg-base border-b border-slate-800/60 px-3 sm:px-4 py-1.5 text-xs text-ink-soft">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <span className="flex items-center gap-1 text-amber-400 font-medium min-w-0">
@@ -114,7 +114,7 @@ export default function Header() {
             priority
             quality={80}
             sizes="44px"
-            className="h-10 w-auto rounded-lg object-contain drop-shadow-[0_0_10px_rgba(245,166,35,0.35)] transition-transform group-hover:scale-105 shrink-0"
+            className="h-10 w-auto rounded-lg object-contain transition-transform group-hover:scale-105 shrink-0"
           />
           <div className="hidden md:block min-w-0">
             <h1 className="text-base lg:text-lg font-extrabold text-slate-100 tracking-tight leading-tight whitespace-nowrap group-hover:text-blue-400 transition-colors">
@@ -171,7 +171,7 @@ export default function Header() {
           {/* Wishlist Icon */}
           <Link
             href="/wishlist"
-            className="relative flex items-center justify-center w-10 h-10 min-h-[44px] rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500 hover:text-white transition-all shadow-md shrink-0"
+            className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500 hover:text-white transition-all shadow-md shrink-0"
             aria-label={isAr ? 'قائمة الأمنيات' : 'Wishlist'}
           >
             <Heart className="w-5 h-5" />
@@ -181,7 +181,7 @@ export default function Header() {
           {/* Cart Icon */}
           <Link
             href="/cart"
-            className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 hover:bg-blue-600 hover:text-white transition-all shadow-md shrink-0"
+            className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 hover:bg-blue-600 hover:text-white transition-all shadow-md shrink-0"
             aria-label={isAr ? 'سلة المشتريات' : 'Shopping cart'}
           >
             <ShoppingBag className="w-5 h-5" />
@@ -198,7 +198,7 @@ export default function Header() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all shrink-0"
+            className="lg:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all shrink-0"
             aria-label={isAr ? 'القائمة' : 'Toggle menu'}
             aria-expanded={mobileOpen}
           >

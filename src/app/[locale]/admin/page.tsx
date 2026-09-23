@@ -1,5 +1,6 @@
 import React from 'react';
 import { StatusBadge } from '@/components/admin/ui';
+import { PageHeader } from '@/components/ui/foundation';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { DollarSign, ShoppingBag, Layers, MapPin, TrendingUp, AlertTriangle, Clock3, Inbox, Wallet, RotateCcw } from 'lucide-react';
@@ -70,15 +71,15 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black text-slate-100">لوحة التحكم والملخص العام</h1>
-          <p className="text-xs text-slate-400 mt-0.5">إيراد اليوم {todayRevenue.toLocaleString()} ج.م (منها ضريبة {todayVat.toLocaleString()})</p>
-        </div>
-        <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
-          محدث مباشرة
-        </span>
-      </div>
+      <PageHeader
+        title="لوحة التحكم والملخص العام"
+        description={`إيراد اليوم ${todayRevenue.toLocaleString()} ج.م (منها ضريبة ${todayVat.toLocaleString()})`}
+        actions={
+          <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
+            محدث مباشرة
+          </span>
+        }
+      />
 
       {/* Action queues */}
       {(pendingPay._count > 0 || receiptsToReview > 0 || openShifts > 0 || pendingReturns > 0) && (

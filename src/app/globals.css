@@ -227,11 +227,7 @@
 [data-theme="light"] [class~="divide-slate-800"] > * + *,
 [data-theme="light"] [class~="divide-slate-800/60"] > * + * { border-color: #e2e8f0 !important; }
 
-/* Announcement bar: keep it as a warm brand accent optimized for light
-   mode instead of the dark navy used on the dark theme. */
-[data-theme="light"] [class~="from-blue-900"] {
-  background-image: linear-gradient(to right, #e0e7ff, #f8fafc, #fef3c7) !important;
-}
+/* Announcement bar keeps a neutral surface in both themes (no gradient). */
 
 /* Subtle blue shadows read softer on light backgrounds */
 [data-theme="light"] .shadow-blue-600\/25,

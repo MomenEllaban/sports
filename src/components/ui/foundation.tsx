@@ -49,6 +49,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── PageHeader (F0 §3): page title + description + actions ─────
+export function PageHeader({ title, description, actions }: {
+  title: string; description?: string; actions?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="space-y-1 min-w-0">
+        <h1 className="text-2xl font-black text-slate-100 tracking-tight leading-tight">{title}</h1>
+        {description && <p className="text-sm text-slate-400">{description}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
 // ── EmptyState (F0 §1.5: never a bare table header) ──────
 export function EmptyState({ title, hint, actionLabel, onAction }: { title: string; hint?: string; actionLabel?: string; onAction?: () => void }) {
   return (

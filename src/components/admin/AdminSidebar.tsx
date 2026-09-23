@@ -52,7 +52,7 @@ export default function AdminSidebar() {
       labelAr: 'لوحة المعلومات والملخص',
       labelEn: 'Dashboard Overview',
       href: '/admin',
-      icon: <LayoutDashboard className="w-5 h-5 text-blue-400" />,
+      icon: <LayoutDashboard className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
@@ -60,7 +60,7 @@ export default function AdminSidebar() {
       labelAr: 'إدارة الطلبات (Online/POS/WA)',
       labelEn: 'Orders Management',
       href: '/admin/orders',
-      icon: <ShoppingBag className="w-5 h-5 text-amber-400" />,
+      icon: <ShoppingBag className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
@@ -68,7 +68,7 @@ export default function AdminSidebar() {
       labelAr: 'المنتجات والكتالوج',
       labelEn: 'Product Catalog',
       href: '/admin/products',
-      icon: <Package className="w-5 h-5 text-emerald-400" />,
+      icon: <Package className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
@@ -76,7 +76,7 @@ export default function AdminSidebar() {
       labelAr: 'المخزون والتحويلات بين الفروع',
       labelEn: 'Inventory & Stock Transfers',
       href: '/admin/inventory',
-      icon: <Layers className="w-5 h-5 text-purple-400" />,
+      icon: <Layers className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.STAFF],
     },
     {
@@ -84,7 +84,7 @@ export default function AdminSidebar() {
       labelAr: 'المشتريات وأوامر التوريد',
       labelEn: 'Purchasing & Suppliers',
       href: '/admin/purchasing',
-      icon: <Truck className="w-5 h-5 text-cyan-400" />,
+      icon: <Truck className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
@@ -92,7 +92,7 @@ export default function AdminSidebar() {
       labelAr: 'سجل العملاء والولاء',
       labelEn: 'Customer Directory & Loyalty',
       href: '/admin/customers',
-      icon: <Users className="w-5 h-5 text-indigo-400" />,
+      icon: <Users className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
@@ -100,7 +100,7 @@ export default function AdminSidebar() {
       labelAr: 'الموظفين والكادر الوظيفي',
       labelEn: 'Employees & Staff',
       href: '/admin/employees',
-      icon: <UserCog className="w-5 h-5 text-teal-400" />,
+      icon: <UserCog className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
@@ -108,7 +108,7 @@ export default function AdminSidebar() {
       labelAr: 'الحسابات، الأرباح، وضرائب ETA',
       labelEn: 'Accounting & P&L',
       href: '/admin/accounting',
-      icon: <DollarSign className="w-5 h-5 text-emerald-400" />,
+      icon: <DollarSign className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
     },
     {
@@ -116,7 +116,7 @@ export default function AdminSidebar() {
       labelAr: 'مرتبات الموظفين والعمولات',
       labelEn: 'Payroll & Commissions',
       href: '/admin/payroll',
-      icon: <Briefcase className="w-5 h-5 text-amber-500" />,
+      icon: <Briefcase className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
     },
     {
@@ -124,7 +124,7 @@ export default function AdminSidebar() {
       labelAr: 'تسوية التحصيل النقدي COD',
       labelEn: 'COD Settlement',
       href: '/admin/cod-settlement',
-      icon: <HandCoins className="w-5 h-5 text-teal-400" />,
+      icon: <HandCoins className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
     },
     {
@@ -132,7 +132,7 @@ export default function AdminSidebar() {
       labelAr: 'المرتجعات والاستبدال',
       labelEn: 'Returns & Exchange',
       href: '/admin/returns',
-      icon: <RotateCcw className="w-5 h-5 text-orange-400" />,
+      icon: <RotateCcw className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
@@ -140,7 +140,7 @@ export default function AdminSidebar() {
       labelAr: 'تقييمات العملاء',
       labelEn: 'Customer Reviews',
       href: '/admin/reviews',
-      icon: <Star className="w-5 h-5 text-amber-300" />,
+      icon: <Star className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
@@ -148,7 +148,7 @@ export default function AdminSidebar() {
       labelAr: 'الكوبونات والعروض',
       labelEn: 'Coupons & Promos',
       href: '/admin/coupons',
-      icon: <TicketPercent className="w-5 h-5 text-purple-400" />,
+      icon: <TicketPercent className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
     },
     {
@@ -156,7 +156,7 @@ export default function AdminSidebar() {
       labelAr: 'الورديات والدرج',
       labelEn: 'Shifts & Cash Drawer',
       href: '/admin/shifts',
-      icon: <Clock3 className="w-5 h-5 text-cyan-400" />,
+      icon: <Clock3 className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
@@ -164,7 +164,7 @@ export default function AdminSidebar() {
       labelAr: 'التقارير التحليلية للفروع',
       labelEn: 'Analytics & Reports',
       href: '/admin/reports',
-      icon: <BarChart3 className="w-5 h-5 text-blue-500" />,
+      icon: <BarChart3 className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
     },
     {
@@ -172,7 +172,7 @@ export default function AdminSidebar() {
       labelAr: 'مركز التنبيهات والإشعارات',
       labelEn: 'Notification Center',
       href: '/admin/notifications',
-      icon: <Bell className="w-5 h-5 text-rose-400" />,
+      icon: <Bell className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE, Role.CASHIER, Role.STAFF],
     },
     {
@@ -180,7 +180,7 @@ export default function AdminSidebar() {
       labelAr: 'المستخدمين والصلاحيات',
       labelEn: 'Users & Permissions',
       href: '/admin/users',
-      icon: <ShieldAlert className="w-5 h-5 text-indigo-400" />,
+      icon: <ShieldAlert className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN],
     },
     {
@@ -188,7 +188,7 @@ export default function AdminSidebar() {
       labelAr: 'إعدادات الفروع والضرائب',
       labelEn: 'System & Branch Settings',
       href: '/admin/settings',
-      icon: <Settings className="w-5 h-5 text-slate-400" />,
+      icon: <Settings className="w-5 h-5" />,
       allowedRoles: [Role.SUPER_ADMIN],
     },
   ];
@@ -211,7 +211,7 @@ export default function AdminSidebar() {
             priority
             quality={80}
             sizes="48px"
-            className="h-11 w-auto rounded-lg object-contain drop-shadow-[0_0_10px_rgba(245,166,35,0.35)]"
+            className="h-11 w-auto rounded-lg object-contain"
           />
           <div>
             <h2 className="font-extrabold text-sm text-slate-100">ابطال الرياضة</h2>

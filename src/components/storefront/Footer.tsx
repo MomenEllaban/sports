@@ -23,7 +23,7 @@ export default function Footer() {
               height={822}
               quality={80}
               sizes="48px"
-              className="h-11 w-auto rounded-lg object-contain drop-shadow-[0_0_12px_rgba(245,166,35,0.3)] group-hover:scale-105 transition-transform"
+              className="h-11 w-auto rounded-lg object-contain group-hover:scale-105 transition-transform"
             />
             <div>
               <h3 className="font-extrabold text-slate-100 text-base group-hover:text-blue-400 transition-colors">
@@ -135,19 +135,19 @@ export default function Footer() {
         <div className="space-y-3">
           <h4 className="font-bold text-slate-200 text-sm">طرق الدفع والشحن المتاحة</h4>
           <div className="flex flex-wrap gap-2 text-xs text-slate-300">
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-chip bg-slate-900 border border-slate-800 flex items-center gap-1">
               <CreditCard className="w-3.5 h-3.5 text-blue-400" /> Paymob / كروت البنوك
             </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+            <span className="px-2.5 py-1 rounded-chip bg-slate-900 border border-slate-800">
               فودافون كاش / اتصالات / أورانج
             </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+            <span className="px-2.5 py-1 rounded-chip bg-slate-900 border border-slate-800">
               فوري Fawry
             </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-amber-400">
+            <span className="px-2.5 py-1 rounded-chip bg-slate-900 border border-slate-800 text-amber-400">
               الدفع عند الاستلام COD
             </span>
-            <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+            <span className="px-2.5 py-1 rounded-chip bg-slate-900 border border-slate-800">
               InstaPay انستا باي
             </span>
           </div>

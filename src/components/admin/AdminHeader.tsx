@@ -59,9 +59,9 @@ export default function AdminHeader() {
 
   return (
     <header className="h-16 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0">
-      {/* Session Role Display */}
+      {/* Role Label */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-200">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-200">
           <UserRound className="w-4 h-4 text-amber-400" />
           <span>{roleLabel || (isAr ? 'لوحة التحكم' : 'Dashboard')}</span>
         </div>
@@ -86,7 +86,7 @@ export default function AdminHeader() {
         {/* Notifications Bell */}
         <Link
           href="/admin/notifications"
-          className="relative p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-slate-100 transition-colors"
+          className="relative w-11 h-11 flex items-center justify-center rounded-xl bg-slate-800 text-slate-300 hover:text-slate-100 transition-colors"
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
@@ -111,7 +111,7 @@ export default function AdminHeader() {
 
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-400 hover:text-white transition-all border border-rose-500/30"
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-400 hover:text-white transition-all border border-rose-500/30"
             title={isAr ? 'تسجيل الخروج' : 'Sign out'}
           >
             <LogOut className="w-4 h-4" />
