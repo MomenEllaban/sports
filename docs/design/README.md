@@ -10,8 +10,8 @@
 | 03 — Core Components | `group-03-components.md` | Done (verified) | `b57cdad` |
 | 04 — Data Components | `group-04-data.md` | Done (verified) | `509b165` |
 | 05 — Main Pages | `group-05-pages.md` | Done (verified) | `84af03e` |
-| 06 — Responsive | `group-06-responsive.md` | **Next — Pending** | - |
-| 07 — RTL / LTR | `group-07-rtl.md` | Pending | - |
+| 06 — Responsive | `group-06-responsive.md` | **Done** | `fc6eac6` |
+| 07 — RTL / LTR | `group-07-rtl.md` | **Next — Pending** | - |
 | 08 — Accessibility | `group-08-a11y.md` | Pending | - |
 | 09 — Final Polish | `group-09-polish.md` | Pending | - |
 

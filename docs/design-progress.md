@@ -82,15 +82,15 @@ Status: Done
 
 ## Group 06 — Responsive
 
-- [ ] Mobile table fallbacks
-- [ ] 44px touch targets
-- [ ] Filter grids
-- [ ] POS tablet sanity
+- [x] Mobile table fallbacks
+- [x] 44px touch targets
+- [x] Filter grids
+- [x] POS tablet sanity
 
 Commit:
--
+`fc6eac6`
 
-Status: Pending
+Status: Done (تفصيل: `docs/design/group-06-responsive.md`)
 
 ---
 
