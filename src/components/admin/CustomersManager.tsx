@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Award, Plus, Pencil, Trash2, Search, Phone, Mail, FileText, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface CustomerRow {
@@ -266,13 +266,10 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
               className="pr-9 pl-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-64 focus:outline-none focus:border-blue-500"
             />
           </div>
-          <button
-            onClick={openAdd}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
-          >
+          <Button onClick={openAdd} variant="primary">
             <Plus className="w-4 h-4" />
             {isAr ? 'إضافة عميل' : 'Add Customer'}
-          </button>
+          </Button>
         </div>
       </div>
 

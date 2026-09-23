@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { RotateCcw, Search, ArrowLeftRight } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { Stepper, SafeImage, ConfirmDialog } from '@/components/ui/foundation';
+import { Stepper, SafeImage, ConfirmDialog, Button } from '@/components/ui/foundation';
 
 interface LookupItem {
   saleItemId: string; productId: string; nameAr: string; sku: string;
@@ -270,10 +270,10 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
             </div>
             {error && <p role="alert" className="font-bold text-rose-400">{error}</p>}
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setStep(2)} className="min-h-[44px] rounded-xl bg-slate-800 font-bold">رجوع</button>
-              <button onClick={() => setConfirming(true)} disabled={busy} className="min-h-[44px] rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-black">
+              <Button onClick={() => setStep(2)} className="bg-slate-800 font-bold">رجوع</Button>
+              <Button onClick={() => setConfirming(true)} disabled={busy} variant="brand" className="font-black">
                 {busy ? '...' : 'مراجعة وتأكيد'}
-              </button>
+              </Button>
             </div>
           </div>
         )}

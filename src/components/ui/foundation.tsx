@@ -14,12 +14,13 @@ import { usePathname, useRouter } from '@/i18n/routing';
 import { AlertTriangle, ChevronLeft, ChevronRight, Globe, Inbox, X } from 'lucide-react';
 
 // ── Button (F0 §1.4): one primary/secondary/danger/ghost spec ──
-export type ButtonVariant = 'primary' | 'success' | 'danger' | 'secondary' | 'ghost';
+export type ButtonVariant = 'primary' | 'success' | 'danger' | 'secondary' | 'ghost' | 'brand';
 
 const btnVariants: Record<ButtonVariant, string> = {
   primary: 'bg-blue-600 text-white hover:bg-blue-500 shadow-control',
   success: 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-control',
   danger: 'bg-rose-600 text-white hover:bg-rose-500 shadow-control',
+  brand: 'bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-control',
   secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700',
   ghost: 'bg-transparent text-slate-300 hover:bg-slate-800 border border-slate-800',
 };

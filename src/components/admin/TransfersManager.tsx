@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { ArrowLeftRight } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -79,10 +79,10 @@ export default function TransfersManager({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowModal(true)} className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all">
+        <Button onClick={() => setShowModal(true)} variant="brand">
           <ArrowLeftRight className="w-4 h-4" />
           {t('newTransfer')}
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-3">

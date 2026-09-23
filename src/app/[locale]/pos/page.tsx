@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
 import { useSession } from 'next-auth/react';
-import { LocaleSwitcher, Stepper } from '@/components/ui/foundation';
+import { LocaleSwitcher, Stepper, Button } from '@/components/ui/foundation';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import PosPaymentModal from '@/components/pos/PosPaymentModal';
 import PosReceiptModal, { type PosReceiptData } from '@/components/pos/PosReceiptModal';
@@ -628,13 +628,14 @@ export default function PosTerminalPage() {
               />
             </div>
             {openError && <p role="alert" className="text-xs font-bold text-rose-400">{openError}</p>}
-            <button
+            <Button
               type="submit"
+              variant="brand"
               disabled={openBusy}
-              className="w-full min-h-[44px] py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-extrabold text-sm"
+              className="w-full"
             >
               {openBusy ? 'جاري الفتح...' : 'فتح الوردية وبدء البيع'}
-            </button>
+            </Button>
           </form>
         </div>
       ) : (
@@ -1037,13 +1038,14 @@ export default function PosTerminalPage() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
                   disabled={newCustomerLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-lg shadow-blue-600/20"
+                  className="flex-1"
                 >
                   {newCustomerLoading ? 'جاري الحفظ...' : 'حفظ وتثبيت بالفاتورة'}
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={() => setShowQuickCustomerModal(false)}

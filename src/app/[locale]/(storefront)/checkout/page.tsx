@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { CreditCard, Truck, MapPin, CheckCircle, ShieldCheck, AlertCircle, Phone, User, MessageCircle } from 'lucide-react';
 import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
+import { Button } from '@/components/ui/foundation';
 
 export default function CheckoutPage() {
   const tCommon = useTranslations('common');
@@ -228,12 +229,9 @@ export default function CheckoutPage() {
             </div>
 
             <div className="pt-4 flex justify-center gap-4">
-              <button
-                onClick={() => router.push(`/tracking?phone=${phone}&order=${orderCompleted.orderNumber}`)}
-                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs"
-              >
+              <Button variant="primary" onClick={() => router.push(`/tracking?phone=${phone}&order=${orderCompleted.orderNumber}`)}>
                 تتبع حالة الشحنة الآن
-              </button>
+              </Button>
             </div>
           </div>
         </main>

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Download, Award, Layers, Users, Truck, Skull } from 'lucide-react';
-import { DataTable } from '@/components/ui/foundation';
+import { DataTable, Button } from '@/components/ui/foundation';
 
 interface Summary {
   productProfit: Array<{ id: string; nameAr: string; qty: number; revenue: number; cost: number; profit: number }>;
@@ -74,9 +74,9 @@ export default function ReportsClient({ branches }: { branches: Array<{ id: stri
           </select>
         </div>
         <div className="col-span-2 md:col-span-2 flex items-end">
-          <button type="submit" disabled={loading} className="w-full min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold">
+          <Button type="submit" variant="primary" disabled={loading} className="w-full">
             {loading ? '...' : 'عرض التقرير'}
-          </button>
+          </Button>
         </div>
       </form>
 

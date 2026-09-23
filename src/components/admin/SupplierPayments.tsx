@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { DataTable } from '@/components/ui/foundation';
+import { DataTable, Button } from '@/components/ui/foundation';
 
 interface Supplier { id: string; name: string }
 interface Payment { id: string; supplierId: string; amount: number; method: string; reference: string | null; notes: string | null; createdAt: string; supplier: { name: string } }
@@ -61,9 +61,9 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
     <div className="space-y-3">
       <div className="flex justify-between items-center">
         <h3 className="font-extrabold text-sm text-slate-100">مدفوعات الموردين</h3>
-        <button onClick={() => setShowNew(!showNew)} className="min-h-[44px] px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1">
+        <Button onClick={() => setShowNew(!showNew)} variant="success">
           <Plus className="w-4 h-4" />{isAr ? 'دفعة جديدة' : 'New payment'}
-        </button>
+        </Button>
       </div>
       {showNew && (
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-2 text-xs">

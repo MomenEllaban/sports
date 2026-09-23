@@ -5,7 +5,7 @@ import { useRouter } from '@/i18n/routing';
 import { ShoppingCart, MessageCircle, Ruler } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { STORE_WHATSAPP_INTL } from '@/components/storefront/ProductCard';
-import { SafeImage } from '@/components/ui/foundation';
+import { SafeImage, Button } from '@/components/ui/foundation';
 import { sizesOf, colorsOf, type VariantOption } from '@/lib/catalog/groups';
 
 export interface SizeChart {
@@ -229,14 +229,14 @@ export default function ProductDetailsClient({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <button
+          <Button
             onClick={handleAdd}
             disabled={totalStock <= 0}
-            className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-sm font-bold flex items-center justify-center gap-2"
+            variant="primary"
           >
             <ShoppingCart className="w-4 h-4" />
             أضف للسلة
-          </button>
+          </Button>
           <a
             href={`https://wa.me/${STORE_WHATSAPP_INTL}?text=${waMsg}`}
             target="_blank"

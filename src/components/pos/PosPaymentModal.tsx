@@ -16,6 +16,7 @@ import {
   Receipt,
   Plus,
 } from 'lucide-react';
+import { Button } from '@/components/ui/foundation';
 
 export interface PosPaymentModalProps {
   isOpen: boolean;
@@ -382,14 +383,14 @@ export default function PosPaymentModal({
                         className="flex-1 p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-100"
                         dir="ltr"
                       />
-                      <button
+                      <Button
                         type="button"
+                        variant="primary"
                         onClick={() => onSearchCustomer(phoneSearch)}
                         disabled={customerSearching || !phoneSearch.trim()}
-                        className="px-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1"
                       >
                         {customerSearching ? '...' : <><Search className="w-3.5 h-3.5" /> بحث</>}
-                      </button>
+                      </Button>
                       <button
                         type="button"
                         onClick={onOpenNewCustomer}

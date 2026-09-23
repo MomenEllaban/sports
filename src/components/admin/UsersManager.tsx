@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import Pagination from './Pagination';
+import { Button } from '@/components/ui/foundation';
 import {
   Plus,
   Edit2,
@@ -253,14 +254,14 @@ export default function UsersManager({
           </select>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="primary"
           onClick={openAddModal}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-blue-600/20 transition-all"
         >
           <Plus className="w-4 h-4" />
           {isAr ? 'إضافة مستخدم جديد' : 'Add New User'}
-        </button>
+        </Button>
       </div>
 
       {/* Users Table */}
@@ -542,13 +543,14 @@ export default function UsersManager({
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-slate-800">
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold flex items-center justify-center gap-1 shadow-lg shadow-blue-600/20"
+                  className="flex-1"
                 >
                   {loading ? 'جاري الحفظ...' : (isAr ? 'حفظ بيانات المستخدم' : 'Save User')}
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

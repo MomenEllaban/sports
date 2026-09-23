@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Save } from 'lucide-react';
-import { apiFetch, Field } from './ui';
+import { apiFetch, Field, fieldInputCls } from './ui';
 import { useToast } from '@/components/Toast';
+import { Button } from '@/components/ui/foundation';
 
 interface Zone {
   id: string;
@@ -52,18 +53,18 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
             value={String(form[key] ?? '')}
             dir={ltr ? 'ltr' : undefined}
             onChange={(e) => set(key, e.target.value)}
-            className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+            className={fieldInputCls}
           />
         </Field>
       </div>
-      <button
+      <Button
         onClick={() => save(key)}
         disabled={saving === key}
-        className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+        variant="primary"
       >
         <Save className="w-3.5 h-3.5" />
         {saving === key ? '...' : isAr ? 'حفظ' : 'Save'}
-      </button>
+      </Button>
     </div>
   );
 
@@ -77,19 +78,19 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
             step="any"
             value={String(form[key] ?? '')}
             onChange={(e) => set(key, Number(e.target.value))}
-            className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+            className={fieldInputCls}
             dir="ltr"
           />
         </Field>
       </div>
-      <button
+      <Button
         onClick={() => save(key)}
         disabled={saving === key}
-        className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs flex items-center gap-1 shrink-0"
+        variant="primary"
       >
         <Save className="w-3.5 h-3.5" />
         {saving === key ? '...' : isAr ? 'حفظ' : 'Save'}
-      </button>
+      </Button>
     </div>
   );
 
@@ -143,13 +144,13 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
           <h3 className="font-extrabold text-sm text-slate-100">
             {isAr ? 'مناطق ورسوم التوصيل' : 'Delivery zones & fees'}
           </h3>
-          <button
+          <Button
             onClick={() => save('shipping.zones')}
             disabled={saving === 'shipping.zones'}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs"
+            variant="primary"
           >
             {isAr ? 'حفظ المناطق' : 'Save zones'}
-          </button>
+          </Button>
         </div>
         <div className="space-y-2">
           {zones.map((z) => (
@@ -177,13 +178,13 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
           <h3 className="font-extrabold text-sm text-slate-100">
             {isAr ? 'طرق الدفع' : 'Payment methods'}
           </h3>
-          <button
+          <Button
             onClick={() => save('payments.methods')}
             disabled={saving === 'payments.methods'}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs"
+            variant="primary"
           >
             {isAr ? 'حفظ' : 'Save'}
-          </button>
+          </Button>
         </div>
         <div className="space-y-2 text-xs">
           {methods.map((m) => (
@@ -253,9 +254,9 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
               </Field>
             </div>
             <div className="flex items-end">
-              <button onClick={() => save('eta.mode')} disabled={saving === 'eta.mode'} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs">
+              <Button onClick={() => save('eta.mode')} disabled={saving === 'eta.mode'} variant="primary">
                 {isAr ? 'حفظ الوضع' : 'Save mode'}
-              </button>
+              </Button>
             </div>
           </div>
           {etaText('eta.clientId', isAr ? 'Client ID' : 'Client ID', 'ETA portal → app credentials', true)}
@@ -295,9 +296,9 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
               </Field>
             </div>
             <div className="flex items-end">
-              <button onClick={() => save('whatsapp.mode')} disabled={saving === 'whatsapp.mode'} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs">
+              <Button onClick={() => save('whatsapp.mode')} disabled={saving === 'whatsapp.mode'} variant="primary">
                 {isAr ? 'حفظ الوضع' : 'Save mode'}
-              </button>
+              </Button>
             </div>
           </div>
           {etaText('whatsapp.phoneId', 'Phone Number ID', 'Meta dashboard → WhatsApp → API', true)}
@@ -325,9 +326,9 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
             />
             {isAr ? 'تفعيل بوابة العميل' : 'Enable customer portal'}
           </label>
-          <button onClick={() => save('portal.enabled')} disabled={saving === 'portal.enabled'} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs">
+          <Button onClick={() => save('portal.enabled')} disabled={saving === 'portal.enabled'} variant="primary">
             {isAr ? 'حفظ' : 'Save'}
-          </button>
+          </Button>
         </IntegrationSection>
       </div>
     </div>
@@ -343,17 +344,17 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
               dir={ltr ? 'ltr' : undefined}
               type={key.toLowerCase().includes('secret') || key.toLowerCase().includes('token') ? 'password' : 'text'}
               onChange={(e) => set(key, e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
+              className={fieldInputCls}
             />
           </Field>
         </div>
-        <button
+        <Button
           onClick={() => save(key)}
           disabled={saving === key}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold text-xs shrink-0"
+          variant="primary"
         >
           {saving === key ? '...' : isAr ? 'حفظ' : 'Save'}
-        </button>
+        </Button>
       </div>
     );
   }

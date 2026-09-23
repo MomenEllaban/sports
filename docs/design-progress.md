@@ -57,26 +57,24 @@ Status: Done
 - [x] Unify empty + loading states
 - [x] Unify all raw `<table>` literals + thead treatments (14 surfaces; single canonical style)
 
-Commit:
--
+Commit: `509b165`
 
-Status: In Progress
+Status: Done
 
 ---
 
 ## Group 05 — Main Pages
 
-- [ ] Admin dashboard
-- [ ] Orders
-- [ ] Products
-- [ ] Settings
-- [ ] POS surfaces
-- [ ] Storefront home / checkout / cart
+- [x] Admin dashboard via PageHeader + consistent panel headers
+- [x] Orders
+- [x] Products
+- [x] Settings
+- [x] POS surfaces (open-shift, payment search, receipt print, return confirm)
+- [x] Storefront home / checkout / cart (submit + tracking CTAs → Button)
 
-Commit:
--
+Commit: `3311a89`
 
-Status: Pending
+Status: Done
 
 ---
 

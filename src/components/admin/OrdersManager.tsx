@@ -6,7 +6,7 @@ import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
-import { Stepper, inputCls } from '@/components/ui/foundation';
+import { Stepper, inputCls, Button } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
@@ -251,13 +251,13 @@ export default function OrdersManager({
               <option key={s} value={s}>{t(`status_${s}`)}</option>
             ))}
           </select>
-          <button
+          <Button
             onClick={() => setShowNewOrder(true)}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
+            variant="primary"
           >
             <Plus className="w-4 h-4" />
             {isAr ? 'طلب يدوي' : 'New Order'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -557,9 +557,14 @@ export default function OrdersManager({
               <textarea rows={2} placeholder={isAr ? 'أي ملاحظات على الطلب...' : 'Any order notes...'} value={newOrderForm.notes} onChange={(e) => setNewOrderForm({ ...newOrderForm, notes: e.target.value })} className={`${inputCls} resize-none`} />
             </div>
 
-            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={saving}
+              className="w-full"
+            >
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إنشاء الطلب' : 'Create Order')}
-            </button>
+            </Button>
           </form>
         </Modal>
       )}

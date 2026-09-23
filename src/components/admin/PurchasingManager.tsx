@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface SupplierOpt { id: string; name: string; code: string }
@@ -128,10 +128,10 @@ export default function PurchasingManager({
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowNew(true)} className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all">
+        <Button onClick={() => setShowNew(true)} variant="primary">
           <Plus className="w-4 h-4" />
           {t('newPurchaseOrder')}
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-3">

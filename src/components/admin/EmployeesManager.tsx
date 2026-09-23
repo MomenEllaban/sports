@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus, Pencil, Trash2, UserCheck, UserX, Phone, Briefcase, DollarSign, Building2 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -317,13 +317,10 @@ export default function EmployeesManager({
             </button>
           ))}
         </div>
-        <button
-          onClick={openAdd}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
-        >
+        <Button onClick={openAdd} variant="primary">
           <Plus className="w-4 h-4" />
           {isAr ? 'إضافة موظف' : 'Add Employee'}
-        </button>
+        </Button>
       </div>
 
       {/* Table */}

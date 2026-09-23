@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus, Trash2, Power } from 'lucide-react';
 import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { DataTable, ConfirmDialog } from '@/components/ui/foundation';
+import { DataTable, ConfirmDialog, Button } from '@/components/ui/foundation';
 
 interface Coupon {
   id: string;
@@ -104,9 +104,9 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <p className="text-xs text-slate-400">{isAr ? 'أكواد الخصم للمتجر والكاشير — تُحتسب مرة واحدة ولا تتجاوز السقف.' : 'Promo codes for store & POS — single-use counted, capped.'}</p>
-        <button onClick={() => setShowNew(!showNew)} className="min-h-[44px] px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1">
+        <Button onClick={() => setShowNew(!showNew)} variant="primary">
           <Plus className="w-4 h-4" />{isAr ? 'كوبون جديد' : 'New coupon'}
-        </button>
+        </Button>
       </div>
 
       {showNew && (

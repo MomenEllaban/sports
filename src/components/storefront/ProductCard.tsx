@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ShoppingCart, MessageCircle, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { Link } from '@/i18n/routing';
-import { SafeImage } from '@/components/ui/foundation';
+import { SafeImage, Button } from '@/components/ui/foundation';
 import { WishlistButton } from './WishlistButton';
 
 export interface ProductWithInventory {
@@ -138,14 +138,14 @@ export default function ProductCard({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <button
+            <Button
               onClick={handleAddToCart}
               disabled={!inStock}
-              className="px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/20"
+              variant="primary"
             >
               <ShoppingCart className="w-4 h-4" />
               {tStore('addToCart')}
-            </button>
+            </Button>
 
             <a
               href={whatsappUrl}

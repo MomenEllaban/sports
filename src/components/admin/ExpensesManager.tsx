@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, Field, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface ExpenseRow {
@@ -106,10 +106,10 @@ export default function ExpensesManager({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-extrabold text-sm text-slate-100">{isAr ? 'مصروفات التشغيل' : 'Operating expenses'}</h3>
-        <button onClick={openAdd} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all">
+        <Button onClick={openAdd} variant="success">
           <Plus className="w-4 h-4" />
           {t('newExpense')}
-        </button>
+        </Button>
       </div>
 
       {rowError && (

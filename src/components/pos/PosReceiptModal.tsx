@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Printer, CheckCircle2, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/foundation';
 
 export interface PosReceiptData {
   saleNumber: string;
@@ -194,14 +195,15 @@ export default function PosReceiptModal({
 
         {/* Actions */}
         <div className="space-y-2 pt-1">
-          <button
+          <Button
             type="button"
+            variant="brand"
             onClick={handlePrint}
-            className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
+            className="w-full"
           >
             <Printer className="w-4 h-4" />
             <span>طباعة الإيصال الحراري (80mm)</span>
-          </button>
+          </Button>
 
           <button
             type="button"

@@ -5,7 +5,7 @@ import { useLocale } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
 import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package, Upload, Image as ImageIcon, Loader2, Cloud, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
-import { inputCls } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
@@ -721,7 +721,7 @@ export default function ProductsManager({
                 <Download className="w-4 h-4 text-blue-400" />
                 {isAr ? 'تصدير CSV' : 'Export CSV'}
               </button>
-              <button
+              <Button
                 onClick={() => {
                   setProductForm(EMPTY_PRODUCT);
                   setFormError('');
@@ -729,11 +729,11 @@ export default function ProductsManager({
                   setImageUrlInput('');
                   setShowAddProduct(true);
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
+                variant="primary"
               >
                 <Plus className="w-4 h-4" />
                 {isAr ? 'إضافة منتج' : 'Add Product'}
-              </button>
+              </Button>
             </div>
           </div>
 
