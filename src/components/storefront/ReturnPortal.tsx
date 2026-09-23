@@ -267,14 +267,14 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setSelected({ ...selected, [it.orderItemId]: { ...sel, quantity: Math.max(1, sel.quantity - 1) } })}
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black"
-                              aria-label="−"
+                              className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-base"
+                              aria-label={`إنقاص كمية ${it.nameAr}`}
                             >−</button>
                             <span className="w-6 text-center text-xs font-black tabular-nums text-amber-400">{sel.quantity}</span>
                             <button
                               onClick={() => setSelected({ ...selected, [it.orderItemId]: { ...sel, quantity: Math.min(it.quantity, sel.quantity + 1) } })}
-                              className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black"
-                              aria-label="+"
+                              className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-base"
+                              aria-label={`زيادة كمية ${it.nameAr}`}
                             >+</button>
                           </div>
                         </div>

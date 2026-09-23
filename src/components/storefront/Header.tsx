@@ -93,7 +93,7 @@ export default function Header() {
             </span>
             <button
               onClick={toggleLanguage}
-              className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700 whitespace-nowrap"
+              className="flex items-center gap-1 text-xs px-3 min-h-[44px] rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700 whitespace-nowrap"
             >
               <Globe className="w-3 h-3 text-blue-400" />
               {locale === 'ar' ? t('english') : t('arabic')}

@@ -177,7 +177,7 @@ export default async function AdminDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-start">
+            <table className="w-full min-w-[560px] text-xs text-start">
               <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                 <tr>
                   <th className="pb-2">رقم الطلب</th>

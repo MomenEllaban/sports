@@ -325,7 +325,7 @@ export default function EmployeesManager({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-xs text-start">
+        <table className="w-full min-w-[640px] text-xs text-start">
           <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
             <tr>
               <th className="p-3">{isAr ? 'اسم الموظف' : 'Name'}</th>

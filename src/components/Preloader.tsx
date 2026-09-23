@@ -58,10 +58,10 @@ export default function Preloader() {
       }`}
       style={{ willChange: 'opacity' }}
     >
-      {/* Soft radial amber glow behind the logo */}
+      {/* Soft radial amber glow behind the logo (inset-0: gradient already fades to transparent; avoids page overflow) */}
       <div
         aria-hidden
-        className="champ-glow absolute -inset-24"
+        className="champ-glow absolute inset-0"
         style={{
           background:
             'radial-gradient(circle, rgba(245,166,35,0.30) 0%, rgba(245,166,35,0.08) 45%, transparent 70%)',

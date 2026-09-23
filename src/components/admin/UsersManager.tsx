@@ -266,7 +266,7 @@ export default function UsersManager({
 
       {/* Users Table */}
       <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/50">
-        <table className="w-full text-xs text-start">
+        <table className="w-full min-w-[640px] text-xs text-start">
           <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
             <tr>
               <th className="p-3.5">{isAr ? 'المستخدم' : 'User'}</th>

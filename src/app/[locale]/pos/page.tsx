@@ -639,9 +639,9 @@ export default function PosTerminalPage() {
           </form>
         </div>
       ) : (
-      <div className="flex-1 grid grid-cols-12 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 overflow-y-auto lg:overflow-hidden p-2 lg:p-0">
         {/* Left Side: Product Selector & Barcode Scanner */}
-        <div className="col-span-7 border-l border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 overflow-hidden">
+        <div className="lg:col-span-7 lg:border-l border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
           {/* Steps indicator */}
           <div className="flex items-center gap-2 text-[11px] font-bold" aria-label="خطوات البيع">
             <span className={`px-3 py-1.5 rounded-full border ${customer ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
@@ -703,7 +703,7 @@ export default function PosTerminalPage() {
                 </select>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {filteredProducts.map((prod) => {
                   const stock = prod.inventories?.[0]?.stockQuantity || 0;
                   const outOfStock = stock <= 0;
@@ -757,7 +757,7 @@ export default function PosTerminalPage() {
         </div>
 
         {/* Right Side: Current Sale Ticket & Touch Numpad */}
-        <div className="col-span-5 p-4 flex flex-col justify-between bg-slate-900/60 overflow-hidden">
+        <div className="lg:col-span-5 p-4 flex flex-col justify-between bg-slate-900/60 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800 min-h-[60vh] lg:min-h-0">
           <div className="space-y-3 flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
               <h2 className="font-black text-sm text-slate-100 flex items-center gap-2">
@@ -796,8 +796,9 @@ export default function PosTerminalPage() {
                         <button
                           type="button"
                           onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
-                          className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-sm active:scale-95 transition-all"
+                          className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-base active:scale-95 transition-all"
                           title="إنقاص الكمية"
+                          aria-label="إنقاص الكمية"
                         >
                           -
                         </button>
@@ -805,8 +806,9 @@ export default function PosTerminalPage() {
                         <button
                           type="button"
                           onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
-                          className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-sm active:scale-95 transition-all"
+                          className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-base active:scale-95 transition-all"
                           title="زيادة الكمية"
+                          aria-label="زيادة الكمية"
                         >
                           +
                         </button>
@@ -819,8 +821,9 @@ export default function PosTerminalPage() {
                       <button
                         type="button"
                         onClick={() => removeItemFromTicket(item.id)}
-                        className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="min-h-[44px] min-w-[44px] p-3 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center justify-center"
                         title="حذف من السلة"
+                        aria-label="حذف من السلة"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

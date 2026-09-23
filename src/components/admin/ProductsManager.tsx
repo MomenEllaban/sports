@@ -602,7 +602,8 @@ export default function ProductsManager({
                     type="button"
                     onClick={() => handleSetPrimaryImage(idx)}
                     title={isAr ? 'تعيين كرئيسية' : 'Set as primary'}
-                    className="absolute top-1.5 right-1.5 p-1 rounded-md bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-slate-300 text-[9px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={isAr ? 'تعيين كرئيسية' : 'Set as primary'}
+                    className="absolute top-1.5 right-1.5 min-h-[44px] min-w-[44px] px-2 rounded-md bg-slate-900/90 hover:bg-amber-500 hover:text-slate-950 text-slate-300 text-[9px] font-bold opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                   >
                     {isAr ? 'رئيسية' : 'Main'}
                   </button>
@@ -611,7 +612,8 @@ export default function ProductsManager({
                   type="button"
                   onClick={() => handleRemoveImage(idx)}
                   title={isAr ? 'حذف الصورة' : 'Remove image'}
-                  className="absolute bottom-1.5 left-1.5 p-1 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={isAr ? 'حذف الصورة' : 'Remove image'}
+                  className="absolute bottom-1.5 left-1.5 min-h-[44px] min-w-[44px] p-2 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
@@ -738,7 +740,7 @@ export default function ProductsManager({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-start">
+            <table className="w-full min-w-[760px] text-xs text-start">
               <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                 <tr>
                   <th className="p-3 w-14">{isAr ? 'الصورة' : 'Image'}</th>
