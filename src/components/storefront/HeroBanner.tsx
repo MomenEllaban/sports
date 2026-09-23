@@ -12,8 +12,8 @@ export default function HeroBanner() {
   return (
     <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800 py-16 lg:py-24">
       {/* Dynamic Background Effects */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-float-slow" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-float-slow" />
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 relative z-10 grid lg:grid-cols-12 gap-12 items-center">
         {/* Left Column: Headlines & Action Buttons */}
@@ -52,7 +52,7 @@ export default function HeroBanner() {
           <div className="flex flex-wrap items-center gap-4 pt-4 animate-fade-up stagger-4">
             <Link
               href="/catalog"
-              className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-base shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all"
+              className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-base shadow-control flex items-center gap-2 transition-all"
             >
               <ShoppingCart className="w-5 h-5" />
               {tHero('ctaShop')}
@@ -70,7 +70,7 @@ export default function HeroBanner() {
 
         {/* Right Column: Visual Showcase */}
         <div className="lg:col-span-5 relative animate-fade-up stagger-2">
-          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl relative animate-float-slow">
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl relative">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
                 الفرع الرئيسي الحكيم

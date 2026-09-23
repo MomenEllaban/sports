@@ -177,7 +177,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
             priority
             quality={85}
             sizes="64px"
-            className="h-14 w-auto rounded-xl object-contain mx-auto drop-shadow-[0_0_16px_rgba(245,166,35,0.35)]"
+            className="h-14 w-auto rounded-xl object-contain mx-auto"
           />
           <h1 className="text-xl sm:text-2xl font-black text-slate-100">{t('title')}</h1>
           <p className="text-xs text-slate-400">{t('subtitle')}</p>
@@ -227,7 +227,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 disabled:opacity-60 text-white font-black text-xs shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-black text-xs shadow-control transition-all flex items-center justify-center gap-2"
           >
             {loading && !quickLoadingId ? (
               <>

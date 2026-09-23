@@ -182,7 +182,7 @@ export default function CartPage() {
                 {/* Checkout Link Button */}
                 <Link
                   href="/checkout"
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
+                  className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-control transition-all"
                 >
                   <span>{tCart('checkout')}</span>
                   <ArrowRight className="w-4 h-4 rtl-flip" />
