@@ -72,7 +72,7 @@ Status: Done
 - [x] POS surfaces (open-shift, payment search, receipt print, return confirm)
 - [x] Storefront home / checkout / cart (submit + tracking CTAs → Button)
 
-Commit: `3311a89`
+Commit: `84af03e`
 
 Status: Done
 
