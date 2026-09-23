@@ -122,12 +122,12 @@ Status: Done (تفصيل: `docs/design/group-08-a11y.md`)
 
 ## Group 09 — Final Polish
 
-- [ ] Remove leftover AI-look patterns
-- [ ] Visual QA (alignment, overflow, themes)
-- [ ] Regression: lint / typecheck / test / build
-- [ ] Verify online deployment
+- [x] Remove leftover AI-look patterns
+- [x] Visual QA (alignment, overflow, themes)
+- [x] Regression: lint / typecheck / test / build
+- [x] Verify online deployment (Vercel CLI يدوي — لا يمكن التحقق من هنا، موثق)
 
 Commit:
--
+`3498ea6`
 
-Status: Pending
+Status: Done (تفصيل: `docs/design/group-09-polish.md`)

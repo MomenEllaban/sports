@@ -13,6 +13,6 @@
 | 06 — Responsive | `group-06-responsive.md` | **Done** | `fc6eac6` |
 | 07 — RTL / LTR | `group-07-rtl.md` | **Done** | `d0c270f` |
 | 08 — Accessibility | `group-08-a11y.md` | **Done** | `17718b4` |
-| 09 — Final Polish | `group-09-polish.md` | **Next — Pending** | - |
+| 09 — Final Polish | `group-09-polish.md` | **Done** | `3498ea6` |
 
 ترتيب التنفيذ المقترح: 06 ← 07 ← 08 ← 09 (كل جروب commit + push مستقل).

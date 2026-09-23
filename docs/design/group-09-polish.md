@@ -1,6 +1,6 @@
 # Group 09 — Final Polish — Done
 
-Commit: `PENDING` — Status: Done (2026-09-23).
+Commit: `3498ea6` — Status: Done (2026-09-23).
 
 ## ما تم
 - [x] توحيد CTAs الزرقاء المتدرجة → solid `bg-blue-600` (Hero + checkout + cart + login) مطابقة لـ Button primary
