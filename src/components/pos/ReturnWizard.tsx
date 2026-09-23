@@ -189,9 +189,9 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
                       <div className="text-[11px] text-slate-500">المباع {i.quantity} • المتاح للإرجاع {i.quantity}</div>
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setPicks({ ...picks, [i.saleItemId]: { ...p, qty: Math.max(0, p.qty - 1) } })} aria-label="إنقاص" className="min-h-[44px] min-w-[44px] rounded-lg bg-slate-800 font-black">−</button>
+                      <button onClick={() => setPicks({ ...picks, [i.saleItemId]: { ...p, qty: Math.max(0, p.qty - 1) } })} aria-label={`إنقاص كمية ${i.nameAr}`} className="min-h-[44px] min-w-[44px] rounded-lg bg-slate-800 font-black">−</button>
                       <span className="w-8 text-center font-black" aria-live="polite">{p.qty}</span>
-                      <button onClick={() => setPicks({ ...picks, [i.saleItemId]: { ...p, qty: Math.min(i.quantity, p.qty + 1) } })} aria-label="زيادة" className="min-h-[44px] min-w-[44px] rounded-lg bg-slate-800 font-black">+</button>
+                      <button onClick={() => setPicks({ ...picks, [i.saleItemId]: { ...p, qty: Math.min(i.quantity, p.qty + 1) } })} aria-label={`زيادة كمية ${i.nameAr}`} className="min-h-[44px] min-w-[44px] rounded-lg bg-slate-800 font-black">+</button>
                     </div>
                   </div>
                   {p.qty > 0 && (
@@ -229,7 +229,7 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
             {isExchange && (
               <div className="space-y-2 p-3 rounded-2xl bg-slate-950 border border-slate-800">
                 <div className="flex gap-2">
-                  <input value={exchangeSearch} onChange={(e) => setExchangeSearch(e.target.value)} placeholder="بحث عن البديل..." className="flex-1 min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
+                  <input value={exchangeSearch} onChange={(e) => setExchangeSearch(e.target.value)} aria-label="بحث عن الصنف البديل" placeholder="بحث عن البديل..." className="flex-1 min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
                   <button onClick={searchExchange} className="min-h-[44px] px-4 rounded-xl bg-slate-800 font-bold">بحث</button>
                 </div>
                 {exchangeOptions.map((o) => (

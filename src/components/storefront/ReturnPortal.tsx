@@ -226,7 +226,7 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
               <RotateCcw className="w-5 h-5 text-orange-400" />
               {L('طلب مرتجع', 'Return request')}
             </div>
-            <button onClick={() => setOpen(false)} aria-label="close" className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400">
+            <button onClick={() => setOpen(false)} aria-label={L('إغلاق', 'Close')} className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg hover:bg-slate-800 text-slate-400 flex items-center justify-center">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -439,6 +439,7 @@ export function ReturnTrackerPanel() {
         <input
           value={rtn}
           onChange={(e) => setRtn(e.target.value)}
+          aria-label={L('رقم المرتجع', 'Return number')}
           placeholder={L('رقم المرتجع (مثال: RTN-...)', 'Return number (e.g. RTN-...)')}
           className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-orange-500"
           dir="ltr"
@@ -446,6 +447,7 @@ export function ReturnTrackerPanel() {
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
+          aria-label={L('رقم الموبايل', 'Phone number')}
           placeholder={L('رقم الموبايل المستخدم في الطلب', 'Phone used for the request')}
           className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-orange-500"
           dir="ltr"

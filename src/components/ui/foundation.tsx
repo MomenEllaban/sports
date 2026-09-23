@@ -47,7 +47,7 @@ export function Button({ variant = 'primary', className = '', type = 'button', .
 
 // ── Inputs (F0 §1.4): single canonical class for every editable field ──
 export const inputCls =
-  'w-full min-h-[44px] px-3 py-2 rounded-control bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors';
+  'w-full min-h-[44px] px-3 py-2 rounded-control bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors';
 
 // ── Skeleton (F0 §1.5): shimmer placeholder for loading states ──
 export function Skeleton({ className = '' }: { className?: string }) {
@@ -243,11 +243,39 @@ export function Stepper({ steps, active }: { steps: string[]; active: number }) 
   );
 }
 
+// ── Focus trap (Group 08): keep Tab cycling inside open dialogs ──
+function useFocusTrap(activeRef: React.RefObject<HTMLElement | null>, active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const root = activeRef.current;
+    if (!root) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusables = [...root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+      )].filter((el) => el.offsetParent !== null);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [active, activeRef]);
+}
+
 // ── ConfirmDialog for dangerous actions (F0 §1.4) ────────
 export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, onClose, busy }: {
   open: boolean; title: string; impact: string; confirmLabel: string; onConfirm: () => void; onClose: () => void; busy?: boolean;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open);
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
@@ -283,6 +311,7 @@ export function Modal({ title, onClose, children, size = 'md', footer }: {
   size?: 'sm' | 'md' | 'lg'; footer?: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, true);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
@@ -313,7 +342,7 @@ export function Modal({ title, onClose, children, size = 'md', footer }: {
           <button
             onClick={onClose}
             aria-label="إغلاق"
-            className="w-9 h-9 flex items-center justify-center rounded-control bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+            className="w-11 h-11 flex items-center justify-center rounded-control bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
           >
             <X className="w-4 h-4" />
           </button>
