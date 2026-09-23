@@ -11,8 +11,8 @@
 | 04 — Data Components | `group-04-data.md` | Done (verified) | `509b165` |
 | 05 — Main Pages | `group-05-pages.md` | Done (verified) | `84af03e` |
 | 06 — Responsive | `group-06-responsive.md` | **Done** | `fc6eac6` |
-| 07 — RTL / LTR | `group-07-rtl.md` | **Next — Pending** | - |
-| 08 — Accessibility | `group-08-a11y.md` | Pending | - |
+| 07 — RTL / LTR | `group-07-rtl.md` | **Done** | `d0c270f` |
+| 08 — Accessibility | `group-08-a11y.md` | **Next — Pending** | - |
 | 09 — Final Polish | `group-09-polish.md` | Pending | - |
 
 ترتيب التنفيذ المقترح: 06 ← 07 ← 08 ← 09 (كل جروب commit + push مستقل).

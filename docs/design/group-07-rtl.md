@@ -1,6 +1,6 @@
 # Group 07 — RTL / LTR — Done
 
-Commit: `PENDING` — Status: Done (2026-09-23).
+Commit: `d0c270f` — Status: Done (2026-09-23).
 
 ## ما تم
 - [x] `DirectionalIcon` في `foundation.tsx` (back/forward دلالي + `rtl-flip` تلقائي؛ قاعدة: العمودي والساعات والسبينر لا تنعكس)

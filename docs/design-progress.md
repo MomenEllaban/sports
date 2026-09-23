@@ -96,14 +96,14 @@ Status: Done (تفصيل: `docs/design/group-06-responsive.md`)
 
 ## Group 07 — RTL / LTR
 
-- [ ] Logical utilities in shared chrome
-- [ ] DirectionalIcon component
-- [ ] `text-start` tables
+- [x] Logical utilities in shared chrome
+- [x] DirectionalIcon component
+- [x] `text-start` tables
 
 Commit:
--
+`d0c270f`
 
-Status: Pending
+Status: Done (تفصيل: `docs/design/group-07-rtl.md`)
 
 ---
 
