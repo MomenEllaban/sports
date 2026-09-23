@@ -2,6 +2,8 @@
 
 Tracked per task group. A group is complete only after checks (lint / typecheck / test / build), commit, and push.
 
+> تفصيل كل جروب في فولدر `docs/design/` (ملف لكل جروب + `README.md` كخريطة) — أي AI يكمل يبدأ من هناك.
+
 ---
 
 ## Group 01 — Design Foundation
