@@ -1,5 +1,62 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DESIGN TOKENS  (F0 design system — see docs/design-system.md)
+   Additive namespaces that do not collide with Tailwind defaults.
+   Utilities emitted: bg-base, text-ink, border-line, rounded-card,
+   shadow-card, etc. Colors are pinned to the runtime theme vars so
+   both dark/light follow the token layer automatically.
+   ============================================================ */
+@theme {
+  /* Fonts */
+  --font-sans: var(--font-cairo), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+
+  /* Semantic colors */
+  --color-base: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-card: var(--bg-card);
+  --color-panel: var(--bg-panel);
+
+  --color-ink: var(--text-primary);
+  --color-ink-soft: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+
+  --color-line: var(--border-base);
+  --color-line-strong: var(--border-subtle);
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #3b82f6;
+  --color-primary-active: #1d4ed8;
+
+  --color-brand: #f59e0b;
+  --color-brand-hover: #fbbf24;
+
+  --color-success: #059669;
+  --color-success-ink: #34d399;
+  --color-warning: #f59e0b;
+  --color-danger: #e11d48;
+  --color-danger-ink: #fb7185;
+  --color-info: #3b82f6;
+
+  /* Domain accents (only inside their domain) */
+  --color-returns: #f97316;
+  --color-coupon: #8b5cf6;
+
+  /* Radius scale */
+  --radius-chip: 0.5rem;   /* badges, pills, tiny chips */
+  --radius-control: 0.75rem; /* buttons, inputs, page buttons */
+  --radius-card: 1rem;     /* cards, item rows, KPI tiles */
+  --radius-panel: 1.5rem;  /* modals, hero panels, main containers */
+
+  /* Shadow scale — restrained */
+  --shadow-control: 0 2px 8px -2px rgb(0 0 0 / 0.3);
+  --shadow-card: 0 8px 20px -8px rgb(0 0 0 / 0.35);
+  --shadow-float: 0 16px 32px -12px rgb(0 0 0 / 0.45);
+  --shadow-modal: 0 24px 48px -12px rgb(0 0 0 / 0.5);
+}
+
 @layer base {
   :root {
     --font-cairo: 'Cairo', system-ui, -apple-system, sans-serif;
@@ -8,12 +65,12 @@
     --bg-base: #0f172a;
     --bg-surface: #1e293b;
     --bg-elevated: #0f172a;
-    --bg-panel: rgba(30, 41, 59, 0.7);
+    --bg-panel: rgba(30, 41, 59, 0.9);
     --bg-card: rgba(15, 23, 42, 0.6);
 
     --text-primary: #f8fafc;
     --text-secondary: #cbd5e1;
-    --text-muted: #64748b;
+    --text-muted: #94a3b8;
 
     --border-base: rgba(255, 255, 255, 0.1);
     --border-subtle: #1e293b;
@@ -33,7 +90,7 @@
     --bg-base: #f1f5f9;
     --bg-surface: #ffffff;
     --bg-elevated: #f8fafc;
-    --bg-panel: rgba(255, 255, 255, 0.85);
+    --bg-panel: rgba(255, 255, 255, 0.92);
     --bg-card: rgba(248, 250, 252, 0.9);
 
     --text-primary: #0f172a;
@@ -63,10 +120,12 @@
 }
 
 /* ============================================================
-   THEME-AWARE SURFACES
-   Dark mode is the authored default. The overrides below remap
-   slate surfaces to the value of the theme variables so the two
-   themes stay in sync regardless of where a class is used.
+   LEGACY SLATE REMAP
+   Dark mode is the authored default. These overrides remap slate
+   surfaces to theme variables so both themes stay in sync until
+   components migrate to the semantic tokens above (bg-base,
+   bg-surface, text-ink, border-line, ...). New code should use the
+   semantic utilities; this block is being phased out.
    ============================================================ */
 
 .bg-slate-950 { background-color: var(--bg-base) !important; }
@@ -180,7 +239,10 @@
 [data-theme="light"] .shadow-blue-500\/20,
 [data-theme="light"] .shadow-amber-500\/20 { --tw-shadow-color: rgba(15, 23, 42, 0.12); }
 
-/* Custom Glassmorphism & Micro-animations */
+/* ============================================================
+   GLASS SURFACES (legacy — being phased out in favor of the
+   semantic surface tokens; retained until components migrate)
+   ============================================================ */
 .glass-panel {
   background: var(--bg-panel);
   backdrop-filter: blur(12px);
@@ -203,6 +265,7 @@
   box-shadow: 0 12px 30px -10px rgba(59, 130, 246, 0.25);
 }
 
+/* Brand gradient text — used only on the marketing hero surfaces */
 .gold-gradient-text {
   background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%);
   -webkit-background-clip: text;
@@ -220,6 +283,15 @@
   transform: scaleX(-1);
 }
 
+/* Scrollable pill rows — hide the scrollbar without losing scroll */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Entrance animations */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(24px); }
@@ -229,6 +301,11 @@
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes float-slow {
@@ -247,6 +324,10 @@
 
 .animate-fade-in {
   animation: fade-in 0.6s ease both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .animate-float-slow {
@@ -313,6 +394,7 @@
   .champ-glow,
   .animate-fade-up,
   .animate-fade-in,
+  .animate-scale-in,
   .animate-float-slow,
   .animate-pulse-glow {
     animation: none;
