@@ -703,27 +703,6 @@ export async function backfillLegacy() {
     }
     await db.order.update({ where: { id: o.id }, data: { returnStatus: 'FULL' } }).catch(() => null);
   }
-  // Convert T10 refund outbox rows into RMA Refunds (then the old table drops).
-  const legacy = await db.refundRequest.findMany().catch(() => []);
-  let converted = 0;
-  for (const r of legacy as Array<{ id: string; orderId: string; amount: unknown; status: string }>) {
-    const parent = await db.returnRequest.findFirst({ where: { orderId: r.orderId } });
-    if (!parent) continue;
-    const has = await db.refund.findFirst({ where: { returnId: parent.id } });
-    if (has) continue;
-    await db.refund.create({
-      data: {
-        returnId: parent.id,
-        amount: num(r.amount),
-        method: 'ORIGINAL_GATEWAY',
-        status: r.status === 'SUCCEEDED' ? 'DONE' : 'MANUAL_REQUIRED',
-        gatewayRef: null,
-        idempotencyKey: `legacy-${r.id}`,
-        attempts: 1,
-        lastError: r.status === 'SUCCEEDED' ? null : 'migrated from legacy outbox',
-      },
-    });
-    converted++;
-  }
-  return { created, converted };
+  // T10 conversion already ran on prod before the old table dropped (see DECISIONS).
+  return { created, converted: 0 };
 }

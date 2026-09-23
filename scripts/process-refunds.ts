@@ -1,14 +1,14 @@
 /**
- * pnpm refunds:process (T10) — retry all PENDING/FAILED refund requests.
- * Run every 10 minutes (Vercel Cron or systemd timer) + after each request.
+ * pnpm refunds:process (T-RMA) — retry all PENDING/FAILED RMA refunds.
+ * Run every 10 minutes (Vercel Cron or systemd timer).
  */
 import { PrismaClient } from '@prisma/client';
-import { processRefund } from '../src/lib/refunds/service.js';
+import { executeRefund } from '../src/lib/returns/service.js';
 
 async function main() {
   const db = new PrismaClient();
   try {
-    const pending = await db.refundRequest.findMany({
+    const pending = await db.refund.findMany({
       where: { status: { in: ['PENDING', 'FAILED'] } },
       select: { id: true },
       take: 50,
@@ -16,10 +16,10 @@ async function main() {
     let ok = 0;
     for (const r of pending) {
       try {
-        const res = await processRefund(r.id);
+        const res = await executeRefund(r.id);
         if (res.ok) ok++;
       } catch {
-        /* recorded as FAILED inside processRefund; continue */
+        /* recorded as FAILED inside executeRefund; continue */
       }
     }
     console.log(`refunds:process done — ${ok}/${pending.length} succeeded.`);

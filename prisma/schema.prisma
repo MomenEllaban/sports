@@ -392,7 +392,6 @@ model Order {
   customer   Customer?   @relation(fields: [customerId], references: [id])
   items      OrderItem[]
   taxInvoice TaxInvoice?
-  refund     RefundRequest?
   returns    ReturnRequest[]
   // T-RMA derived status: NONE | PARTIAL | FULL (RETURNED only when FULL).
   returnStatus String @default("NONE")
@@ -660,25 +659,6 @@ model Review {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, approved])
-}
-
-// T10: refund outbox — money movement retried outside the stock transaction.
-model RefundRequest {
-  id          String   @id @default(cuid())
-  orderId     String   @unique
-  amount      Decimal @db.Decimal(12, 2)
-  reason      String?
-  status      String   @default("PENDING") // PENDING | PROCESSING | SUCCEEDED | FAILED
-  attempts    Int      @default(0)
-  lastError   String?
-  gatewayRef  String?
-  createdById String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([status])
 }
 
 // T-RMA: unified returns domain (single path — see docs/RETURNS_AUDIT.md).

@@ -42,6 +42,11 @@
 4. **البيزنس:** نسب الولاء/الاستبدال، سياسة الكوبونات، رصيد الدرج، Size Charts، مهلة الطلبات، سياسة الاسترجاع، أسعار المناطق، PIN المدير، بيانات الفروع.
 5. **التشغيل:** جدولة `orders:expire` (ساعة) + `refunds:process` (10د) + `eta:retry` (ساعة) + مشروع staging منفصل + `SETTINGS_ENCRYPTION_KEY` في Vercel.
 
+## ملحق T-RMA — نظام المرتجعات الموحد (2026-09-23)
+- مسار واحد (`returns/service.ts`): `REQUESTED→APPROVED→RECEIVED→REFUND_PENDING→COMPLETED` + جزئي/استبدال/LEGACY.
+- ترحيل الإنتاج: migrations 18/19/20 + `backfillLegacy` (3 LEGACY) + حذف outbox T10 القديم.
+- التفصيل: `docs/RETURNS.md` + `docs/RETURNS_AUDIT.md`.
+
 ## خطوات يدوية متبقية (بعد وصول المفاتيح)
 1. املأ المفاتيح في `/admin/settings` ثم راجع `/admin/settings/setup` حتى 100%.
 2. اختبار sandbox حقيقي لكل مزود: Paymob (1 ج) → PAID عبر webhook، Fawry (كود → دفع → PAID)، Bosta/Mylerz (AWB حقيقي → DELIVERED عبر webhook).

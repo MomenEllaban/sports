@@ -19,6 +19,7 @@
 | T13 | باركود وجرد | DONE | (this commit) | tsc0, lint0, build ok | EAN-13 labels, stocktake wizard, PO returns, supplier ledger |
 | T14 | ETA إنتاجي | DONE | (this commit) | int eta-guards 2/2, tsc0, lint0 | GS1 UI, signing/code mandates, retry API+worker |
 | T15 | تنظيف نهائي | DONE | (this commit) | tsc0, lint0, build ok | sitemap/robots/metadata, enum deprecated, E2E flows, FINAL_REPORT |
+| T-RMA | نظام المرتجعات الموحد | DONE | (this commit) | int 9/9 RMA, tsc0, lint0 | single-path service, POS/admin/portal, legacy cleanup, RETURNS.md |
 
 ## Baseline (F0)
 - typecheck: clean. lint: 0 errors (27 pre-existing warnings).

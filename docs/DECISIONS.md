@@ -76,3 +76,8 @@
 ## T15
 42. **إهمال enum بدل حذفها** — `MRSOOL/LOCAL_COURIER/KASHIER` مخفية من كل UI لكن باقية في الـ schema لسلامة السجلات التاريخية.
 43. **الإدارة عربية أولاً** — شاشات الإدارة hardcoded عربي (اتفاقية المشروع)؛ الجديد المشترك (setup/banner/foundation) بمفاتيح ar/en.
+
+## T-RMA legacy cleanup
+44. **مسار واحد فعلياً** — حُذف `RefundRequest` القديم (T10) وخدمته وroutes بعد ترحيل الإنتاج (0 صفوف قديمة + 3 LEGACY من backfill)؛ wizard الطلبات القديم استُبدل بقسم RMA.
+45. **`PARTIALLY_REFUNDED` مشتقة لا enum** — `ALTER TYPE ... ADD VALUE` لا يعمل داخل migrate tx؛ العرض من `returnStatus` (PARTIAL) مع بقاء `PAID` حتى الكامل.
+46. **شحن الإنتاج زُامن**: migrations 18/19 مطبقة + backfill شغال؛ test DB تحتاج `db push` بعد migrations الجديدة.
