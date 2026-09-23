@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus, Pencil, Trash2, UserCheck, UserX, Phone, Briefcase, DollarSign, Building2 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -56,8 +57,6 @@ export default function EmployeesManager({
   const [deleting, setDeleting] = useState(false);
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
 
-  const inputCls =
-    'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500 transition-colors';
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
   const filtered = employees.filter((e) => {

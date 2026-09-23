@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Award, Plus, Pencil, Trash2, Search, Phone, Mail, FileText, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface CustomerRow {
@@ -63,8 +64,6 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
     setPage(1);
   }, [search]);
 
-  const inputCls =
-    'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500 transition-colors';
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
   const openAdd = () => {

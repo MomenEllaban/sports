@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, Field, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface ExpenseRow {
@@ -45,8 +46,6 @@ export default function ExpensesManager({
   const totalPages = Math.max(1, Math.ceil(expenses.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedRows = expenses.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-  const inputCls = 'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-emerald-500';
 
   const openAdd = () => {
     setEditing(null);

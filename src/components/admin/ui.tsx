@@ -3,6 +3,11 @@
 import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
+
+// Shared dialog + canonical input class live in the foundation kit.
+export { Modal } from '@/components/ui/foundation';
+export const fieldInputCls = inputCls;
 
 // Localized badge for any enum status (order / payment / transfer / PO / invoice)
 export function StatusBadge({ value, tone }: { value: string; tone?: 'order' | 'payment' | 'generic' }) {
@@ -95,34 +100,6 @@ export function ActionButton({
   );
 }
 
-export function Modal({
-  title,
-  onClose,
-  children,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  const t = useTranslations('admin');
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div
-        className="bg-slate-900 border border-slate-700 p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-fade-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 className="font-extrabold text-sm text-slate-100">{title}</h3>
-          <button onClick={onClose} className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold">
-            {t('close')}
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 export async function apiFetch(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {
     method,
@@ -166,6 +143,3 @@ export function Field({
     </div>
   );
 }
-
-export const fieldInputCls =
-  'w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500 placeholder:text-slate-500';

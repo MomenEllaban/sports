@@ -11,44 +11,42 @@ Tracked per task group. A group is complete only after checks (lint / typecheck 
 - [x] Define semantic design tokens (colors, radius, shadows, font) in `globals.css`
 - [x] Load Cairo 400–900 so `font-black` is real
 - [x] Fix dead classes (`animate-scale-in`, `scrollbar-none`)
-- [ ] Verify dark + light themes, run checks, build
-- [ ] Commit + push
+- [x] Verify dark + light themes, run checks, build
+- [x] Commit + push (`6b152c8`)
 
-Commit:
--
+Commit: `6b152c8`
 
-Status: In Progress
+Status: Done
 
 ---
 
 ## Group 02 — Navigation
 
-- [ ] Header / announcement bar standardization
-- [ ] Sidebar icon + active treatment unification
-- [ ] Footer polish
-- [ ] Mobile navigation
-- [ ] Page-header pattern
+- [x] Header / announcement bar standardization (de-gradient, neutral surface)
+- [x] Sidebar icon + active treatment unification (single icon color, no glow)
+- [x] Footer polish (logo glow removed, chips → `rounded-chip`)
+- [x] Mobile navigation (44px touch targets on wishlist/cart/menu)
+- [x] Page-header pattern (`PageHeader` primitive, applied on admin dashboard)
 
-Commit:
--
+Commit: `2728d25`
 
-Status: Pending
+Status: Done
 
 ---
 
 ## Group 03 — Core Components
 
-- [ ] Unified Button
-- [ ] Unified Input / Field
-- [ ] Unified Modal + ConfirmDialog
-- [ ] Single ToastProvider
-- [ ] Badge (StatusBadge unification)
-- [ ] EmptyState + Skeleton
+- [x] Unified Button (`Button` + `btnBaseCls`/`btnVariants`, tokens, 44px)
+- [x] Unified Input / Field (`inputCls`, polished `Field`; 8 managers + admin/ui unified onto one class)
+- [x] Unified Modal + ConfirmDialog (single `Modal` with Escape/focus/scroll-lock; `ConfirmDialog` a11y upgrade; duplicate admin Modal removed)
+- [x] Single ToastProvider (duplicate Toast stripped from foundation; `@/components/Toast` is the one source)
+- [x] Badge (StatusBadge stays in admin/ui, shared tone spec)
+- [x] EmptyState + Skeleton (`Skeleton` added to foundation kit)
 
 Commit:
 -
 
-Status: Pending
+Status: In Progress
 
 ---
 

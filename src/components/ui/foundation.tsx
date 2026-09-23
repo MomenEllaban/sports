@@ -2,51 +2,42 @@
 
 /**
  * Unified UI foundation (F0 §1.4–1.6):
- * Toast, EmptyState, SafeImage, DataTable (responsive), Stepper, ConfirmDialog,
- * LocaleSwitcher. Dark-theme first, touch targets ≥44px, RTL/LTR aware.
+ * Button, inputCls, Modal, ConfirmDialog, EmptyState, Skeleton, SafeImage,
+ * DataTable (responsive), Stepper, PageHeader, LocaleSwitcher.
+ * Dark-theme first, touch targets ≥44px, RTL/LTR aware.
+ * Toasts live ONLY in @/components/Toast (mounted once in the root layout).
  */
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image, { type ImageProps } from 'next/image';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/routing';
-import { CheckCircle2, AlertTriangle, Info, Inbox, Globe } from 'lucide-react';
+import { AlertTriangle, Globe, Inbox, X } from 'lucide-react';
 
-// ── Toast ────────────────────────────────────────────────
-type ToastKind = 'success' | 'error' | 'info' | 'warning';
-interface ToastItem { id: number; kind: ToastKind; text: string }
-const ToastCtx = createContext<{ toast: (text: string, kind?: ToastKind) => void }>({ toast: () => {} });
-export const useToast = () => useContext(ToastCtx);
-let toastSeq = 1;
+// ── Button (F0 §1.4): one primary/secondary/danger/ghost spec ──
+export type ButtonVariant = 'primary' | 'success' | 'danger' | 'secondary' | 'ghost';
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<ToastItem[]>([]);
-  const toast = useCallback((text: string, kind: ToastKind = 'success') => {
-    const id = toastSeq++;
-    setItems((p) => [...p, { id, kind, text }]);
-    setTimeout(() => setItems((p) => p.filter((t) => t.id !== id)), 4200);
-  }, []);
-  return (
-    <ToastCtx.Provider value={{ toast }}>
-      {children}
-      <div aria-live="polite" className="fixed bottom-4 inset-x-0 z-[100] flex flex-col items-center gap-2 px-4 pointer-events-none">
-        {items.map((t) => (
-          <div
-            key={t.id}
-            role="status"
-            className={`pointer-events-auto min-h-[44px] flex items-center gap-2 px-4 py-3 rounded-2xl border text-xs font-bold shadow-2xl max-w-md w-full sm:w-auto ${
-              t.kind === 'success' ? 'bg-emerald-600 text-white border-emerald-400'
-              : t.kind === 'error' ? 'bg-rose-600 text-white border-rose-400'
-              : t.kind === 'warning' ? 'bg-amber-500 text-slate-950 border-amber-300'
-              : 'bg-slate-800 text-slate-100 border-slate-600'
-            }`}
-          >
-            {t.kind === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : t.kind === 'error' || t.kind === 'warning' ? <AlertTriangle className="w-4 h-4 shrink-0" /> : <Info className="w-4 h-4 shrink-0" />}
-            <span className="leading-relaxed">{t.text}</span>
-          </div>
-        ))}
-      </div>
-    </ToastCtx.Provider>
-  );
+const btnVariants: Record<ButtonVariant, string> = {
+  primary: 'bg-blue-600 text-white hover:bg-blue-500 shadow-control',
+  success: 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-control',
+  danger: 'bg-rose-600 text-white hover:bg-rose-500 shadow-control',
+  secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700',
+  ghost: 'bg-transparent text-slate-300 hover:bg-slate-800 border border-slate-800',
+};
+
+export const btnBaseCls =
+  'inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-control text-xs font-bold transition-colors disabled:opacity-60 disabled:pointer-events-none whitespace-nowrap';
+
+export function Button({ variant = 'primary', className = '', type = 'button', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
+  return <button type={type} {...props} className={`${btnBaseCls} ${btnVariants[variant]} ${className}`} />;
+}
+
+// ── Inputs (F0 §1.4): single canonical class for every editable field ──
+export const inputCls =
+  'w-full min-h-[44px] px-3 py-2 rounded-control bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors';
+
+// ── Skeleton (F0 §1.5): shimmer placeholder for loading states ──
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <div aria-hidden="true" className={`animate-pulse rounded-card bg-slate-800/60 ${className}`} />;
 }
 
 // ── PageHeader (F0 §3): page title + description + actions ─────
@@ -144,18 +135,81 @@ export function Stepper({ steps, active }: { steps: string[]; active: number }) 
 export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, onClose, busy }: {
   open: boolean; title: string; impact: string; confirmLabel: string; onConfirm: () => void; onClose: () => void; busy?: boolean;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      prev?.focus();
+    };
+  }, [open, onClose]);
   if (!open) return null;
   return (
-    <div role="alertdialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/70" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div role="alertdialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/70 animate-fade-in" onClick={onClose}>
+      <div ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-panel bg-slate-900 border border-slate-700 p-6 space-y-4 shadow-modal outline-none animate-fade-up">
         <h3 className="font-black text-sm text-slate-100 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-400" />{title}</h3>
         <p className="text-xs text-slate-400 leading-relaxed">{impact}</p>
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={onClose} disabled={busy} className="min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">رجوع</button>
-          <button onClick={onConfirm} disabled={busy} className="min-h-[44px] rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white text-xs font-bold">
-            {busy ? '...' : confirmLabel}
+          <Button variant="secondary" onClick={onClose} disabled={busy}>رجوع</Button>
+          <Button variant="danger" onClick={onConfirm} disabled={busy}>{busy ? '...' : confirmLabel}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal (F0 §1.4): one shared dialog with Escape/focus management ─
+export function Modal({ title, onClose, children, size = 'md', footer }: {
+  title: string; onClose: () => void; children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg'; footer?: React.ReactNode;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      prev?.focus();
+    };
+  }, [onClose]);
+  const width = size === 'lg' ? 'max-w-2xl' : size === 'sm' ? 'max-w-sm' : 'max-w-lg';
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className={`bg-slate-900 border border-slate-700 p-6 rounded-panel w-full ${width} space-y-4 shadow-modal max-h-[90vh] overflow-y-auto animate-fade-up outline-none`}
+      >
+        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 className="font-extrabold text-sm text-slate-100">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="إغلاق"
+            className="w-9 h-9 flex items-center justify-center rounded-control bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
+        {children}
+        {footer && (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-800 pt-4">{footer}</div>
+        )}
       </div>
     </div>
   );

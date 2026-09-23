@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface SupplierOpt { id: string; name: string; code: string }
@@ -61,7 +62,6 @@ export default function PurchasingManager({
   const pagedPOs = purchaseOrders.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const pName = (p: ProductOpt) => (isAr ? p.nameAr : p.nameEn);
-  const inputCls = 'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500';
 
   const submitPo = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -6,7 +6,7 @@ import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
-import { Stepper } from '@/components/ui/foundation';
+import { Stepper, inputCls } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
@@ -221,8 +221,6 @@ export default function OrdersManager({
     }
   };
 
-  const inputCls =
-    'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500 transition-colors';
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
   return (

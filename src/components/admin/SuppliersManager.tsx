@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus, Pencil, Trash2, Phone, Mail, MapPin, Building, ShieldCheck } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface SupplierRow {
@@ -50,8 +51,6 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
   const safePage = Math.min(page, totalPages);
   const pagedRows = suppliers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const inputCls =
-    'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-cyan-500 transition-colors';
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
   const openEdit = (sup: SupplierRow) => {

@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { ArrowLeftRight } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
+import { inputCls } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
@@ -50,7 +51,6 @@ export default function TransfersManager({
 
   const bName = (b: BranchOpt) => (isAr ? b.name : b.nameEn);
   const pName = (p: ProductOpt) => (isAr ? p.nameAr : p.nameEn);
-  const inputCls = 'w-full p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-amber-500';
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
