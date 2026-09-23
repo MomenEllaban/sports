@@ -6,8 +6,6 @@ import {
   RotateCcw,
   X,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Upload,
   Camera,
   Package,
@@ -17,6 +15,7 @@ import {
   ReceiptText,
   ClipboardList,
 } from 'lucide-react';
+import { DirectionalIcon } from '@/components/ui/foundation';
 
 type EItem = {
   orderItemId: string;
@@ -304,7 +303,7 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
                 disabled={notBlocked.length === 0}
                 className="w-full min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white text-xs font-black transition-all flex items-center justify-center gap-2"
               >
-                {L('التالي', 'Next')} {isAr ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                {L('التالي', 'Next')} <DirectionalIcon className="w-4 h-4" />
               </button>
             </div>
           )}

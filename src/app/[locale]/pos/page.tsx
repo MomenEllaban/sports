@@ -641,7 +641,7 @@ export default function PosTerminalPage() {
       ) : (
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 overflow-y-auto lg:overflow-hidden p-2 lg:p-0">
         {/* Left Side: Product Selector & Barcode Scanner */}
-        <div className="lg:col-span-7 lg:border-l border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
+        <div className="lg:col-span-7 lg:border-e border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
           {/* Steps indicator */}
           <div className="flex items-center gap-2 text-[11px] font-bold" aria-label="خطوات البيع">
             <span className={`px-3 py-1.5 rounded-full border ${customer ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
@@ -724,7 +724,7 @@ export default function PosTerminalPage() {
                           stockQuantity: stock,
                         })
                       }
-                      className="glass-card p-3 rounded-2xl text-right flex flex-col justify-between h-32 hover:border-amber-500/50 transition-all border border-slate-800/80 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                      className="glass-card p-3 rounded-2xl text-start flex flex-col justify-between h-32 hover:border-amber-500/50 transition-all border border-slate-800/80 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                     >
                       <div className="space-y-1">
                         <div className="flex justify-between items-center">
@@ -814,7 +814,7 @@ export default function PosTerminalPage() {
                         </button>
                       </div>
 
-                      <span className="font-black text-amber-400 min-w-[65px] text-left text-xs tabular-nums">
+                      <span className="font-black text-amber-400 min-w-[65px] text-end text-xs tabular-nums">
                         {(item.unitPrice * item.quantity).toLocaleString()} ج.م
                       </span>
 

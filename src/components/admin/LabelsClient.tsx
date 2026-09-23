@@ -50,7 +50,7 @@ export default function LabelsClient({ products }: {
             <ul className="absolute z-10 mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 max-h-48 overflow-y-auto">
               {matches.map((p) => (
                 <li key={p.id}>
-                  <button onClick={() => { toggle(p); setQuery(''); }} className="w-full min-h-[44px] text-right px-3 py-2 hover:bg-slate-800 text-xs">
+                  <button onClick={() => { toggle(p); setQuery(''); }} className="w-full min-h-[44px] text-start px-3 py-2 hover:bg-slate-800 text-xs">
                     <span className="font-bold">{p.nameAr}</span> <span className="text-slate-500 font-mono">{p.sku}</span>
                   </button>
                 </li>

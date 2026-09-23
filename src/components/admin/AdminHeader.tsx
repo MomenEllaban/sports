@@ -90,7 +90,7 @@ export default function AdminHeader() {
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
+            <span className="absolute -top-1 -end-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -104,7 +104,7 @@ export default function AdminHeader() {
 
         {/* User Profile & Logout */}
         <div className="flex items-center gap-3 border-r border-slate-800 pr-4">
-          <div className="text-right hidden sm:block">
+          <div className="text-start hidden sm:block">
             <div className="font-bold text-slate-100">{name}</div>
             <div className="text-[10px] text-slate-400">{email}</div>
           </div>

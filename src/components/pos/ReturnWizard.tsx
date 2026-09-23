@@ -162,7 +162,7 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
               <ul className="space-y-2">
                 {candidates.map((s) => (
                   <li key={s.id}>
-                    <button onClick={() => chooseSale(s)} className="w-full min-h-[44px] p-3 rounded-2xl bg-slate-950 border border-slate-700 hover:border-blue-500 text-right text-xs flex justify-between gap-2">
+                    <button onClick={() => chooseSale(s)} className="w-full min-h-[44px] p-3 rounded-2xl bg-slate-950 border border-slate-700 hover:border-blue-500 text-start text-xs flex justify-between gap-2">
                       <span className="font-mono font-bold text-amber-400" dir="ltr">{s.saleNumber}</span>
                       <span>{s.totalAmount.toLocaleString()} ج.م • {new Date(s.createdAt).toLocaleDateString('ar-EG')}</span>
                     </button>
@@ -233,7 +233,7 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
                   <button onClick={searchExchange} className="min-h-[44px] px-4 rounded-xl bg-slate-800 font-bold">بحث</button>
                 </div>
                 {exchangeOptions.map((o) => (
-                  <button key={o.id} onClick={() => setExchangeProduct(o.id)} className={`w-full min-h-[44px] p-2.5 rounded-xl border text-right flex justify-between ${exchangeProduct === o.id ? 'bg-blue-600/20 border-blue-500' : 'bg-slate-900 border-slate-800'}`}>
+                  <button key={o.id} onClick={() => setExchangeProduct(o.id)} className={`w-full min-h-[44px] p-2.5 rounded-xl border text-start flex justify-between ${exchangeProduct === o.id ? 'bg-blue-600/20 border-blue-500' : 'bg-slate-900 border-slate-800'}`}>
                     <span className="font-bold">{o.nameAr} <span className="text-slate-500 font-mono">{o.sku}</span></span>
                     <span className={o.stock > 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{o.stock > 0 ? `${o.stock} متاح` : 'نافد'}</span>
                   </button>

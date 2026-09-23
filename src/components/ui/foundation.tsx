@@ -3,7 +3,7 @@
 /**
  * Unified UI foundation (F0 §1.4–1.6):
  * Button, inputCls, Modal, ConfirmDialog, EmptyState, Skeleton, SafeImage,
- * DataTable (responsive), Stepper, PageHeader, LocaleSwitcher.
+ * DataTable (responsive), Stepper, PageHeader, LocaleSwitcher, DirectionalIcon.
  * Dark-theme first, touch targets ≥44px, RTL/LTR aware.
  * Toasts live ONLY in @/components/Toast (mounted once in the root layout).
  */
@@ -12,6 +12,19 @@ import Image, { type ImageProps } from 'next/image';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/routing';
 import { AlertTriangle, ChevronLeft, ChevronRight, Globe, Inbox, X } from 'lucide-react';
+
+// ── DirectionalIcon (Group 07): semantic back/forward chevron.
+// Renders ChevronLeft for "back" (ChevronRight for "forward") and auto-flips
+// in RTL via .rtl-flip. Vertical chevrons must NOT use this (no flip).
+// Semantic rule: clocks, spinners, media-play and brand marks never flip.
+export function DirectionalIcon({ back, className }: { back?: boolean; className?: string }) {
+  const cls = `rtl-flip ${className || 'h-4 w-4'}`;
+  return back ? (
+    <ChevronLeft className={cls} aria-hidden />
+  ) : (
+    <ChevronRight className={cls} aria-hidden />
+  );
+}
 
 // ── Button (F0 §1.4): one primary/secondary/danger/ghost spec ──
 export type ButtonVariant = 'primary' | 'success' | 'danger' | 'secondary' | 'ghost' | 'brand';
@@ -130,7 +143,7 @@ export function Pagination({
           aria-disabled={page <= 1}
           className={`${btn} text-slate-300 hover:bg-slate-800 hover:text-slate-100 disabled:pointer-events-none disabled:opacity-40`}
         >
-          <ChevronRight className={`h-4 w-4 ${isRtl ? 'rtl-flip' : ''}`} />
+          <DirectionalIcon back className="h-4 w-4" />
         </button>
 
         {pageWindow(page, totalPages).map((p, i) =>
@@ -163,7 +176,7 @@ export function Pagination({
           aria-disabled={page >= totalPages}
           className={`${btn} text-slate-300 hover:bg-slate-800 hover:text-slate-100 disabled:pointer-events-none disabled:opacity-40`}
         >
-          <ChevronLeft className={`h-4 w-4 ${isRtl ? 'rtl-flip' : ''}`} />
+          <DirectionalIcon className="h-4 w-4" />
         </button>
       </div>
     </nav>
@@ -203,7 +216,7 @@ export function DataTable<T extends { id: string }>({ rows, columns, emptyTitle,
             {columns.filter((c) => !c.hideOnMobile).map((c) => (
               <div key={c.key} className="flex justify-between gap-2">
                 <span className="text-slate-500 shrink-0">{c.header}</span>
-                <span className="text-slate-100 text-left">{c.render(r)}</span>
+                <span className="text-slate-100 text-end">{c.render(r)}</span>
               </div>
             ))}
           </div>

@@ -112,7 +112,7 @@ export default function CartPage() {
                   </div>
 
                   {/* Line Total */}
-                  <div className="text-right space-y-1 min-w-[80px]">
+                  <div className="text-start space-y-1 min-w-[80px]">
                     <div className="font-extrabold text-sm text-slate-100">
                       {(item.price * item.quantity).toLocaleString()} {tCommon('currency')}
                     </div>
@@ -173,7 +173,7 @@ export default function CartPage() {
                 {/* Grand Total */}
                 <div className="flex justify-between items-baseline">
                   <span className="font-bold text-sm text-slate-300">الإجمالي النهائي:</span>
-                  <div className="text-right">
+                  <div className="text-start">
                     <span className="text-2xl font-black text-slate-100">{total.toLocaleString()}</span>
                     <span className="text-xs font-bold text-amber-400 ml-1">{tCommon('currency')}</span>
                   </div>

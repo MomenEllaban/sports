@@ -212,7 +212,7 @@ export default function CheckoutPage() {
               شكراً لتسوقك من ابطال الرياضة الإبراهيمية. تم إرسال تفاصيل الطلب عبر الواتساب.
             </p>
 
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-right space-y-2 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-start space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400">رقم الطلب:</span>
                 <span className="font-extrabold text-amber-400 text-sm">{orderCompleted.orderNumber}</span>
@@ -571,7 +571,7 @@ export default function CheckoutPage() {
 
               <div className="flex justify-between items-baseline">
                 <span className="font-bold text-sm text-slate-300">الإجمالي الكلي:</span>
-                <div className="text-right">
+                <div className="text-start">
                   <span className="text-2xl font-black text-slate-100">{total.toLocaleString()}</span>
                   <span className="text-xs font-bold text-amber-400 ml-1">{tCommon('currency')}</span>
                   {(couponAmount > 0 || loyaltyPreview > 0) && (

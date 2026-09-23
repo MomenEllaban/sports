@@ -130,7 +130,7 @@ export default function PosPaymentModal({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="text-left bg-slate-900 px-4 py-2 rounded-2xl border border-slate-800">
+            <div className="text-end bg-slate-900 px-4 py-2 rounded-2xl border border-slate-800">
               <span className="text-[10px] text-slate-400 block">المطلوب سداده</span>
               <span className="text-xl font-black text-amber-400 tabular-nums">
                 {total.toLocaleString()} <span className="text-xs font-normal">ج.م</span>
@@ -353,7 +353,7 @@ export default function PosPaymentModal({
                       <div className="text-xs text-slate-400 mt-0.5">{customer.phone}</div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-right">
+                      <div className="text-start">
                         <span className="text-[10px] text-slate-400 block">رصيد الولاء</span>
                         <span className="text-sm font-black text-amber-400 flex items-center gap-1">
                           <Award className="w-4 h-4" />

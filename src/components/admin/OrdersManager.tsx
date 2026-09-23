@@ -395,7 +395,7 @@ export default function OrdersManager({
                                 <div className="font-bold text-slate-100">{isAr ? item.product.nameAr : item.product.nameEn}</div>
                                 <div className="text-[10px] text-amber-400">SKU: {item.product.sku}</div>
                               </div>
-                              <div className="text-right">
+                              <div className="text-start">
                                 <div className="font-black text-slate-100">{item.totalPrice.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</div>
                                 <div className="text-[10px] text-slate-400">{item.unitPrice.toLocaleString()} × {item.quantity}</div>
                               </div>

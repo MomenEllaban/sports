@@ -37,7 +37,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-5 right-5 z-[100] space-y-2 w-[calc(100vw-2.5rem)] max-w-sm" aria-live="polite">
+      <div className="fixed bottom-5 end-5 z-[100] space-y-2 w-[calc(100vw-2.5rem)] max-w-sm" aria-live="polite">
         {items.map((t) => (
           <div
             key={t.id}

@@ -40,13 +40,13 @@ export default function WhatsAppButton() {
         className="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 border border-emerald-400/40"
       >
         {/* Pulsing ring indicator */}
-        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+        <span className="absolute -top-1 -end-1 flex h-3.5 w-3.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-300 border-2 border-slate-950" />
         </span>
 
         <WhatsAppIcon className="w-6 h-6 shrink-0" />
-        <div className="flex flex-col text-left">
+        <div className="flex flex-col text-start">
           <span className="text-[11px] font-bold leading-tight">
             {isAr ? 'تواصل عبر واتساب' : 'Chat on WhatsApp'}
           </span>
