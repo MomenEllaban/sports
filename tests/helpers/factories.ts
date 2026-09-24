@@ -12,7 +12,7 @@ export function testPrisma(): PrismaClient {
 }
 
 const TABLES = [
-  'TaxInvoice', 'Notification', 'Expense', 'PurchaseOrderItem', 'PurchaseOrder', 'Supplier',
+  'WishlistItem', 'InvoiceReprint', 'TaxInvoice', 'StocktakeLine', 'StocktakeSession', 'ReorderRequest', 'Notification', 'Expense', 'PurchaseOrderItem', 'PurchaseOrder', 'Supplier',
   'InventoryLog', 'SaleItem', 'Sale', 'Shift', 'CouponUse', 'Coupon', 'Review', 'SupplierPayment', 'ReturnItem', 'Refund', 'ReturnRequest', 'OrderItem', 'Order', 'Address', 'Customer',
   'PayrollItem', 'PayrollRun', 'Employee', 'User', 'StockTransferItem', 'StockTransfer',
   'BranchInventory', 'Product', 'Category', 'Brand', 'Branch',
