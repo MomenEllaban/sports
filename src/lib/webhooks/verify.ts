@@ -1,5 +1,4 @@
 import crypto from 'node:crypto';
-import { getAppEnv } from '@/lib/env-guard';
 
 /** Constant-time string comparison (length differences short-circuit as false). */
 export function timingSafeEqual(a: string, b: string): boolean {
@@ -10,13 +9,12 @@ export function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Fail-closed shared-secret verification for public webhooks.
- * - No secret configured: reject outside development (never trust an open hook).
- * - Secret configured: a value MUST be provided and match in constant time.
+ * Fail-closed shared-secret verification for public webhooks. A missing
+ * provider secret is never treated as valid, including in local development;
+ * development tests must provide a deterministic secret explicitly.
  */
 export function verifyWebhookSecret(secret: string | undefined, provided: string | null | undefined): boolean {
-  if (!secret) return getAppEnv() === 'development';
-  if (!provided) return false;
+  if (!secret || !secret.trim() || !provided) return false;
   return timingSafeEqual(provided, secret);
 }
 
@@ -25,10 +23,9 @@ export function verifyWebhookHmac(
   algorithm: 'sha256' | 'sha512',
   secret: string | undefined,
   rawBody: string,
-  provided: string | null | undefined
+  provided: string | null | undefined,
 ): boolean {
-  if (!secret) return getAppEnv() === 'development';
-  if (!provided) return false;
+  if (!secret || !secret.trim() || !provided) return false;
   const expected = crypto.createHmac(algorithm, secret).update(rawBody).digest('hex');
   return timingSafeEqual(expected, provided);
 }

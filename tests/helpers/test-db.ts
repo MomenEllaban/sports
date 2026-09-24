@@ -1,22 +1,35 @@
 import { assertDevelopment } from '../../src/lib/env-guard.js';
 
+function databaseIdentity(url: string): { host: string; database: string } | null {
+  try {
+    const parsed = new URL(url);
+    const database = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
+    if (!parsed.hostname || !database) return null;
+    return { host: parsed.host.toLowerCase(), database: database.toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Refuses to run unless TEST_DATABASE_URL points at a database/schema whose
- * name contains "test" AND differs from the app DATABASE_URL.
- * Tests truncate tables — this guard prevents wiping demo/prod data.
+ * Refuses to run unless TEST_DATABASE_URL points at a physically distinct
+ * database whose database name contains "test". A different ?schema query on
+ * the same PostgreSQL database is not isolation and must never be accepted for
+ * destructive integration tests.
  */
 export function assertSafeTestDatabaseUrl(testUrl: string | undefined, appUrl: string | undefined): string {
   assertDevelopment('test database bootstrap');
-  if (!testUrl) {
-    throw new Error('REFUSED: TEST_DATABASE_URL is not set.');
-  }
-  const lower = testUrl.toLowerCase();
-  const looksTest = lower.includes('test');
-  const differs = testUrl !== appUrl;
-  if (!looksTest || !differs) {
+  if (!testUrl) throw new Error('REFUSED: TEST_DATABASE_URL is not set.');
+
+  const testIdentity = databaseIdentity(testUrl);
+  const appIdentity = appUrl ? databaseIdentity(appUrl) : null;
+  const testDatabase = testIdentity?.database ?? '';
+  const samePhysicalDatabase = !!testIdentity && !!appIdentity && testIdentity.host === appIdentity.host && testIdentity.database === appIdentity.database;
+
+  if (!testIdentity || !testDatabase.includes('test') || samePhysicalDatabase) {
     throw new Error(
-      'REFUSED: TEST_DATABASE_URL must contain "test" and differ from DATABASE_URL. ' +
-        'Tests truncate tables and must never run against the app database.'
+      'REFUSED: TEST_DATABASE_URL must name a distinct physical database containing "test". ' +
+        'A different schema/query on the app database is not safe because tests truncate tables.'
     );
   }
   return testUrl;

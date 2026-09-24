@@ -26,7 +26,7 @@ A full-stack retail management platform for **"ابطال الرياضة الإ�
 ## 🚀 Quick Setup & Local Development
 
 ### 1. Prerequisites
-- Node.js v20+ or v22+
+- Node.js v22.12+
 - NPM v10+
 
 ### 2. Environment Setup
@@ -35,10 +35,13 @@ Copy `.env.example` to `.env` and adjust credentials if needed:
 cp .env.example .env
 ```
 
-Your Neon PostgreSQL database URL is pre-configured in `.env`:
+Provide the Neon connection values locally through environment variables; never commit real credentials:
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_yhvw3FYNS9Qb@ep-noisy-bird-b5fsblx5-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+DIRECT_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 ```
+
+> If a credential was ever committed or shared, rotate it immediately in the provider dashboard and replace it in the deployment secret store.
 
 ### 3. Database Push & Seeding
 Push the schema to Neon database and seed real catalog data (swim caps, TRX bands, Crocs, treadmills, ballet shoes, etc.) alongside staff accounts:
@@ -57,12 +60,7 @@ Open `http://localhost:3000` in your browser.
 
 ## 🔐 Staff Login Credentials
 
-| Role | Email | Password | Branch Scope |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `admin@sportschampions.eg` | `Admin@123456` | All Branches |
-| **Branch Manager** | `manager.ibrahimeyah@sportschampions.eg` | `Manager@123456` | Al Ibrahimeyah Flagship |
-| **Cashier** | `cashier.ibrahimeyah@sportschampions.eg` | `Cashier@123456` | Al Ibrahimeyah Flagship |
-| **Finance Manager** | `finance@sportschampions.eg` | `Finance@123456` | All Branches |
+Staff accounts are created by the seed script or by a `SUPER_ADMIN` in the Admin UI. Passwords are never stored in this repository. For local development, set/reset a password through your environment-specific seed process and share it through a password manager.
 
 ---
 

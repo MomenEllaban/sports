@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { createCourierShipment } from '@/lib/logistics';
+import { createCourierShipment, ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
 import { buildEtaReceipt } from '@/lib/eta';
 import { initializePayment, availablePaymentMethods, PaymentUnavailableError } from '@/lib/payments';
 import { dispatchNotification } from '@/lib/notifications';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
-import { computeTotals, computeStackedTotals, num, linesSubtotal } from '@/lib/pricing';
+import { computeStackedTotals, num, linesSubtotal } from '@/lib/pricing';
 import { getVatRate, getRedeemRule } from '@/lib/settings';
 import { quoteCoupon, consumeCoupon, redeemPoints, CouponError } from '@/lib/discounts/coupons';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
@@ -15,11 +15,23 @@ const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { phone, name, address, fulfillmentType, zoneId, deliveryFee, paymentMethod, items } = body;
+    const { phone, name, address, fulfillmentType, zoneId, paymentMethod, items } = body;
 
     if (!phone || !items || items.length === 0) {
       return NextResponse.json({ success: false, error: 'رقم الموبايل والمنتجات مطلوبة.' }, { status: 400 });
     }
+    if (fulfillmentType !== 'DELIVERY' && fulfillmentType !== 'PICKUP') {
+      return NextResponse.json({ success: false, error: 'طريقة الاستلام غير صالحة.' }, { status: 400 });
+    }
+    const requestedZoneId = typeof zoneId === 'string' && zoneId.trim() ? zoneId.trim() : 'ALX-CENTRAL';
+    const deliveryZone = fulfillmentType === 'DELIVERY'
+      ? ALEXANDRIA_DELIVERY_ZONES.find((zone) => zone.id === requestedZoneId)
+      : undefined;
+    if (fulfillmentType === 'DELIVERY' && !deliveryZone) {
+      return NextResponse.json({ success: false, error: 'منطقة التوصيل غير صالحة.' }, { status: 400 });
+    }
+    // Never trust a client-supplied delivery fee; calculate it from the server zone table.
+    const serverDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : deliveryZone!.fee;
 
     // T01: reject payment methods that are not actually available (hidden in UI).
     try {
@@ -148,7 +160,7 @@ export async function POST(req: Request) {
     }
     const totals = computeStackedTotals({
       lines: orderItemsData,
-      deliveryFee: Number(deliveryFee || 0),
+      deliveryFee: serverDeliveryFee,
       vatRate,
       stack: {
         coupon: couponQuote ? { kind: couponQuote.kind, value: couponQuote.value, cap: couponQuote.cap } : null,
@@ -192,15 +204,6 @@ export async function POST(req: Request) {
           }),
         });
         receipt = currentReceipt;
-        const courierResult = await createCourierShipment({
-          orderNumber,
-          branchAddress: flagshipBranch.address,
-          customerName: name || 'عميل كريم',
-          customerPhone: phone,
-          customerAddress: finalAddress,
-          codAmount: paymentMethod === 'COD' ? totalAmount : 0,
-          provider,
-        });
         order = await prisma.$transaction(async (tx) => {
           for (const line of orderItemsData) {
             await decrementStock(tx, {
@@ -221,10 +224,10 @@ export async function POST(req: Request) {
               deliveryAddress: fulfillmentType === 'PICKUP' ? 'استلام من فرع الإبراهيمية (92 شارع عمر لطفى)' : finalAddress,
               addressId,
               branchId: flagshipBranch.id,
-              deliveryZone: zoneId || 'Alexandria Central',
-              deliveryFee: Number(deliveryFee || 0),
+              deliveryZone: deliveryZone?.id || 'PICKUP',
+              deliveryFee: serverDeliveryFee,
               shippingProvider: provider,
-              trackingNumber: courierResult.trackingNumber,
+              trackingNumber: null,
               paymentMethod: paymentMethod as PaymentMethod,
               paymentStatus: PaymentStatus.PENDING,
               orderStatus: OrderStatus.CONFIRMED,
@@ -275,7 +278,6 @@ export async function POST(req: Request) {
           });
           return { id: created.id, orderNumber };
         }, { maxWait: 10000, timeout: 20000 });
-        trackingNumber = courierResult.trackingNumber;
         lastErr = null;
         break;
       } catch (e) {
@@ -303,13 +305,39 @@ export async function POST(req: Request) {
       throw lastErr || new Error('Order failed');
     }
 
+    // Create the courier shipment only after the local order commits. A failed
+    // shipment must not leave an orphan shipment without a local order.
+    let courierResult: Awaited<ReturnType<typeof createCourierShipment>>;
+    try {
+      courierResult = await createCourierShipment({
+        orderNumber: order.orderNumber,
+        branchAddress: flagshipBranch.address,
+        customerName: name || 'عميل كريم',
+        customerPhone: phone,
+        customerAddress: finalAddress,
+        codAmount: paymentMethod === 'COD' ? totalAmount : 0,
+        provider,
+      });
+    } catch {
+      courierResult = {
+        success: true,
+        trackingNumber: `MANUAL-${order.orderNumber}`,
+        provider,
+        estimatedDelivery: 'يحتاج إنشاء الشحنة يدوياً',
+        manual: true,
+      };
+    }
+    trackingNumber = courierResult.trackingNumber;
+    await prisma.order.update({ where: { id: order.id }, data: { trackingNumber } }).catch(() => null);
+
     // 7. Payment instructions (external, after commit — never fails the order).
     let payResult: Awaited<ReturnType<typeof initializePayment>> | null = null;
+    let paymentInitializationError: string | null = null;
     try {
       payResult = await initializePayment(paymentMethod as PaymentMethod, order.orderNumber, totalAmount, phone, name);
     } catch (e) {
       if (e instanceof PaymentUnavailableError) {
-        return NextResponse.json({ success: false, error: e.message }, { status: e.status });
+        paymentInitializationError = e.message;
       }
       payResult = null;
     }
@@ -336,6 +364,8 @@ export async function POST(req: Request) {
       trackingNumber,
       redirectUrl: payResult?.redirectUrl,
       instructionsAr: payResult?.instructionsAr,
+      paymentPending: paymentMethod !== 'COD' && !payResult,
+      paymentInitializationError,
       etaUuid: receipt?.etaUuid,
     });
   } catch (error) {

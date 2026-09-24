@@ -4,7 +4,6 @@ import { prisma } from '@/lib/db';
 import { Link } from '@/i18n/routing';
 import {
   ClipboardList,
-  ShoppingCart,
   Boxes,
   RotateCcw,
   Landmark,
@@ -22,10 +21,8 @@ import {
   Zap,
   Wifi,
   Banknote,
-  Users,
   PackageSearch,
   CheckCircle2,
-  Gem,
   ExternalLink,
 } from 'lucide-react';
 

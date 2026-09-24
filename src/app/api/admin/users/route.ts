@@ -35,20 +35,29 @@ export async function POST(req: Request) {
     if (error) return error;
 
     const body = await req.json();
-    const { name, email, password, phone, role, branchIds, isActive } = body;
+    const { name, email, password, phone, role, branchIds, isActive, managerPin } = body;
 
-    if (!name || !email || !password) {
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || !name.trim() || !email.trim() || !password) {
       return NextResponse.json(
         { success: false, error: 'الاسم والبريد الإلكتروني وكلمة المرور مطلوبة' },
         { status: 400 }
       );
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { success: false, error: 'يجب أن لا تقل كلمة المرور عن 6 أحرف' },
+        { success: false, error: 'يجب أن لا تقل كلمة المرور عن 8 أحرف' },
         { status: 400 }
       );
+    }
+    if (role && !Object.values(Role).includes(role)) {
+      return NextResponse.json({ success: false, error: 'دور غير صالح' }, { status: 400 });
+    }
+    if (managerPin !== undefined && managerPin !== '' && !/^\d{4,8}$/.test(String(managerPin))) {
+      return NextResponse.json({ success: false, error: 'PIN must be 4-8 digits' }, { status: 400 });
+    }
+    if (branchIds !== undefined && (!Array.isArray(branchIds) || branchIds.some((id: unknown) => typeof id !== 'string'))) {
+      return NextResponse.json({ success: false, error: 'branchIds must be an array of strings' }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({
@@ -63,6 +72,7 @@ export async function POST(req: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const managerPinHash = managerPin ? await bcrypt.hash(String(managerPin), 10) : undefined;
 
     const user = await prisma.user.create({
       data: {
@@ -73,6 +83,7 @@ export async function POST(req: Request) {
         role: (role as Role) || Role.STAFF,
         branchIds: Array.isArray(branchIds) ? branchIds : [],
         isActive: typeof isActive === 'boolean' ? isActive : true,
+        ...(managerPinHash ? { managerPinHash } : {}),
       },
       select: {
         id: true,

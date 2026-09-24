@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { timingSafeEqual } from '@/lib/webhooks/verify';
-import { getAppEnv } from '@/lib/env-guard';
 
 /**
  * Fawry payment webhook (3.1) — public endpoint.
@@ -27,16 +26,15 @@ export async function POST(req: Request) {
     const secureKey = process.env.FAWRY_SECURE_KEY || process.env.FAWRY_SECURITY_KEY;
     const signature = req.headers.get('x-fawry-signature') || (body.signature as string) || (body.messageSignature as string);
 
-    if (secureKey) {
-      if (!orderNumber) {
-        return NextResponse.json({ success: false, error: 'merchantRef required for signature check' }, { status: 401 });
-      }
-      const expected = crypto.createHash('sha256').update(`${orderNumber}${secureKey}`).digest('hex');
-      if (!signature || !timingSafeEqual(expected, signature)) {
-        return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
-      }
-    } else if (getAppEnv() !== 'development') {
+    if (!secureKey) {
       return NextResponse.json({ success: false, error: 'webhook secret not configured' }, { status: 401 });
+    }
+    if (!orderNumber) {
+      return NextResponse.json({ success: false, error: 'merchantRef required for signature check' }, { status: 401 });
+    }
+    const expected = crypto.createHash('sha256').update(`${orderNumber}${secureKey}`).digest('hex');
+    if (!signature || !timingSafeEqual(expected, signature)) {
+      return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
     }
 
     const order = orderNumber
@@ -45,11 +43,32 @@ export async function POST(req: Request) {
     if (!order) {
       return NextResponse.json({ success: false, error: 'order not found' }, { status: 404 });
     }
+    if (order.paymentMethod !== 'FAWRY') {
+      return NextResponse.json({ success: false, error: 'payment method mismatch' }, { status: 400 });
+    }
+    if (order.orderStatus === 'CANCELLED' || order.orderStatus === 'RETURNED' || order.paymentStatus === 'REFUNDED') {
+      return NextResponse.json({ success: false, error: 'order is no longer payable' }, { status: 409 });
+    }
+    if (order.paymentRef && fawryRef && order.paymentRef !== fawryRef) {
+      return NextResponse.json({ success: false, error: 'transaction reference mismatch' }, { status: 400 });
+    }
+    const amountValue = body.amount ?? body.amountEgp ?? body.amountCents;
+    if (amountValue !== undefined) {
+      const amount = Number(amountValue);
+      const normalized = body.amountCents !== undefined ? amount / 100 : amount;
+      if (!Number.isFinite(normalized) || Math.abs(normalized - Number(order.totalAmount)) > 0.01) {
+        return NextResponse.json({ success: false, error: 'amount mismatch' }, { status: 400 });
+      }
+    }
     if (order.paymentStatus === 'PAID') {
       return NextResponse.json({ success: true, idempotentReplay: true, orderNumber: order.orderNumber });
     }
 
     const paid = ['PAID', 'SUCCESS', 'SETTLED'].includes(String(status ?? '').toUpperCase());
+    const failed = ['FAILED', 'CANCELLED', 'DECLINED'].includes(String(status ?? '').toUpperCase());
+    if (!paid && !failed) {
+      return NextResponse.json({ success: false, error: 'payment status is ambiguous' }, { status: 400 });
+    }
     const updated = await prisma.order.update({
       where: { id: order.id },
       data: {

@@ -87,8 +87,8 @@ export default function PosPaymentModal({
   onCompleteSale,
   saleError,
 }: PosPaymentModalProps) {
-  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
-  const [loyaltyChecking, setLoyaltyChecking] = useState<boolean>(false);
+  void loyaltyInput;
+  void setLoyaltyInput;
   const [activeTab, setActiveTab] = useState<'PAYMENT' | 'DISCOUNTS'>('PAYMENT');
   const [phoneSearch, setPhoneSearch] = useState('');
 

@@ -16,20 +16,23 @@ export async function GET(req: Request) {
     if (error) return error;
     const { searchParams } = new URL(req.url);
     const from = searchParams.get('from') ? new Date(String(searchParams.get('from'))) : new Date(Date.now() - 30 * 86_400_000);
-    const to = searchParams.get('to') ? new Date(String(searchParams.get('to'))) : new Date();
+    const toParam = searchParams.get('to');
+    const to = toParam
+      ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(toParam) ? `${toParam}T23:59:59.999Z` : toParam)
+      : new Date();
     const branchId = searchParams.get('branch') || undefined;
     const deadDays = await getSetting<number>('reports.deadStockDays', 60).catch(() => 60);
     if (isNaN(+from) || isNaN(+to)) return NextResponse.json({ success: false, error: 'Invalid dates' }, { status: 400 });
 
     const branchFilter = branchId ? { branchId } : {};
-    const [orderItems, saleItems, returnItems, products, deadCutoff] = await Promise.all([
+    const [orderItems, saleItems, returnItems, deadCutoff] = await Promise.all([
       prisma.orderItem.findMany({
-        where: { order: { createdAt: { gte: from, lte: to }, ...branchFilter } },
+        where: { order: { createdAt: { gte: from, lte: to }, paymentStatus: 'PAID', ...branchFilter } },
         include: { product: { select: { id: true, nameAr: true, nameEn: true, price: true, costPrice: true } }, order: { select: { branchId: true } } },
         take: 2000,
       }),
       prisma.saleItem.findMany({
-        where: { sale: { createdAt: { gte: from, lte: to }, ...branchFilter } },
+        where: { sale: { createdAt: { gte: from, lte: to }, paymentStatus: 'PAID', ...branchFilter } },
         include: {
           product: { select: { id: true, nameAr: true, nameEn: true, price: true, costPrice: true } },
           sale: { select: { branchId: true, cashierId: true, discountAmount: true } },
@@ -37,14 +40,13 @@ export async function GET(req: Request) {
         take: 2000,
       }),
       prisma.returnItem.findMany({
-        where: { return: { createdAt: { gte: from, lte: to }, ...branchFilter } },
+        where: { return: { createdAt: { gte: from, lte: to }, status: 'COMPLETED', ...branchFilter } },
         include: {
           product: { select: { id: true, nameAr: true, nameEn: true } },
           return: { select: { branchId: true, status: true, channel: true } },
         },
         take: 2000,
       }),
-      prisma.product.findMany({ select: { id: true, nameAr: true, costPrice: true, price: true } }),
       new Date(Date.now() - deadDays * 86_400_000),
     ]);
 
@@ -107,11 +109,15 @@ export async function GET(req: Request) {
 
     // Cashier performance.
     const byCashier = new Map<string, { revenue: number; sales: number; discount: number }>();
+    const countedSales = new Set<string>();
     for (const it of saleItems) {
       const cur = byCashier.get(it.sale.cashierId) || { revenue: 0, sales: 0, discount: 0 };
       cur.revenue += num(it.totalPrice);
-      cur.sales += 1;
-      cur.discount += num(it.sale.discountAmount);
+      if (!countedSales.has(it.saleId)) {
+        countedSales.add(it.saleId);
+        cur.sales += 1;
+        cur.discount += num(it.sale.discountAmount);
+      }
       byCashier.set(it.sale.cashierId, cur);
     }
     const cashiers = await prisma.user.findMany({ where: { id: { in: [...byCashier.keys()] } }, select: { id: true, name: true } });

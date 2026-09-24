@@ -98,6 +98,7 @@ export async function POST(req: Request) {
       // 1) REQUEST (idempotent).
       const { request, replay } = await requestReturn({
         saleId: sale.id,
+        type: body.exchange ? 'EXCHANGE' : 'RETURN',
         channel: 'POS',
         branchId: sale.branchId,
         items,
@@ -217,6 +218,11 @@ async function createExchangeSale(
 ) {
   const { getVatRate } = await import('@/lib/settings');
   const vatRate = await getVatRate().catch(() => 0.14);
+  for (const item of exchange.items) {
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+      throw new ReturnError(400, 'كمية صنف الاستبدال غير صالحة');
+    }
+  }
   const products = await prisma.product.findMany({ where: { id: { in: exchange.items.map((i) => i.productId) } } });
   const byId = new Map(products.map((p) => [p.id, p]));
   const priced = exchange.items.map((l) => {
@@ -247,7 +253,7 @@ async function createExchangeSale(
             saleNumber, branchId: ctx.branch.id, cashierId: ctx.cashierId,
             customerId: origSale.customerId, shiftId: ctx.shift.id,
             subtotal: totals.subtotal, taxAmount: totals.vat, totalAmount: totals.total,
-            paymentMethod: method as never, paymentStatus: 'PAID',
+            paymentMethod: method as never, paymentStatus: method === 'CASH' ? 'PAID' : 'PENDING',
             items: { create: priced.map((l) => ({ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, totalPrice: l.totalPrice })) },
           },
         });

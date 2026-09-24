@@ -4,6 +4,16 @@ import React from 'react';
 import { Printer, CheckCircle2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/foundation';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char] || char);
+}
+
 export interface PosReceiptData {
   saleNumber: string;
   branchName: string;
@@ -42,12 +52,28 @@ export default function PosReceiptModal({
     const printWindow = window.open('', '_blank', 'width=420,height=700');
     if (!printWindow) return;
 
+    const saleNumber = escapeHtml(data.saleNumber);
+    const branchName = escapeHtml(data.branchName);
+    const cashierName = escapeHtml(data.cashierName);
+    const customerName = escapeHtml(data.customerName);
+    const customerPhone = escapeHtml(data.customerPhone);
+    const paymentMethod = escapeHtml(data.paymentMethod);
+    const itemRows = data.items.map((item) => `
+      <div class="item-row">
+        <div class="bold">${escapeHtml(item.nameAr)}</div>
+        <div class="row">
+          <span>${item.quantity} × ${item.unitPrice.toFixed(2)}</span>
+          <span class="bold">${(item.quantity * item.unitPrice).toFixed(2)} ج.م</span>
+        </div>
+      </div>
+    `).join('');
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
           <meta charset="utf-8">
-          <title>فاتورة كاشير - ${data.saleNumber}</title>
+          <title>فاتورة كاشير - ${saleNumber}</title>
           <style>
             body {
               font-family: 'Courier New', Courier, monospace, sans-serif;
@@ -76,14 +102,14 @@ export default function PosReceiptModal({
           <div class="text-center">
             <div class="title">SPORTS CHAMPIONS</div>
             <div class="subtitle">المتجر الرائد للملابس والمعدات الرياضية</div>
-            <div>الإسكندرية - ${data.branchName}</div>
+            <div>الإسكندرية - ${branchName}</div>
             <div>هاتف: 03 5926908 | واتساب: 01224226876</div>
             <div class="divider"></div>
             <div class="bold">فاتورة بيع ضريبية مبسطة</div>
-            <div>رقم: ${data.saleNumber}</div>
+            <div>رقم: ${saleNumber}</div>
             <div>التاريخ: ${new Date(data.createdAt).toLocaleString('ar-EG')}</div>
-            <div>الكاشير: ${data.cashierName}</div>
-            ${data.customerName ? `<div>العميل: ${data.customerName} (${data.customerPhone || ''})</div>` : ''}
+            <div>الكاشير: ${cashierName}</div>
+            ${customerName ? `<div>العميل: ${customerName} (${customerPhone})</div>` : ''}
             <div class="divider"></div>
           </div>
 
@@ -94,19 +120,7 @@ export default function PosReceiptModal({
           </div>
           <div class="divider"></div>
 
-          ${data.items
-            .map(
-              (i) => `
-            <div class="item-row">
-              <div class="bold">${i.nameAr}</div>
-              <div class="row">
-                <span>${i.quantity} × ${i.unitPrice.toFixed(2)}</span>
-                <span class="bold">${(i.quantity * i.unitPrice).toFixed(2)} ج.م</span>
-              </div>
-            </div>
-          `
-            )
-            .join('')}
+          ${itemRows}
 
           <div class="divider"></div>
           <div class="row"><span>المجموع الفرعي:</span><span>${data.subtotal.toFixed(2)} ج.م</span></div>
@@ -119,7 +133,7 @@ export default function PosReceiptModal({
           </div>
 
           <div class="divider"></div>
-          <div class="row"><span>طريقة الدفع:</span><span>${data.paymentMethod}</span></div>
+          <div class="row"><span>طريقة الدفع:</span><span>${paymentMethod}</span></div>
           ${data.tendered ? `<div class="row"><span>المبلغ المستلم:</span><span>${data.tendered.toFixed(2)} ج.م</span></div>` : ''}
           ${data.change !== undefined ? `<div class="row bold"><span>الباقي للعميل:</span><span>${data.change.toFixed(2)} ج.م</span></div>` : ''}
 

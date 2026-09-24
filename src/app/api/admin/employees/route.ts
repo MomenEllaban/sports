@@ -32,6 +32,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const commissionPercent = Number(commissionRate);
+    if (!Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 100) {
+      return NextResponse.json({ success: false, error: 'Commission must be between 0 and 100 percent' }, { status: 400 });
+    }
+
     const employee = await prisma.employee.create({
       data: {
         name: String(name).trim(),
@@ -39,7 +44,7 @@ export async function POST(req: Request) {
         roleTitle: String(roleTitle).trim(),
         salary: Number(salary),
         salaryType,
-        commissionRate: Number(commissionRate) || 0,
+        commissionRate: commissionPercent / 100,
         branchId,
         isActive: true,
       },

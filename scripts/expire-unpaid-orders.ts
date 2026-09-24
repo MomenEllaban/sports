@@ -25,7 +25,7 @@ async function main() {
 
     const expired = await db.order.findMany({
       where: {
-        orderStatus: 'PENDING',
+        orderStatus: { in: ['PENDING', 'CONFIRMED'] },
         paymentStatus: 'PENDING',
         OR: [
           { paymentMethod: { in: ELECTRONIC.filter((m) => m !== 'FAWRY') }, createdAt: { lt: cutoff } },

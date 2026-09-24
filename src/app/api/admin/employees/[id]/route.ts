@@ -19,7 +19,13 @@ export async function PATCH(
     if (body.roleTitle !== undefined) data.roleTitle = String(body.roleTitle).trim();
     if (body.salary !== undefined) data.salary = Number(body.salary);
     if (body.salaryType !== undefined) data.salaryType = body.salaryType;
-    if (body.commissionRate !== undefined) data.commissionRate = Number(body.commissionRate);
+    if (body.commissionRate !== undefined) {
+      const commissionPercent = Number(body.commissionRate);
+      if (!Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 100) {
+        return NextResponse.json({ success: false, error: 'Commission must be between 0 and 100 percent' }, { status: 400 });
+      }
+      data.commissionRate = commissionPercent / 100;
+    }
     if (body.branchId !== undefined) data.branchId = body.branchId;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
 

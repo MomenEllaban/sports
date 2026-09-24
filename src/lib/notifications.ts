@@ -63,8 +63,8 @@ export async function sendWhatsAppMessage(phone: string, message: string) {
       !cfg || cfg.mode === 'off'
         ? 'not-configured: enable WhatsApp in Settings → Integrations'
         : `not-configured: missing ${cfg.missing.join(', ')} in Settings → Integrations`;
-    console.log(`[WhatsApp Mock Dispatch] To: ${phone} | Message: ${message} (${reason})`);
-    return { success: true, mock: true, reason };
+    console.log(`[WhatsApp disabled] phone=***${phone.slice(-4)} (${reason})`);
+    return { success: false, queued: false, mock: true, reason };
   }
 
   try {
@@ -108,8 +108,8 @@ export async function sendWhatsAppTemplate(
   const phoneId = cfg?.phoneId?.trim() || process.env.WHATSAPP_PHONE_NUMBER_ID;
   const token = cfg?.token?.trim() || process.env.WHATSAPP_API_TOKEN;
   if (cfg?.mode !== 'cloud' || !phoneId || !token) {
-    console.log(`[WhatsApp Mock Template] To: ${phone} | Template: ${name} | Params: ${bodyParams.join(', ')}`);
-    return { success: true, mock: true, reason: 'not-configured' };
+    console.log(`[WhatsApp template disabled] phone=***${phone.slice(-4)} template=${name}`);
+    return { success: false, queued: false, mock: true, reason: 'not-configured' };
   }
   try {
     const response = await fetch(`https://graph.facebook.com/v18.0/${phoneId}/messages`, {

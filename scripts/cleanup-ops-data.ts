@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { assertDevelopment } from '../src/lib/env-guard.js';
 
 /**
  * Remove fabricated demo/seed operational data so the dashboard reflects only
@@ -14,6 +15,10 @@ import { PrismaClient } from '@prisma/client';
 const db = new PrismaClient();
 
 async function main() {
+  assertDevelopment('cleanup-ops-data');
+  if (process.env.ALLOW_DESTRUCTIVE_CLEANUP !== 'true') {
+    throw new Error('REFUSED: set ALLOW_DESTRUCTIVE_CLEANUP=true explicitly for this destructive development script.');
+  }
   const totals: Record<string, number> = {};
 
   const del = async (name: string, p: Promise<{ count: number }>) => {

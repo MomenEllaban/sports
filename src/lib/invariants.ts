@@ -44,7 +44,20 @@ export async function runChecks(db: PrismaClient): Promise<string[]> {
   let missingReturn = 0;
   for (const o of closed) {
     const n = await db.inventoryLog.count({ where: { referenceId: o.orderNumber, type: 'RETURN' } });
-    if (n === 0) missingReturn++;
+    if (n > 0) continue;
+    // T-RMA: restock logs carry the RTN case number — accept RETURN logs
+    // filed under any non-rejected ReturnRequest of this order.
+    const cases = await db.returnRequest.findMany({
+      where: { orderId: o.id, status: { notIn: ['REJECTED', 'CANCELLED'] } },
+      select: { returnNumber: true },
+    });
+    const hit =
+      cases.length > 0
+        ? await db.inventoryLog.count({
+            where: { referenceId: { in: cases.map((c) => c.returnNumber) }, type: 'RETURN' },
+          })
+        : 0;
+    if (hit === 0) missingReturn++;
   }
   if (missingReturn > 0) findings.push(`CLOSED_WITHOUT_RETURN_LOG: ${missingReturn}/${closed.length} orders`);
 

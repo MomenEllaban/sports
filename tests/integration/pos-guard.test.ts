@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, sessionFor, openTestShift } from '../helpers/factories.js';
+import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduct, stock, openTestShift } from '../helpers/factories.js';
 import { setMockSession } from '../setup-mocks.js';
 import { GET as posProducts } from '../../src/app/api/pos/products/route.js';
 import { POST as posSale } from '../../src/app/api/pos/sale/route.js';

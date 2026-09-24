@@ -9,12 +9,12 @@ import { seedStock } from './stock.js';
 import { seedSuppliers, seedCustomers, seedEmployees, seedExpenses } from './people.js';
 import { seedSettings } from './settings.js';
 import { seedTransactions } from './transactions.js';
-import { MANAGER_PINS } from './users.js';
 
 import { prisma } from '../../src/lib/db.js';
 const SEED_PASSWORD = process.env.SEED_DEFAULT_PASSWORD || 'Test@123456';
 
 export async function seedMinimal() {
+  assertDevelopment('seed:minimal');
   const counts: Record<string, number> = {};
   counts.branches = await seedBranches(prisma);
   const users = await seedUsers(prisma, SEED_PASSWORD);
@@ -25,6 +25,7 @@ export async function seedMinimal() {
 }
 
 export async function seedDemo() {
+  assertDevelopment('seed:demo');
   const { counts, users } = await seedMinimal();
   counts.brands = await seedBrands(prisma);
   const cat = await seedCatalog(prisma);
@@ -53,14 +54,14 @@ export async function wipeAppTables() {
 export function printSummary(counts: Record<string, number>, users: Array<{ email: string; role: string }>) {
   console.log('\n==== SEED SUMMARY ====');
   for (const [k, v] of Object.entries(counts)) console.log(`  ${k}: ${v}`);
-  console.log('\n==== DEV CREDENTIALS (development only) ====');
-  console.log(`  password for ALL seed users: ${process.env.SEED_DEFAULT_PASSWORD ? '(from SEED_DEFAULT_PASSWORD)' : SEED_PASSWORD}`);
+  console.log('\n==== SEED ACCOUNTS (credentials are intentionally not printed) ====');
   for (const u of users) console.log(`  ${u.role}: ${u.email}`);
-  console.log(`  manager discount PINs: ${MANAGER_PINS.primary} (ibrahimeyah) / ${MANAGER_PINS.secondary} (smouha) — bcrypt-hashed in DB`);
+  console.log('  Set SEED_DEFAULT_PASSWORD in your secret manager before provisioning development/test accounts.');
 }
 
 async function main() {
   const mode = process.argv[2] || 'demo';
+  assertDevelopment(`seed:${mode}`);
   if (mode === 'reset') {
     await wipeAppTables();
     console.log('wiped app tables (development only)');

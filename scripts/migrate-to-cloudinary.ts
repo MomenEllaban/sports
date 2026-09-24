@@ -3,12 +3,14 @@ import { v2 as cloudinary } from 'cloudinary';
 
 const prisma = new PrismaClient();
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'djseokhow',
-  api_key: process.env.CLOUDINARY_API_KEY || '536896379712448',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'C3zQ1AjZOm8X7oVapjMT8IkHPlk',
-  secure: true,
-});
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+if (!cloudName || !apiKey || !apiSecret) {
+  throw new Error('CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required; no fallback secrets are allowed.');
+}
+
+cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true });
 
 async function uploadToCloudinary(url: string, folder = 'sports-champions/products'): Promise<string> {
   const res = await cloudinary.uploader.upload(url, {

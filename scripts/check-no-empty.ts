@@ -25,6 +25,7 @@ async function main() {
     await need('coupons (/admin/coupons)', await db.coupon.count());
     await need('supplierPayments (/admin/purchasing)', await db.supplierPayment.count());
     await need('reviews (/admin/reviews)', await db.review.count({ where: { approved: true } }));
+  await need('returns (/admin/returns)', await db.returnRequest.count());
     await need('suppliers (/admin/purchasing)', await db.supplier.count());
     await need('purchaseOrders', await db.purchaseOrder.count());
     await need('transfers (/admin/inventory)', await db.stockTransfer.count());

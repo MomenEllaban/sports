@@ -36,6 +36,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'طريقة الدفع غير صالحة' }, { status: 400 });
     }
 
+    // A terminal/online reference supplied by the browser is not proof of an
+    // electronic payment. Only cash is immediately settled; electronic tenders
+    // remain PENDING until a provider webhook or an audited admin settlement.
+    const paymentStatus = paymentMethod === 'CASH' ? PaymentStatus.PAID : PaymentStatus.PENDING;
+    const paymentPending = paymentStatus === PaymentStatus.PENDING;
+
     const clientSaleId =
       typeof body.clientSaleId === 'string' && body.clientSaleId.trim() ? body.clientSaleId.trim() : null;
 
@@ -54,6 +60,8 @@ export async function POST(req: Request) {
           totalAmount: existing.totalAmount,
           subtotal: existing.subtotal,
           vatAmount: existing.taxAmount,
+          paymentStatus: existing.paymentStatus,
+          paymentPending: existing.paymentStatus !== PaymentStatus.PAID,
           discountAmount: existing.discountAmount,
           loyaltyEarned: 0,
           qrCodeDataUrl: existing.taxInvoice?.qrCodeData || '',
@@ -239,7 +247,7 @@ export async function POST(req: Request) {
               taxAmount: vatAmount,
               totalAmount,
               paymentMethod: paymentMethod as PaymentMethod,
-              paymentStatus: PaymentStatus.PAID,
+              paymentStatus,
               approvedById,
               clientSaleId,
               items: {
@@ -303,7 +311,7 @@ export async function POST(req: Request) {
 
     // AFTER commit only: loyalty + notifications never roll back or fail the sale.
     let loyaltyEarned = 0;
-    if (resolvedCustomerId) {
+    if (resolvedCustomerId && !paymentPending) {
       const rule = await getLoyaltyRule();
       loyaltyEarned = loyaltyRule(totalAmount, rule.earnPerEgp);
       if (loyaltyEarned > 0) {
@@ -317,8 +325,8 @@ export async function POST(req: Request) {
       type: 'NEW_ORDER',
       titleAr: `بيع كاشير جديد: ${sale.saleNumber}`,
       titleEn: `New POS sale: ${sale.saleNumber}`,
-      messageAr: `فاتورة ${sale.saleNumber} بمبلغ ${totalAmount} ج.م (${paymentMethod}).`,
-      messageEn: `POS sale ${sale.saleNumber} for ${totalAmount} EGP.`,
+      messageAr: `فاتورة ${sale.saleNumber} بمبلغ ${totalAmount} ج.م (${paymentMethod}) — ${paymentPending ? 'بانتظار تسوية الدفع الإلكتروني' : 'مدفوعة نقداً'}.`,
+      messageEn: `POS sale ${sale.saleNumber} for ${totalAmount} EGP (${paymentPending ? 'electronic payment pending settlement' : 'cash paid'}).`,
       branchId: ctx.branch.id,
     }).catch(() => null);
 
@@ -329,6 +337,8 @@ export async function POST(req: Request) {
       totalAmount,
       subtotal,
       vatAmount,
+      paymentStatus,
+      paymentPending,
       discountAmount: totals.totalDiscount,
       couponDiscount: totals.couponDiscount,
       loyaltyDiscount: totals.loyaltyDiscount,

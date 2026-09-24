@@ -3,7 +3,7 @@ import { testPrisma, resetTestDb, makeBranch, makeUser, makeCategory, makeProduc
 import { setMockSession } from '../setup-mocks.js';
 import {
   requestReturn, approveReturn, rejectReturn, cancelReturn, receiveReturn,
-  executeRefund, recordManualRefund, backfillLegacy, ReturnError,
+  executeRefund, recordManualRefund,
 } from '../../src/lib/returns/service.js';
 
 async function seedPolicy(db: ReturnType<typeof testPrisma>) {
@@ -78,6 +78,7 @@ describe('unified returns service (T-RMA)', () => {
         guestName: 'RMA',
         deliveryAddress: 'addr',
         branchId,
+        deliveryFee: 0,
         paymentMethod: paymentMethod as never,
         paymentStatus: 'PAID',
         orderStatus: 'DELIVERED',

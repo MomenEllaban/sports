@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { num, money } from '@/lib/pricing';
 import { incrementStock } from '@/lib/inventory/service';
-import { quoteReturn, OUR_FAULT, type ReasonCode } from './calc';
+import { quoteReturn, OUR_FAULT } from './calc';
 import { getReturnsPolicy } from './policy';
 import { getVatRate, getLoyaltyRule } from '../settings';
 import { submitEtaCreditNote } from '../eta';
@@ -37,6 +37,7 @@ export interface ReturnLineInput {
 export interface RequestReturnInput {
   orderId?: string;
   saleId?: string;
+  type?: 'RETURN' | 'EXCHANGE';
   channel: string;
   branchId?: string;
   items: ReturnLineInput[];
@@ -102,11 +103,11 @@ async function sourceLines(orderId?: string, saleId?: string) {
   };
 }
 
-async function alreadyReturned(src: { kind: string; doc: { id: string } }): Promise<Map<string, number>> {
+async function alreadyReturned(src: { kind: string; doc: { id: string } }, excludeReturnId?: string): Promise<Map<string, number>> {
   const items = await prisma.returnItem.findMany({
     where: src.kind === 'order'
-      ? { return: { orderId: src.doc.id, status: { notIn: ['REJECTED', 'CANCELLED'] } } }
-      : { return: { saleId: src.doc.id, status: { notIn: ['REJECTED', 'CANCELLED'] } } },
+      ? { return: { orderId: src.doc.id, id: excludeReturnId ? { not: excludeReturnId } : undefined, status: { notIn: ['REJECTED', 'CANCELLED'] } } }
+      : { return: { saleId: src.doc.id, id: excludeReturnId ? { not: excludeReturnId } : undefined, status: { notIn: ['REJECTED', 'CANCELLED'] } } },
     select: { orderItemId: true, saleItemId: true, productId: true, quantity: true },
   });
   const m = new Map<string, number>();
@@ -149,6 +150,7 @@ export async function requestReturn(input: RequestReturnInput) {
   const policy = await getReturnsPolicy();
   if (!policy.enabled) throw new ReturnError(403, 'المرتجعات معطلة حالياً');
   if (!input.orderId && !input.saleId) throw new ReturnError(400, 'الطلب أو الفاتورة مطلوب');
+  if (input.type && !['RETURN', 'EXCHANGE'].includes(input.type)) throw new ReturnError(400, 'نوع المرتجع غير صالح');
   if (!input.items || input.items.length === 0) throw new ReturnError(400, 'اختر صنفاً واحداً على الأقل');
 
   // Idempotency: same clientRequestId returns the original case.
@@ -183,6 +185,9 @@ export async function requestReturn(input: RequestReturnInput) {
     if (open + it.quantity > line.quantity) {
       throw new ReturnError(400, `الكمية تتجاوز المباع (المتاح للإرجاع ${line.quantity - open})`);
     }
+    // Consume the requested quantity in the local accumulator so duplicate
+    // lines in one request cannot each pass against the same balance.
+    returned.set(key, open + it.quantity);
     if (policy.requirePhotoForReasons.includes(it.reasonCode) && (!it.images || it.images.length === 0)) {
       throw new ReturnError(400, `السبب ${it.reasonCode} يتطلب صورة إثبات`);
     }
@@ -222,16 +227,18 @@ export async function requestReturn(input: RequestReturnInput) {
         for (const it of input.items) {
           const line = src.lines.find((l) => (it.refId ? l.refId === it.refId : l.productId === it.productId))!;
           const key = it.refId || `p:${line.productId}`;
-          if ((live.get(key) || 0) + it.quantity > line.quantity) {
-            throw new ReturnError(400, `الكمية تتجاوز المباع (المتاح للإرجاع ${line.quantity - (live.get(key) || 0)})`);
+          const liveQty = live.get(key) || 0;
+          if (liveQty + it.quantity > line.quantity) {
+            throw new ReturnError(400, `الكمية تتجاوز المباع (المتاح للإرجاع ${line.quantity - liveQty})`);
           }
+          live.set(key, liveQty + it.quantity);
         }
         return tx.returnRequest.create({
           data: {
             returnNumber,
             orderId: input.orderId,
             saleId: input.saleId,
-            type: 'RETURN',
+            type: input.type || 'RETURN',
             channel: input.channel,
             branchId: receiveBranch.id,
             status: 'REQUESTED',
@@ -363,7 +370,7 @@ export async function receiveReturn(
     return { productId: d.ri.productId, unitPrice: srcLine.unitPrice, quantity: srcLine.quantity, returnedQty: d.ri.quantity };
   });
   // Full-return test: every sold qty covered by (prior completed + this)?
-  const prior = await alreadyReturned({ kind: src.kind, doc: { id: src.id } });
+  const prior = await alreadyReturned({ kind: src.kind, doc: { id: src.id } }, id);
   const fullReturn = src.lines.every((l) => {
     const key = l.refId;
     const now = decided.filter((d) => (src.kind === 'order' ? d.ri.orderItemId : d.ri.saleItemId) === key).reduce((s, d) => s + d.ri.quantity, 0);

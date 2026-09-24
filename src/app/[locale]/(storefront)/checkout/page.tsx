@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import { CreditCard, Truck, MapPin, CheckCircle, ShieldCheck, AlertCircle, Phone, User, MessageCircle } from 'lucide-react';
-import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
+import { CreditCard, Truck, CheckCircle, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/foundation';
 
 export default function CheckoutPage() {
@@ -13,7 +12,7 @@ export default function CheckoutPage() {
   const tCheckout = useTranslations('checkout');
   const router = useRouter();
 
-  const { items, selectedZone, deliveryFee, getSubtotal, getVatAmount, getTotalAmount, clearCart } = useCartStore();
+  const { items, selectedZone, deliveryFee, getSubtotal, getVatAmount, clearCart } = useCartStore();
 
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
@@ -46,7 +45,7 @@ export default function CheckoutPage() {
   const [receiptUploading, setReceiptUploading] = useState(false);
   const [receiptError, setReceiptError] = useState('');
   const needsReceipt = paymentMethod === 'INSTAPAY' || paymentMethod === 'VODAFONE_CASH';
-  const [orderCompleted, setOrderCompleted] = useState<{ orderNumber: string; trackingNumber: string; paymentInstructions?: string } | null>(null);
+  const [orderCompleted, setOrderCompleted] = useState<{ orderNumber: string; trackingNumber: string; paymentInstructions?: string; paymentPending?: boolean; paymentError?: string | null } | null>(null);
 
   // T01: only offer payment methods that are actually available (gateway-gated).
   const [availableMethods, setAvailableMethods] = useState<string[] | null>(null);
@@ -191,6 +190,8 @@ export default function CheckoutPage() {
           orderNumber: data.orderNumber,
           trackingNumber: data.trackingNumber,
           paymentInstructions: data.instructionsAr,
+           paymentPending: data.paymentPending,
+           paymentError: data.paymentInitializationError,
         });
       } else {
         setFormError(data.error || 'حدث خطأ أثناء حفظ الطلب.');
@@ -224,6 +225,13 @@ export default function CheckoutPage() {
               {orderCompleted.paymentInstructions && (
                 <div className="pt-2 border-t border-slate-800 text-amber-300">
                   {orderCompleted.paymentInstructions}
+                </div>
+              )}
+              {orderCompleted.paymentPending && (
+                <div role="status" className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-200">
+                  <p className="font-bold">تم حفظ الطلب، لكن الدفع الإلكتروني لم يُثبت بعد.</p>
+                  {orderCompleted.paymentError && <p className="mt-1 text-xs">{orderCompleted.paymentError}</p>}
+                  <p className="mt-1 text-xs">سيظهر في الإدارة كطلب pending حتى webhook أو تسوية موثقة.</p>
                 </div>
               )}
             </div>
@@ -443,6 +451,7 @@ export default function CheckoutPage() {
                 </label>
                 )}
 
+                {(!availableMethods || availableMethods.includes('INSTAPAY')) && (
                 <label
                   onClick={() => setPaymentMethod('INSTAPAY')}
                   className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -453,10 +462,12 @@ export default function CheckoutPage() {
                 >
                   <div>
                     <span className="font-bold block text-sm text-slate-100">تحويل انستا باي InstaPay مباشر</span>
-                    <span className="text-[11px] text-slate-400">تحويل فوري بحساب الشركة sports.champions@instapay</span>
+                    <span className="text-[11px] text-slate-400">سيظهر حساب التحويل الآمن بعد التحقق من إعدادات المتجر</span>
                   </div>
                 </label>
+                )}
 
+                {(!availableMethods || availableMethods.includes('VODAFONE_CASH')) && (
                 <label
                   onClick={() => setPaymentMethod('VODAFONE_CASH')}
                   className={`p-4 rounded-2xl border cursor-pointer flex items-center justify-between transition-all ${
@@ -467,9 +478,10 @@ export default function CheckoutPage() {
                 >
                   <div>
                     <span className="font-bold block text-sm text-slate-100">محفظة فودافون كاش</span>
-                    <span className="text-[11px] text-slate-400">تحويل على رقم المحفظة 01001234567 ثم رفع صورة الإيصال</span>
+                    <span className="text-[11px] text-slate-400">سيظهر رقم المحفظة الآمن بعد التحقق من إعدادات المتجر</span>
                   </div>
                 </label>
+                )}
 
                 {needsReceipt && (
                   <div className="p-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 space-y-3">

@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { BRANCH_MAIN_ID, BRANCH_SAMOUHA_ID } from './branches.js';
 import { mulberry32, round2 } from './utils.js';
+import { quoteReturn } from '../../src/lib/returns/calc.js';
 
 /**
  * Deterministic transactional demo data (T17) so every admin screen — orders,
@@ -81,6 +82,12 @@ export async function seedTransactions(db: PrismaClient) {
     { id: 'coupon-D-OLD', code: 'OLD20', kind: 'PERCENT', value: 20, usedCount: 3, isActive: false, createdById: adminId },
   ];
   const reviewRows: Prisma.ReviewCreateManyInput[] = [];
+  // T-RMA: order line snapshots for deterministic RMA attachment.
+  const orderInfo = new Map<string, {
+    branchId: string; customerId: string | null; phone: string; paymentMethod: string;
+    subtotal: number; discount: number; deliveryFee: number; total: number;
+    items: Array<{ refId: string; productId: string; unitPrice: number; quantity: number }>;
+  }>();
 
   // ------------------------------------------------- Shifts (T05 demo)
   // One OPEN shift per branch (today) + 3 CLOSED shifts per branch with
@@ -289,6 +296,12 @@ export async function seedTransactions(db: PrismaClient) {
       codRemitted: status === 'DELIVERED' && method === 'COD' ? total : 0,
       createdAt: date,
     });
+    // T-RMA snapshot for deterministic attachment.
+    orderInfo.set(orderId, {
+      branchId, customerId: customer?.id ?? null, phone: customer?.phone ?? `0111111${pad4(i)}`,
+      paymentMethod: method, subtotal, discount, deliveryFee, total,
+      items: picks.map((pick, idx) => ({ refId: `orderitem-D-${num}-${idx}`, productId: pick.productId, unitPrice: pick.unitPrice, quantity: pick.quantity })),
+    });
 
     picks.forEach((pick, idx) => {
       orderItemRows.push({
@@ -299,7 +312,6 @@ export async function seedTransactions(db: PrismaClient) {
         quantity: pick.quantity,
         totalPrice: round2(pick.unitPrice * pick.quantity),
       });
-
       if (status === 'CANCELLED' || status === 'RETURNED') {
         const previous = stock.get(`${branchId}:${pick.productId}`) ?? 0;
         invLogRows.push({
@@ -517,8 +529,310 @@ export async function seedTransactions(db: PrismaClient) {
     });
   }
 
+  // ------------------------------------- RMA demo cases (T-RMA §6)
+  // Revert prior RTN-D stock effects first (idempotent re-runs), then rebuild.
+  const priorRtnLogs = await db.inventoryLog.findMany({
+    where: { id: { startsWith: 'invlog-rtn-D-' }, type: 'RETURN' },
+    select: { branchId: true, productId: true, changeQuantity: true },
+  });
+  const rmaReverts: Array<{ where: { branchId: string; productId: string }; data: { stockQuantity: { decrement: number } } }> = [];
+  for (const l of priorRtnLogs) {
+    if (l.changeQuantity === 0) continue;
+    const key = `${l.branchId}:${l.productId}`;
+    sim.set(key, (sim.get(key) ?? 0) - l.changeQuantity);
+    rmaReverts.push({
+      where: { branchId: l.branchId, productId: l.productId },
+      data: { stockQuantity: { decrement: l.changeQuantity } },
+    });
+  }
+
+  const rmaReqRows: Prisma.ReturnRequestCreateManyInput[] = [];
+  const rmaItemRows: Prisma.ReturnItemCreateManyInput[] = [];
+  const rmaRefundRows: Prisma.RefundCreateManyInput[] = [];
+  const rmaLogRows: Prisma.InventoryLogCreateManyInput[] = [];
+  const rmaBumps: Array<{ where: { branchId: string; productId: string }; data: { stockQuantity: { increment: number } } }> = [];
+  const rmaOrderUpdates: Prisma.OrderUpdateManyArgs[] = [];
+  const rmaSaleUpdates: Prisma.SaleUpdateManyArgs[] = [];
+  const rmaExtraOps: Array<{ model: 'customer'; id: string; points: number }> = [];
+
+  const rmaQuoteFor = (
+    info: { subtotal: number; discount: number; deliveryFee: number; total: number },
+    lines: Array<{ productId: string; unitPrice: number; quantity: number; returnedQty: number }>,
+    opts?: { fullReturn?: boolean; ourFault?: boolean; changedMind?: boolean; alreadyRefunded?: number }
+  ) =>
+    quoteReturn({
+      lines,
+      orderDiscount: info.discount,
+      vatRate,
+      deliveryFee: info.deliveryFee,
+      deliveryPaid: info.deliveryFee > 0,
+      deliveryPolicy: 'FULL_RETURN_OR_OUR_FAULT',
+      fullReturn: opts?.fullReturn ?? lines.every((l) => l.returnedQty >= l.quantity),
+      ourFault: opts?.ourFault ?? false,
+      restockingFeePct: 0,
+      changedMind: opts?.changedMind ?? false,
+      alreadyRefunded: opts?.alreadyRefunded ?? 0,
+      paidTotal: info.total,
+    });
+
+  const rmaRestock = (
+    rtn: string, branchId: string, productId: string, qty: number, idx: number, note: string
+  ) => {
+    const key = `${branchId}:${productId}`;
+    const prev = sim.get(key) ?? 0;
+    sim.set(key, prev + qty);
+    rmaBumps.push({
+      where: { branchId, productId },
+      data: { stockQuantity: { increment: qty } },
+    });
+    rmaLogRows.push({
+      id: `invlog-rtn-D-${rtn}-${idx}`,
+      branchId, productId, type: 'RETURN',
+      changeQuantity: qty, previousQuantity: prev, newQuantity: prev + qty,
+      referenceId: `RTN-D-${rtn}`, notes: note, createdById: adminId, createdAt: daysAgo(2),
+    });
+  };
+
+  const rmaZeroLog = (rtn: string, branchId: string, productId: string, idx: number, note: string) => {
+    const prev = sim.get(`${branchId}:${productId}`) ?? 0;
+    rmaLogRows.push({
+      id: `invlog-rtn-D-${rtn}-${idx}`,
+      branchId, productId, type: 'RETURN',
+      changeQuantity: 0, previousQuantity: prev, newQuantity: prev,
+      referenceId: `RTN-D-${rtn}`, notes: note, createdById: adminId, createdAt: daysAgo(2),
+    });
+  };
+
+  const DELIVERED_ORDERS = ['0005', '0006', '0009', '0015', '0016', '0019', '0025', '0026', '0029'];
+  const oinfo = (n: string) => orderInfo.get(`order-D-${n}`)!;
+
+  // Pair doc: an order with room for two sequential partial returns.
+  const pairDoc = DELIVERED_ORDERS.find((n) => {
+    const info = orderInfo.get(`order-D-${n}`);
+    return !!info && (info.items.some((l) => l.quantity >= 2) || info.items.length >= 2);
+  })!;
+  const pairInfo = oinfo(pairDoc);
+  const pairFirst = pairInfo.items[0];
+  const pairAQty = 1;
+  const pairB = pairInfo.items.map((l, i) => ({ ...l, returnedQty: i === 0 ? l.quantity - pairAQty : l.quantity })).filter((l) => l.returnedQty > 0);
+  const usedDocs = new Set<string>([pairDoc]);
+  const takeDoc = () => DELIVERED_ORDERS.find((n) => !usedDocs.has(n))!;
+
+  const qA = rmaQuoteFor(pairInfo, pairInfo.items.map((l, i) => ({ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: i === 0 ? pairAQty : 0 })));
+  const qB = rmaQuoteFor(pairInfo, pairB.map((l) => ({ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: l.returnedQty })), { fullReturn: true, alreadyRefunded: qA.total });
+
+  const rmaCases: Array<{
+    n: string; status: string; channel: string; type?: string; source?: string;
+    doc: { kind: 'order' | 'sale'; id: string; number: string };
+    reason: string; items: Array<{ ref: string; productId: string; qty: number; disp?: string; cond?: string; amount?: number }>;
+    refund?: { method: string; status: string; gatewayRef?: string | null; attempts?: number; lastError?: string | null; proof?: string | null; shift?: string | null };
+    daysAgo: number; notes?: string; returnStatus?: string; orderStatus?: string; paymentStatus?: string;
+  }> = [];
+  const saleItemsOf = (saleId: string) => saleItemRows.filter((r) => r.saleId === saleId);
+
+  // 1) REQUESTED (online, size issue)
+  {
+    const n = takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    rmaCases.push({ n: '0001', status: 'REQUESTED', channel: 'ONLINE', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'SIZE_ISSUE', items: [{ ref: l.refId, productId: l.productId, qty: 1 }], daysAgo: 1 });
+  }
+  // 2) APPROVED
+  {
+    const n = takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    rmaCases.push({ n: '0002', status: 'APPROVED', channel: 'ADMIN', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'CHANGED_MIND', items: [{ ref: l.refId, productId: l.productId, qty: 1 }], daysAgo: 2 });
+  }
+  // 3) REJECTED
+  {
+    const n = takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    rmaCases.push({ n: '0003', status: 'REJECTED', channel: 'ONLINE', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'OTHER', items: [{ ref: l.refId, productId: l.productId, qty: 1 }], daysAgo: 3, notes: 'خارج السياسة: تجاوز المدة عند المراجعة اليدوية' });
+  }
+  // 4) RECEIVED RESTOCK (no payout yet → PENDING refund to mirror service)
+  {
+    const n = takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    const q = rmaQuoteFor(info, [{ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: 1 }]);
+    rmaCases.push({ n: '0004', status: 'RECEIVED', channel: 'ADMIN', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'WRONG_ITEM', items: [{ ref: l.refId, productId: l.productId, qty: 1, disp: 'RESTOCK', cond: 'GOOD', amount: q.lines[0].refund }], refund: { method: 'ORIGINAL_GATEWAY', status: 'PENDING' }, daysAgo: 2, returnStatus: 'PARTIAL' });
+    rmaRestock('0004', info.branchId, l.productId, 1, 0, 'RMA RESTOCK');
+  }
+  // 5) REFUND_PENDING + PENDING gateway refund (PAYMOB doc if available)
+  {
+    const n = DELIVERED_ORDERS.find((x) => !usedDocs.has(x) && oinfo(x).paymentMethod === 'PAYMOB') || takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    const q = rmaQuoteFor(info, [{ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: 1 }]);
+    rmaCases.push({ n: '0005', status: 'REFUND_PENDING', channel: 'ONLINE', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'NOT_AS_DESCRIBED', items: [{ ref: l.refId, productId: l.productId, qty: 1, disp: 'RESTOCK', cond: 'GOOD', amount: q.lines[0].refund }], refund: { method: 'ORIGINAL_GATEWAY', status: 'PENDING' }, daysAgo: 4, returnStatus: 'PARTIAL' });
+    rmaRestock('0005', info.branchId, l.productId, 1, 0, 'RMA RESTOCK');
+  }
+  // 6) COMPLETED + DONE cash refund in open shift (POS sale)
+  {
+    const sItems = saleItemsOf('sale-D-0001');
+    const l = sItems[0]!;
+    const sale = saleRows.find((s) => s.id === 'sale-D-0001')!;
+    const q = rmaQuoteFor({ subtotal: Number(sale.subtotal!), discount: Number(sale.discountAmount!), deliveryFee: 0, total: Number(sale.totalAmount!) },
+      [{ productId: l.productId!, unitPrice: Number(l.unitPrice), quantity: l.quantity!, returnedQty: 1 }], { fullReturn: l.quantity === 1 && sItems.length === 1 });
+    rmaCases.push({ n: '0006', status: 'COMPLETED', channel: 'POS', doc: { kind: 'sale', id: 'sale-D-0001', number: 'SALE-D-0001' }, reason: 'SIZE_ISSUE', items: [{ ref: l.id!, productId: l.productId!, qty: 1, disp: 'RESTOCK', cond: 'GOOD', amount: q.lines[0].refund }], refund: { method: 'CASH', status: 'DONE', gatewayRef: 'CASH-seed', shift: 'shift-D-main-open' }, daysAgo: 2, returnStatus: sItems.length === 1 && l.quantity === 1 ? 'FULL' : 'PARTIAL' });
+    rmaRestock('0006', sale.branchId, l.productId, 1, 0, 'RMA RESTOCK');
+  }
+  // 7) COMPLETED + FAILED gateway refund (retry demo)
+  {
+    const n = DELIVERED_ORDERS.find((x) => !usedDocs.has(x) && (oinfo(x).paymentMethod === 'PAYMOB' || oinfo(x).paymentMethod === 'FAWRY')) || takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    const q = rmaQuoteFor(info, [{ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: 1 }]);
+    rmaCases.push({ n: '0007', status: 'COMPLETED', channel: 'ONLINE', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'DEFECTIVE', items: [{ ref: l.refId, productId: l.productId, qty: 1, disp: 'DAMAGED', cond: 'DEFECTIVE', amount: q.lines[0].refund }], refund: { method: 'ORIGINAL_GATEWAY', status: 'FAILED', attempts: 3, lastError: 'Paymob refund failed (HTTP 500)' }, daysAgo: 5, returnStatus: 'PARTIAL' });
+    rmaZeroLog('0007', info.branchId, l.productId, 0, 'RMA DAMAGED (DEFECTIVE) — غير قابل للبيع');
+  }
+  // 8) COMPLETED + MANUAL_REQUIRED with proof
+  {
+    const n = DELIVERED_ORDERS.find((x) => !usedDocs.has(x) && oinfo(x).paymentMethod === 'INSTAPAY') || takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    const q = rmaQuoteFor(info, [{ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: 1 }]);
+    rmaCases.push({ n: '0008', status: 'COMPLETED', channel: 'WHATSAPP', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'WRONG_ITEM', items: [{ ref: l.refId, productId: l.productId, qty: 1, disp: 'RESTOCK', cond: 'GOOD', amount: q.lines[0].refund }], refund: { method: 'INSTAPAY', status: 'MANUAL_REQUIRED', lastError: 'بانتظار التحويل اليدوي (INSTAPAY)', proof: 'https://example.com/proof.jpg' }, daysAgo: 6, returnStatus: 'PARTIAL' });
+    rmaRestock('0008', info.branchId, l.productId, 1, 0, 'RMA RESTOCK');
+  }
+  // 9) CANCELLED
+  {
+    const n = takeDoc(); usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    rmaCases.push({ n: '0009', status: 'CANCELLED', channel: 'ONLINE', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'OTHER', items: [{ ref: l.refId, productId: l.productId, qty: 1 }], daysAgo: 7 });
+  }
+  // 10) EXCHANGE COMPLETED with price difference (linked new sale)
+  {
+    const n = DELIVERED_ORDERS.find((x) => !usedDocs.has(x)) || '0005'; usedDocs.add(n);
+    const info = oinfo(n); const l = info.items[0];
+    const q = rmaQuoteFor(info, [{ productId: l.productId, unitPrice: l.unitPrice, quantity: l.quantity, returnedQty: 1 }]);
+    rmaCases.push({ n: '0010', status: 'COMPLETED', channel: 'POS', type: 'EXCHANGE', doc: { kind: 'order', id: `order-D-${n}`, number: `ORD-D-${n}` }, reason: 'SIZE_ISSUE', items: [{ ref: l.refId, productId: l.productId, qty: 1, disp: 'RESTOCK', cond: 'GOOD', amount: q.lines[0].refund }], refund: { method: 'CASH', status: 'DONE', gatewayRef: 'CASH-seed', shift: 'shift-D-main-open' }, daysAgo: 3, returnStatus: 'PARTIAL', notes: 'exchangeOfReturnId: linked sale SALE-D-0002 (price difference settled at POS)' });
+    rmaRestock('0010', info.branchId, l.productId, 1, 0, 'RMA RESTOCK');
+  }
+  // 11) Pair A: partial RECEIVED (first line qty 1)
+  rmaCases.push({ n: '0011', status: 'RECEIVED', channel: 'ADMIN', doc: { kind: 'order', id: `order-D-${pairDoc}`, number: `ORD-D-${pairDoc}` }, reason: 'CHANGED_MIND', items: [{ ref: pairFirst.refId, productId: pairFirst.productId, qty: pairAQty, disp: 'RESTOCK', cond: 'GOOD', amount: qA.lines[0].refund }], refund: { method: 'ORIGINAL_GATEWAY', status: 'PENDING' }, daysAgo: 8, returnStatus: 'PARTIAL' });
+  rmaRestock('0011', pairInfo.branchId, pairFirst.productId, pairAQty, 0, 'RMA RESTOCK');
+  // 12) Pair B: remainder → FULL + RETURNED + REFUNDED
+  {
+    const items = pairB.map((l, i) => {
+      const q = qB.lines[i];
+      return { ref: l.refId, productId: l.productId, qty: l.returnedQty, disp: 'RESTOCK', cond: 'GOOD', amount: q.refund };
+    });
+    rmaCases.push({ n: '0012', status: 'COMPLETED', channel: 'ADMIN', doc: { kind: 'order', id: `order-D-${pairDoc}`, number: `ORD-D-${pairDoc}` }, reason: 'CHANGED_MIND', items, refund: { method: 'CASH', status: 'DONE', gatewayRef: 'CASH-seed', shift: pairInfo.branchId === BRANCH_MAIN_ID ? 'shift-D-main-open' : 'shift-D-sam-open' }, daysAgo: 9, returnStatus: 'FULL', orderStatus: 'RETURNED', paymentStatus: 'REFUNDED' });
+    pairB.forEach((l, i) => rmaRestock('0012', pairInfo.branchId, l.productId, l.returnedQty, i, 'RMA RESTOCK'));
+  }
+  // 13) INSPECT parks (POS sale, no sellable move)
+  {
+    const sItems = saleItemsOf('sale-D-0003');
+    const l = sItems[0]!;
+    const sale = saleRows.find((s) => s.id === 'sale-D-0003')!;
+    const q = rmaQuoteFor({ subtotal: Number(sale.subtotal!), discount: Number(sale.discountAmount!), deliveryFee: 0, total: Number(sale.totalAmount!) },
+      [{ productId: l.productId!, unitPrice: Number(l.unitPrice), quantity: l.quantity!, returnedQty: 1 }]);
+    rmaCases.push({ n: '0013', status: 'COMPLETED', channel: 'POS', doc: { kind: 'sale', id: 'sale-D-0003', number: 'SALE-D-0003' }, reason: 'NOT_AS_DESCRIBED', items: [{ ref: l.id!, productId: l.productId!, qty: 1, disp: 'INSPECT', cond: 'GOOD', amount: q.lines[0].refund }], refund: { method: 'CASH', status: 'DONE', gatewayRef: 'CASH-seed', shift: 'shift-D-main-open' }, daysAgo: 10, returnStatus: 'PARTIAL' });
+    rmaZeroLog('0013', sale.branchId, l.productId, 0, 'RMA INSPECT pending — غير قابل للبيع');
+  }
+  // 14-16) LEGACY for seeded RETURNED orders (mirror of backfillLegacy)
+  for (const [li, on] of [['08', '0008'], ['18', '0018'], ['28', '0028']] as const) {
+    const info = oinfo(on);
+    rmaCases.push({
+      n: `legacy-${li}`, status: 'COMPLETED', channel: 'ADMIN', doc: { kind: 'order', id: `order-D-${on}`, number: `ORD-D-${on}` },
+      reason: 'OTHER', source: 'LEGACY' as const,
+      items: info.items.map((l) => ({ ref: l.refId, productId: l.productId, qty: l.quantity, disp: 'RESTOCK', cond: 'GOOD', amount: 0 })),
+      daysAgo: 40, returnStatus: 'FULL', orderStatus: 'RETURNED', notes: 'تحويل تلقائي من حالة RETURNED القديمة (بلا حركة مخزون)',
+    });
+  }
+
+  for (const c of rmaCases) {
+    const rtnId = `rtn-D-${c.n}`;
+    const doc = c.doc.kind === 'order' ? { orderId: c.doc.id } : { saleId: c.doc.id };
+    const info = c.doc.kind === 'order' ? oinfo(c.doc.id.replace('order-D-', '')) : null;
+    rmaReqRows.push({
+      id: rtnId,
+      returnNumber: `RTN-D-${c.n}`,
+      ...doc,
+      type: c.type || 'RETURN',
+      channel: c.channel,
+      branchId: info ? info.branchId : (saleRows.find((s) => s.id === c.doc.id)?.branchId || BRANCH_MAIN_ID),
+      status: c.status,
+      customerId: info ? info.customerId : null,
+      customerPhone: info ? info.phone : null,
+      requestedById: adminId,
+      approvedById: ['APPROVED', 'RECEIVED', 'REFUND_PENDING', 'COMPLETED'].includes(c.status) ? adminId : null,
+      receivedById: ['RECEIVED', 'REFUND_PENDING', 'COMPLETED'].includes(c.status) ? adminId : null,
+      source: c.source || 'NEW',
+      notes: c.notes || null,
+      exchangeSaleId: c.n === '0010' ? 'sale-D-0002' : null,
+      clientRequestId: `seed-${rtnId}`,
+      etaStatus: 'NONE',
+      createdAt: daysAgo(c.daysAgo),
+    });
+    c.items.forEach((it, idx) => {
+      rmaItemRows.push({
+        id: `rtnitem-D-${c.n}-${idx}`,
+        returnId: rtnId,
+        orderItemId: c.doc.kind === 'order' ? it.ref : null,
+        saleItemId: c.doc.kind === 'sale' ? it.ref : null,
+        productId: it.productId,
+        quantity: it.qty,
+        reasonCode: c.reason,
+        condition: it.cond || 'GOOD',
+        disposition: it.disp || 'RESTOCK',
+        refundAmount: it.amount ?? 0,
+        notes: null,
+        images: c.reason === 'DEFECTIVE' ? ['https://example.com/defect.jpg'] : [],
+      });
+    });
+    if (c.refund) {
+      const f = c.refund;
+      rmaRefundRows.push({
+        id: `rfd-D-${c.n}`,
+        returnId: rtnId,
+        amount: c.items.reduce((s, it) => s + (it.amount ?? 0), 0),
+        method: f.method,
+        status: f.status,
+        gatewayRef: f.gatewayRef || null,
+        idempotencyKey: `seed-rtn-D-${c.n}`,
+        attempts: f.status === 'FAILED' ? 3 : 1,
+        lastError: f.lastError || null,
+        shiftId: f.shift || null,
+        proofImage: f.proof || null,
+        createdAt: daysAgo(Math.max(0, c.daysAgo - 1)),
+      });
+    }
+    if (c.returnStatus && c.doc.kind === 'order') {
+      rmaOrderUpdates.push({
+        where: { id: c.doc.id },
+        data: {
+          returnStatus: c.returnStatus,
+          ...(c.orderStatus ? { orderStatus: c.orderStatus as never } : {}),
+          ...(c.paymentStatus ? { paymentStatus: c.paymentStatus as never } : {}),
+        },
+      });
+    }
+    if (c.returnStatus && c.doc.kind === 'sale') {
+      rmaSaleUpdates.push({ where: { id: c.doc.id }, data: { returnStatus: c.returnStatus } });
+    }
+  }
+
+  // Loyalty demo: customer of the DONE-cash POS case keeps post-return balance.
+  {
+    const s1 = saleRows.find((s) => s.id === 'sale-D-0001');
+    if (s1?.customerId) {
+      rmaExtraOps.push({ model: 'customer', id: s1.customerId, points: 86 });
+    } else {
+      const info5 = orderInfo.get('order-D-0005');
+      if (info5?.customerId) rmaExtraOps.push({ model: 'customer', id: info5.customerId, points: 86 });
+    }
+  }
+
   // ------------------------------------------- replace previous demo rows
+  {
+    const net = new Map<string, number>();
+    for (const r of rmaReverts) net.set(`${r.where.branchId}:${r.where.productId}`, (net.get(`${r.where.branchId}:${r.where.productId}`) || 0) - (r.data.stockQuantity as { decrement: number }).decrement);
+    for (const r of rmaBumps) net.set(`${r.where.branchId}:${r.where.productId}`, (net.get(`${r.where.branchId}:${r.where.productId}`) || 0) + (r.data.stockQuantity as { increment: number }).increment);
+    for (const [k, v] of net) if (v !== 0) console.log('RMA-NET-NONZERO:', k, v);
+    console.log(`RMA-NET-ROWS: ${net.size}`);
+  }
   await db.$transaction([
+    db.refund.deleteMany({ where: { id: { startsWith: 'rfd-D-' } } }),
+    db.returnItem.deleteMany({ where: { id: { startsWith: 'rtnitem-D-' } } }),
+    db.returnRequest.deleteMany({ where: { id: { startsWith: 'rtn-D-' } } }),
+    ...rmaReverts.map((r) => db.branchInventory.updateMany(r)),
     db.supplierPayment.deleteMany({ where: { reference: { startsWith: 'SEED-' } } }),
     db.review.deleteMany({ where: { id: { startsWith: 'review-D-' } } }),
     db.couponUse.deleteMany({ where: { couponId: { startsWith: 'coupon-D-' } } }),
@@ -555,7 +869,20 @@ export async function seedTransactions(db: PrismaClient) {
     db.auditLog.createMany({ data: auditRows, skipDuplicates: true }),
     db.coupon.createMany({ data: couponRows, skipDuplicates: true }),
     db.review.createMany({ data: reviewRows, skipDuplicates: true }),
+    db.returnRequest.createMany({ data: rmaReqRows, skipDuplicates: true }),
+    db.returnItem.createMany({ data: rmaItemRows, skipDuplicates: true }),
+    db.refund.createMany({ data: rmaRefundRows, skipDuplicates: true }),
+    db.inventoryLog.createMany({ data: rmaLogRows, skipDuplicates: true }),
+    ...rmaBumps.map((r) => db.branchInventory.updateMany(r)),
+    ...rmaOrderUpdates.map((r) => db.order.updateMany(r)),
+    ...rmaSaleUpdates.map((r) => db.sale.updateMany(r)),
   ]);
+
+  for (const op of rmaExtraOps) {
+    if (op.model === 'customer') {
+      await db.customer.update({ where: { id: op.id }, data: { loyaltyPoints: op.points } }).catch(() => null);
+    }
+  }
 
   // T13: demo supplier payments (created separately — needs supplier ids).
   const paySuppliers = await db.supplier.findMany({ take: 2, select: { id: true } });
@@ -577,6 +904,9 @@ export async function seedTransactions(db: PrismaClient) {
   }
   counts.supplierPayments = paySuppliers.length;
   counts.reviews = reviewRows.length;
+  counts.returns = rmaReqRows.length;
+  counts.returnItems = rmaItemRows.length;
+  counts.refunds = rmaRefundRows.length;
   counts.coupons = couponRows.length;
   counts.shifts = shiftRows.length;
   counts.sales = saleRows.length;

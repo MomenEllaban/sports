@@ -30,12 +30,17 @@ export class PaymentUnavailableError extends Error {
  */
 export async function availablePaymentMethods(): Promise<PaymentMethod[]> {
   const { getSetting } = await import('../settings');
-  const configured = await getSetting<Array<{ id: string; enabled: boolean }>>('payments.methods', []).catch(() => []);
+  const configured = await getSetting<Array<{ id: string; enabled: boolean; handle?: string; number?: string }>>('payments.methods', []).catch(() => []);
   const enabled = new Set(configured.filter((m) => m.enabled).map((m) => m.id));
   const out: PaymentMethod[] = [];
+  const paymentConfig = new Map(configured.map((method) => [method.id, method]));
+  const hasManualDestination = (id: string, field: 'handle' | 'number') => {
+    const value = paymentConfig.get(id)?.[field];
+    return typeof value === 'string' && value.trim().length > 0;
+  };
   if (enabled.has('COD')) out.push(PaymentMethod.COD);
-  if (enabled.has('INSTAPAY')) out.push(PaymentMethod.INSTAPAY);
-  if (enabled.has('VODAFONE_CASH')) out.push(PaymentMethod.VODAFONE_CASH);
+  if (enabled.has('INSTAPAY') && hasManualDestination('INSTAPAY', 'handle')) out.push(PaymentMethod.INSTAPAY);
+  if (enabled.has('VODAFONE_CASH') && hasManualDestination('VODAFONE_CASH', 'number')) out.push(PaymentMethod.VODAFONE_CASH);
   if (enabled.has('CASH')) out.push(PaymentMethod.CASH);
   if (enabled.has('CARD')) out.push(PaymentMethod.CARD);
   const paymob = await getPaymobConfig().catch(() => null);
@@ -116,12 +121,20 @@ export async function initializePayment(
 
     case PaymentMethod.INSTAPAY:
     case PaymentMethod.VODAFONE_CASH: {
+      const { getSetting } = await import('../settings');
+      const methods = await getSetting<Array<{ id: string; enabled: boolean; handle?: string; number?: string }>>('payments.methods', []).catch(() => []);
+      const config = methods.find((method) => method.id === paymentMethod);
+      const destination = paymentMethod === PaymentMethod.INSTAPAY ? config?.handle?.trim() : config?.number?.trim();
+      if (!destination) {
+        throw new PaymentUnavailableError('طريقة التحويل غير مهيأة — يرجى ضبط destination من إعدادات الدفع قبل عرضها');
+      }
+      const destinationLabel = paymentMethod === PaymentMethod.INSTAPAY ? 'حساب InstaPay' : 'رقم محفظة Vodafone Cash';
       return {
         success: true,
         paymentMethod,
         transactionRef,
-        instructionsAr: 'يرجى التحويل إلى حساب انستا باي (sports.champions@instapay) أو رقم المحفظة (01001234567) وإرفاق صورة الإيصال.',
-        instructionsEn: 'Please transfer to InstaPay IPA (sports.champions@instapay) or Wallet (01001234567) and upload receipt screenshot.',
+        instructionsAr: `يرجى التحويل إلى ${destinationLabel} (${destination}) ثم إرفاق صورة الإيصال.`,
+        instructionsEn: `Transfer to the configured ${destinationLabel} (${destination}), then attach the receipt image.`,
       };
     }
 

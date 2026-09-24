@@ -45,7 +45,8 @@ export default function ProductCard({
   const categoryName = isAr ? product.category.nameAr : product.category.nameEn;
 
   // Stock from Flagship branch (Al Ibrahimeyah)
-  const ibrahimeyahStock = product.inventories?.[0]?.stockQuantity || 0;
+  const flagshipInventory = product.inventories?.find((inventory) => /ibrah|ابراهيم|الإبراهيمية/i.test(`${inventory.branch.name} ${inventory.branch.nameEn}`));
+  const ibrahimeyahStock = flagshipInventory?.stockQuantity || 0;
   const inStock = ibrahimeyahStock > 0;
 
   const handleAddToCart = () => {
@@ -68,14 +69,16 @@ export default function ProductCard({
   return (
     <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 flex flex-col justify-between group">
       {/* Top Image Container */}
-      <Link href={`/catalog/${product.id}`} className="relative aspect-square w-full bg-slate-900 overflow-hidden block">
-        <SafeImage
-          src={product.images[0] || '/placeholder-product.svg'}
-          alt={name}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+      <div className="relative aspect-square w-full bg-slate-900 overflow-hidden block">
+        <Link href={`/catalog/${product.id}`} className="absolute inset-0 block">
+          <SafeImage
+            src={product.images[0] || '/placeholder-product.svg'}
+            alt={name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        </Link>
 
         {/* Category & Featured Badge */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
@@ -91,7 +94,7 @@ export default function ProductCard({
             )}
           </span>
         </div>
-      </Link>
+      </div>
 
       {/* Content Details */}
       <div className="p-5 flex-1 flex flex-col justify-between space-y-4">

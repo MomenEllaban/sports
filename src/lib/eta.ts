@@ -273,7 +273,7 @@ export async function submitToEta(receiptData: EtaReceiptData): Promise<EtaSubmi
   const { etaUuid, qrCodeDataUrl, status, message } = await buildEtaReceipt(receiptData);
 
   // Record TaxInvoice entry in database
-  const taxRecord = await prisma.taxInvoice.create({
+  await prisma.taxInvoice.create({
     data: {
       invoiceNumber: receiptData.invoiceNumber,
       etaUuid: etaUuid,

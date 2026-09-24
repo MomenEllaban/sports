@@ -22,12 +22,19 @@ export interface StockMove {
   createdById?: string;
 }
 
+function assertPositiveQuantity(quantity: number): void {
+  if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+    throw new RangeError('Stock quantity must be a positive integer');
+  }
+}
+
 /**
  * SINGLE SOURCE OF TRUTH for stock changes (T07). All mutations MUST go through
  * here inside the caller's prisma.$transaction. Decrement is race-safe via a
  * conditional updateMany (quantity >= qty); a count of 0 means insufficient stock.
  */
 export async function decrementStock(tx: Tx, move: StockMove): Promise<{ previous: number; next: number }> {
+  assertPositiveQuantity(move.quantity);
   const res = await tx.branchInventory.updateMany({
     where: {
       branchId: move.branchId,
@@ -63,6 +70,7 @@ export async function decrementStock(tx: Tx, move: StockMove): Promise<{ previou
 }
 
 export async function incrementStock(tx: Tx, move: StockMove): Promise<{ previous: number; next: number }> {
+  assertPositiveQuantity(move.quantity);
   const inv = await tx.branchInventory.findUnique({
     where: { branchId_productId: { branchId: move.branchId, productId: move.productId } },
   });

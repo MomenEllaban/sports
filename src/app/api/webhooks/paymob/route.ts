@@ -43,10 +43,22 @@ export async function POST(req: Request) {
     if (!orderNumber) {
       return NextResponse.json({ success: false, error: 'orderNumber is required' }, { status: 400 });
     }
+    if (paidAmount === undefined || !Number.isFinite(paidAmount) || paidAmount < 0) {
+      return NextResponse.json({ success: false, error: 'paid amount is required' }, { status: 400 });
+    }
 
     const order = await prisma.order.findUnique({ where: { orderNumber } });
     if (!order) {
       return NextResponse.json({ success: false, error: 'order not found' }, { status: 404 });
+    }
+    if (order.paymentMethod !== 'PAYMOB') {
+      return NextResponse.json({ success: false, error: 'payment method mismatch' }, { status: 400 });
+    }
+    if (order.orderStatus === 'CANCELLED' || order.orderStatus === 'RETURNED' || order.paymentStatus === 'REFUNDED') {
+      return NextResponse.json({ success: false, error: 'order is no longer payable' }, { status: 409 });
+    }
+    if (order.paymentRef && transactionRef && order.paymentRef !== transactionRef) {
+      return NextResponse.json({ success: false, error: 'transaction reference mismatch' }, { status: 400 });
     }
     if (order.paymentStatus === 'PAID') {
       return NextResponse.json({ success: true, idempotentReplay: true, orderNumber });
@@ -62,7 +74,7 @@ export async function POST(req: Request) {
     if (success !== true) {
       return NextResponse.json({ success: false, error: 'payment status is ambiguous' }, { status: 400 });
     }
-    if (paidAmount !== undefined && Number.isFinite(paidAmount) && Math.abs(paidAmount - num(order.totalAmount)) > 0.01) {
+    if (Math.abs(paidAmount - num(order.totalAmount)) > 0.01) {
       return NextResponse.json({ success: false, error: 'amount mismatch' }, { status: 400 });
     }
 

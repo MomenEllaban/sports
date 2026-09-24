@@ -4,7 +4,7 @@ import { requireRole } from '@/lib/auth/guards';
 import { setSetting, clearSettingsCache } from '@/lib/settings';
 import { writeAudit } from '@/lib/audit';
 import { REGISTRY_KEYS, SENSITIVE_KEYS, parseStored } from '@/lib/settings-registry';
-import { encryptSecret, maskSecret } from '@/lib/settings-secure';
+import { maskSecret } from '@/lib/settings-secure';
 
 // Keys editable via the settings UI: exactly the F0 registry allowlist.
 const EDITABLE_KEYS = REGISTRY_KEYS;
@@ -39,6 +39,18 @@ function validateValue(key: string, value: unknown): string | null {
     }
     case 'payments.methods': {
       if (!Array.isArray(value)) return 'Payment methods must be a list';
+      const validIds = new Set(['COD', 'PAYMOB', 'FAWRY', 'INSTAPAY', 'VODAFONE_CASH', 'CASH', 'CARD']);
+      for (const method of value as Array<Record<string, unknown>>) {
+        if (!method || typeof method.id !== 'string' || !validIds.has(method.id) || typeof method.enabled !== 'boolean') {
+          return 'Each payment method needs a valid id and boolean enabled flag';
+        }
+        if (method.enabled && method.id === 'INSTAPAY' && (typeof method.handle !== 'string' || !method.handle.trim())) {
+          return 'InstaPay destination handle is required before enabling it';
+        }
+        if (method.enabled && method.id === 'VODAFONE_CASH' && (typeof method.number !== 'string' || !method.number.trim())) {
+          return 'Vodafone Cash wallet number is required before enabling it';
+        }
+      }
       return null;
     }
     case 'eta.mode': {

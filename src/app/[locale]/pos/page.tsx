@@ -391,6 +391,11 @@ export default function PosTerminalPage() {
 
       const data = await res.json();
       if (data.success) {
+        if (data.paymentPending) {
+          const pendingMsg = 'تم تسجيل الفاتورة، لكن الدفع الإلكتروني يحتاج تسوية/تأكيد من الإدارة قبل اعتباره مدفوعاً.';
+          setSaleError(pendingMsg);
+          toast(pendingMsg, 'error');
+        }
         setPosReceipt({
           saleNumber: data.saleNumber,
           branchName: activeBranch?.name || 'الفرع الرئيسي',

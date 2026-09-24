@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { getSiteUrl } from '@/lib/site-url';
 
 export const metadata: Metadata = {
   title: {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
   },
   description:
     'المقر الرئيسي للملابس والمعدات الرياضية بالإسكندرية (سباحة، جيم، كارديو، باليه). 92 شارع عمر لطفى، الإبراهيمية. Alexandria sports apparel & equipment store.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sports-champions.example.com'),
+  metadataBase: new URL(getSiteUrl()),
   alternates: { languages: { ar: '/ar', en: '/en' } },
   openGraph: {
     type: 'website',

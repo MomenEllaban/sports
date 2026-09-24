@@ -50,6 +50,29 @@ describe('invariant checker vs corrupted test DB (T11, RED first)', () => {
         subtotal: 0, totalAmount: 0, paymentMethod: 'COD' as never,
       },
     });
+    // 6. RMA-returned order WITH an RTN-numbered RETURN log (must NOT flag).
+    const rmaOrder = await db.order.create({
+      data: {
+        orderNumber: 'ORD-RMA-OK-1', orderSource: 'ONLINE', guestPhone: '01000009998',
+        deliveryAddress: 'x', branchId: b.id, orderStatus: 'RETURNED',
+        subtotal: 100, taxAmount: 14, totalAmount: 114, paymentMethod: 'COD' as never,
+        items: { create: [{ productId: p.id, unitPrice: 100, quantity: 1, totalPrice: 100 }] },
+      },
+    });
+    const rmaCase = await db.returnRequest.create({
+      data: {
+        returnNumber: 'RTN-OK-1', orderId: rmaOrder.id, type: 'RETURN', channel: 'ADMIN',
+        branchId: b.id, status: 'COMPLETED', source: 'NEW',
+        items: { create: [{ productId: p.id, quantity: 1, reasonCode: 'OTHER' }] },
+      },
+    });
+    void rmaCase;
+    await db.inventoryLog.create({
+      data: {
+        branchId: b.id, productId: p.id, type: 'RETURN', changeQuantity: 1,
+        previousQuantity: -3, newQuantity: -2, referenceId: 'RTN-OK-1', notes: 'RMA restock',
+      },
+    });
   }, 180000);
 
   afterAll(async () => {
@@ -64,6 +87,8 @@ describe('invariant checker vs corrupted test DB (T11, RED first)', () => {
     expect(joined).toMatch(/ORDER_TOTALS_MISMATCH/);
     expect(joined).toMatch(/SALE_TOTALS_MISMATCH/);
     expect(joined).toMatch(/CLOSED_WITHOUT_RETURN_LOG/);
+    // The RMA-returned order (RTN-numbered log) must NOT count as missing.
+    expect(joined).toMatch(/CLOSED_WITHOUT_RETURN_LOG: 1\/2/);
   });
 
   it('clean database reports clean', async () => {

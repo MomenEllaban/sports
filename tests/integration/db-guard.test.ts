@@ -8,15 +8,21 @@ describe('test database refusal guard (RED first)', () => {
     ).toThrow(/refuse/i);
   });
 
-  it('refuses a URL without test in the name', () => {
+  it('refuses a URL without test in the database name', () => {
     expect(() =>
-      assertSafeTestDatabaseUrl('postgresql://u:p@host/neondb?schema=public', 'postgresql://u:p@host/neondb?sslmode=require')
+      assertSafeTestDatabaseUrl('postgresql://u:p@host/neondb?schema=public', 'postgresql://u:p@host/other?sslmode=require')
     ).toThrow(/refuse/i);
   });
 
-  it('accepts a distinct test schema URL', () => {
+  it('refuses the same physical database with a different schema query', () => {
     expect(() =>
       assertSafeTestDatabaseUrl('postgresql://u:p@host/neondb?schema=sports_test', 'postgresql://u:p@host/neondb?sslmode=require')
+    ).toThrow(/refuse/i);
+  });
+
+  it('accepts a distinct physical test database', () => {
+    expect(() =>
+      assertSafeTestDatabaseUrl('postgresql://u:p@host/sports_test?sslmode=require', 'postgresql://u:p@host/neondb?sslmode=require')
     ).not.toThrow();
   });
 });

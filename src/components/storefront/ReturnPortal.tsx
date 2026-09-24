@@ -11,7 +11,6 @@ import {
   Package,
   ShieldAlert,
   Loader2,
-  Banknote,
   ReceiptText,
   ClipboardList,
 } from 'lucide-react';
@@ -423,11 +422,6 @@ export function ReturnTrackerPanel() {
       setLoading(false);
     }
   };
-
-  const currentStatus = res?.return?.status ?? '';
-  const reached = (start: string[]) => start.some((s) => currentStatus.startsWith(s)) || ['COMPLETED'].some((s) => currentStatus.startsWith(s) && start[0] === 'COMPLETED');
-  const terminal = ['REJECTED', 'CANCELLED', 'FAILED'];
-  const refundDone = res?.return?.refunds?.some((f) => f.status === 'SUCCEEDED');
 
   return (
     <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-4">
