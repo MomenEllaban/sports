@@ -921,7 +921,7 @@ export default function ProductsManager({
       {showAddProduct && (
         <Modal title={isAr ? 'إضافة منتج جديد' : 'Add New Product'} onClose={() => setShowAddProduct(false)}>
           <form onSubmit={handleCreateProduct} className="space-y-3 text-xs">
-            <ProductFormFields />
+            {ProductFormFields()}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة المنتج' : 'Create Product')}
             </button>
@@ -933,7 +933,7 @@ export default function ProductsManager({
       {editProduct && (
         <Modal title={isAr ? `تعديل: ${editProduct.nameAr}` : `Edit: ${editProduct.nameEn}`} onClose={() => setEditProduct(null)}>
           <form onSubmit={handleEditProduct} className="space-y-3 text-xs">
-            <ProductFormFields />
+            {ProductFormFields()}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </button>

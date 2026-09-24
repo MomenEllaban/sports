@@ -297,7 +297,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
       {showAdd && (
         <Modal title={isAr ? 'إضافة مورد جديد' : 'Add New Supplier'} onClose={() => setShowAdd(false)}>
           <form onSubmit={handleSubmitAdd} className="space-y-3 text-xs">
-            <SupplierFormFields />
+            {SupplierFormFields()}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة المورد' : 'Add Supplier')}
             </button>
@@ -309,7 +309,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
       {editSup && (
         <Modal title={isAr ? `تعديل: ${editSup.name}` : `Edit: ${editSup.name}`} onClose={() => setEditSup(null)}>
           <form onSubmit={handleSubmitEdit} className="space-y-3 text-xs">
-            <SupplierFormFields />
+            {SupplierFormFields()}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </button>

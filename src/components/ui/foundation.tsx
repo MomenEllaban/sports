@@ -369,12 +369,14 @@ export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, on
   open: boolean; title: string; impact: string; confirmLabel: string; onConfirm: () => void; onClose: () => void; busy?: boolean;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useFocusTrap(dialogRef, open);
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     dialogRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -383,7 +385,7 @@ export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, on
       document.body.style.overflow = prevOverflow;
       prev?.focus();
     };
-  }, [open, onClose]);
+  }, [open, onCloseRef]);
   if (!open) return null;
   return (
     <div role="alertdialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/70 animate-fade-in" onClick={onClose}>
@@ -405,11 +407,13 @@ export function Modal({ title, onClose, children, size = 'md', footer }: {
   size?: 'sm' | 'md' | 'lg'; footer?: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useFocusTrap(panelRef, true);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -418,7 +422,7 @@ export function Modal({ title, onClose, children, size = 'md', footer }: {
       document.body.style.overflow = prevOverflow;
       prev?.focus();
     };
-  }, [onClose]);
+  }, [onCloseRef]);
   const width = size === 'lg' ? 'max-w-2xl' : size === 'sm' ? 'max-w-sm' : 'max-w-lg';
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>

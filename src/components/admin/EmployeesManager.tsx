@@ -397,7 +397,7 @@ export default function EmployeesManager({
       {showAdd && (
         <Modal title={isAr ? 'إضافة موظف جديد' : 'Add New Employee'} onClose={() => setShowAdd(false)}>
           <form onSubmit={handleSubmitAdd} className="space-y-3 text-xs">
-            <EmployeeFormFields />
+            {EmployeeFormFields()}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة الموظف' : 'Add Employee')}
             </button>
@@ -409,7 +409,7 @@ export default function EmployeesManager({
       {editEmp && (
         <Modal title={isAr ? `تعديل: ${editEmp.name}` : `Edit: ${editEmp.name}`} onClose={() => setEditEmp(null)}>
           <form onSubmit={handleSubmitEdit} className="space-y-3 text-xs">
-            <EmployeeFormFields />
+            {EmployeeFormFields()}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </button>
