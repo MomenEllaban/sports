@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
 export default async function AdminAccountingPage() {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const [orders, sales, expenses, branches, taxInvoices, gs1Missing] = await Promise.all([
-    prisma.order.findMany(),
-    prisma.sale.findMany(),
+    prisma.order.findMany({ where: { paymentStatus: 'PAID' } }),
+    prisma.sale.findMany({ where: { paymentStatus: 'PAID' } }),
     prisma.expense.findMany({ orderBy: { createdAt: 'desc' }, include: { branch: true } }),
     prisma.branch.findMany({ select: { id: true, name: true, nameEn: true } }),
     prisma.taxInvoice.findMany({ take: 10, orderBy: { createdAt: 'desc' } }),

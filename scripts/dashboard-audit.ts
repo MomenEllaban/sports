@@ -6,7 +6,7 @@
  * Writes docs/DASHBOARD_TEST_LOG.md and prints a PASS/FAIL log.
  */
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const ROOT = process.cwd();
 const ADMIN_DIR = join(ROOT, 'src', 'app', '[locale]', 'admin');
@@ -78,8 +78,12 @@ function existsStoreRoute(href: string): boolean {
 function guardOf(file: string): string | null {
   const src = readFileSync(file, 'utf8');
   const m = src.match(/requirePageRole\(([^)]*)\)/);
-  if (!m) return null;
-  return m[1].split(',').map((s) => s.trim()).join(', ');
+  if (m) return m[1].split(',').map((s) => s.trim()).join(', ');
+  if (/export\s*\{\s*default\s*\}\s*from\s*['"]\.\.\/page['"]/.test(src)) {
+    const parent = join(dirname(file), '..', 'page.tsx');
+    if (existsSync(parent)) return `inherited: ${guardOf(parent) || 'NO_GUARD_IN_PARENT'}`;
+  }
+  return null;
 }
 
 async function main() {
@@ -137,7 +141,11 @@ async function main() {
   }
   const mw = readFileSync(join(ROOT, 'src', 'middleware.ts'), 'utf8');
   const matchesAdmin = mw.includes('/admin');
-  matchesAdmin ? ok('middleware', 'matches /admin (early auth interception)') : bad('middleware', '/admin not matched');
+  if (matchesAdmin) {
+    ok('middleware', 'matches /admin (early auth interception)');
+  } else {
+    bad('middleware', '/admin not matched');
+  }
 
   // 3) Navigation/button integrity
   console.log('\nStep 3 — link & button targets resolve to real routes');
@@ -150,9 +158,11 @@ async function main() {
       badHrefs.push(h);
     }
   }
-  badHrefs.length
-    ? bad('admin internal links', `broken: ${badHrefs.join(', ')}`)
-    : ok('admin internal links', `${adminHrefs.size} unique /admin hrefs all resolve`);
+  if (badHrefs.length) {
+    bad('admin internal links', `broken: ${badHrefs.join(', ')}`);
+  } else {
+    ok('admin internal links', `${adminHrefs.size} unique /admin hrefs all resolve`);
+  }
 
   const storeHrefs = new Set<string>();
   for (const f of ['src/app/[locale]/(storefront)/page.tsx', 'src/app/[locale]/(storefront)/features/page.tsx', 'src/app/[locale]/(storefront)/tracking/page.tsx', 'src/components/storefront/Header.tsx', 'src/components/storefront/ReturnPortal.tsx']) {
@@ -164,9 +174,11 @@ async function main() {
   for (const h of storeHrefs) {
     if (h.startsWith('/') && !h.includes('${') && !h.includes('{') && !h.startsWith('/api') && h !== '/' && !h.startsWith('/admin') && !existsStoreRoute(h)) brokenStore.push(h);
   }
-  brokenStore.length
-    ? bad('storefront internal links', `broken: ${brokenStore.join(', ')}`)
-    : ok('storefront internal links', `${storeHrefs.size} unique storefront hrefs all resolve`);
+  if (brokenStore.length) {
+    bad('storefront internal links', `broken: ${brokenStore.join(', ')}`);
+  } else {
+    ok('storefront internal links', `${storeHrefs.size} unique storefront hrefs all resolve`);
+  }
 
   // 4) Report
   console.log(LINE);

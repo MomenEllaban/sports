@@ -32,7 +32,9 @@ interface QuickAccount {
   icon: React.ReactNode;
 }
 
-const DEMO_ACCOUNTS: QuickAccount[] = [
+// Demo credentials are useful for local QA but must never be exposed in a production bundle.
+const SHOW_DEMO_ACCOUNTS = process.env.NODE_ENV !== 'production';
+const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
   {
     id: 'super-admin',
     role: 'SUPER_ADMIN',
@@ -105,7 +107,7 @@ const DEMO_ACCOUNTS: QuickAccount[] = [
     targetUrl: '/admin/inventory',
     icon: <Package className="w-4 h-4 text-cyan-400" />,
   },
-];
+] : [];
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const t = useTranslations('auth');
@@ -133,9 +135,9 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         setQuickLoadingId(null);
       } else {
         const rawTarget = destination || callbackUrl || '/admin';
-        let target = rawTarget.replace(/^https?:\/\/[^\/]+/, '');
+        let target = rawTarget.startsWith('//') ? '/admin' : rawTarget.replace(/^https?:\/\/[^\/]+/, '');
         target = target.replace(/^\/(?:ar|en)(?=\/|$)+/g, '') || '/admin';
-        if (!target.startsWith('/')) target = `/${target}`;
+        if (!target.startsWith('/') || target.startsWith('//')) target = '/admin';
         router.push(target);
         router.refresh();
       }
@@ -165,7 +167,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   };
 
   return (
-    <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fade-up">
+    <div className={`max-w-5xl w-full grid grid-cols-1 gap-6 items-start animate-fade-up ${SHOW_DEMO_ACCOUNTS ? 'lg:grid-cols-12' : 'mx-auto lg:max-w-md'}`}>
       {/* ── Left Column: Manual Login Form ─────────────────────── */}
       <div className="lg:col-span-5 glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
         <div className="text-center space-y-2">
@@ -240,16 +242,17 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           </button>
         </form>
 
-        <div className="pt-2 border-t border-slate-800/80 text-center">
-          <p className="text-[11px] text-slate-400">
-            كلمة المرور الافتراضية لكافة الحسابات:{' '}
-            <span className="font-mono text-amber-400 font-black" dir="ltr">Test@123456</span>
-          </p>
-        </div>
+        {SHOW_DEMO_ACCOUNTS && (
+          <div className="pt-2 border-t border-slate-800/80 text-center">
+            <p className="text-[11px] text-slate-400">
+              حسابات QA المحلية فقط — لا تُفعّل هذه القائمة في production.
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* ── Right Column: Quick 1-Click Demo Accounts Directory ─── */}
-      <div className="lg:col-span-7 glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl">
+      {SHOW_DEMO_ACCOUNTS && (
+        <div className="lg:col-span-7 glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
@@ -331,7 +334,8 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
             );
           })}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

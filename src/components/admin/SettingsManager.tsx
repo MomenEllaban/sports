@@ -129,8 +129,7 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
         <div className="space-y-3">
           {num('vat.rate', isAr ? 'نسبة الضريبة (0.14 = 14%)' : 'VAT rate (0.14 = 14%)', isAr ? 'تغييرها يؤثر على كل الفواتير الجديدة' : 'Affects all new invoices')}
           {num('loyalty.earnPerEgp', isAr ? 'جنيه لكل نقطة ولاء' : 'EGP per loyalty point')}
-          {num('loyalty.pointsPerUnit', isAr ? 'نقاط الولاء لكل وحدة' : 'Points per unit')}
-          {num('discount.approvalThreshold', isAr ? 'عتبة اعتماد الخصم (ج.م)' : 'Discount approval threshold (EGP)')}
+                    {num('discount.approvalThreshold', isAr ? 'عتبة اعتماد الخصم (ج.م)' : 'Discount approval threshold (EGP)')}
           {num('stock.lowThreshold', isAr ? 'عتبة المخزون المنخفض' : 'Low-stock threshold')}
           {text('receipt.headerAr', isAr ? 'ترويسة الفاتورة' : 'Receipt header')}
           {text('receipt.footerAr', isAr ? 'تذييل الفاتورة' : 'Receipt footer')}
@@ -371,6 +370,7 @@ function IntegrationSection({ title, status, hint, children }: { title: string; 
 }
 
 function StatusPill({ on, off, warn, label }: { on?: boolean; off?: boolean; warn?: boolean; label: string }) {
+  void off;
   const cls = on
     ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     : warn

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter, Link } from '@/i18n/routing';
+import { useRouter, usePathname, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
@@ -49,7 +49,18 @@ interface ProductOpt { id: string; nameAr: string; nameEn: string; price: number
 interface BranchOpt { id: string; name: string; nameEn: string }
 
 const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURNED'];
+const SELECTABLE_ORDER_STATUSES = ORDER_STATUSES.filter((status) => status !== 'RETURNED');
 const PAYMENT_METHODS = ['COD', 'PAYMOB', 'FAWRY', 'INSTAPAY', 'VODAFONE_CASH', 'KASHIER', 'CASH', 'CARD'];
+
+function filtersFromPath(pathname: string): { status: string; source: string } {
+  if (pathname.endsWith('/online')) return { status: 'ALL', source: 'ONLINE' };
+  if (pathname.endsWith('/pos')) return { status: 'ALL', source: 'POS' };
+  if (pathname.endsWith('/whatsapp')) return { status: 'ALL', source: 'WHATSAPP' };
+  if (pathname.endsWith('/processing')) return { status: 'PROCESSING', source: 'ALL' };
+  if (pathname.endsWith('/completed')) return { status: 'DELIVERED', source: 'ALL' };
+  if (pathname.endsWith('/cancelled')) return { status: 'CANCELLED', source: 'ALL' };
+  return { status: 'ALL', source: 'ALL' };
+}
 
 export default function OrdersManager({
   orders,
@@ -63,11 +74,12 @@ export default function OrdersManager({
   const t = useTranslations('admin');
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname() || '';
   const { toast } = useToast();
   const isAr = locale === 'ar';
 
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [sourceFilter, setSourceFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(() => filtersFromPath(pathname).status);
+  const [sourceFilter, setSourceFilter] = useState(() => filtersFromPath(pathname).source);
   const [updatingId, setUpdatingId] = useState('');
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -82,6 +94,12 @@ export default function OrdersManager({
   useEffect(() => {
     setOrderList(orders);
   }, [orders]);
+
+  useEffect(() => {
+    const next = filtersFromPath(pathname);
+    setStatusFilter(next.status);
+    setSourceFilter(next.source);
+  }, [pathname]);
 
   const [newOrderForm, setNewOrderForm] = useState({
     guestName: '',
@@ -235,7 +253,7 @@ export default function OrdersManager({
             className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs"
           >
             <option value="ALL">{isAr ? 'كل الحالات' : 'All statuses'}</option>
-            {ORDER_STATUSES.map((s) => (
+            {SELECTABLE_ORDER_STATUSES.map((s) => (
               <option key={s} value={s}>{t(`status_${s}`)}</option>
             ))}
           </select>
@@ -338,7 +356,7 @@ export default function OrdersManager({
                         onChange={(e) => changeStatus(ord.id, e.target.value)}
                         className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs disabled:opacity-60"
                       >
-                        {ORDER_STATUSES.map((s) => (
+                        {SELECTABLE_ORDER_STATUSES.map((s) => (
                           <option key={s} value={s}>{t(`status_${s}`)}</option>
                         ))}
                       </select>

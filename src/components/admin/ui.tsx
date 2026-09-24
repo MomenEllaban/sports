@@ -11,6 +11,7 @@ export const fieldInputCls = inputCls;
 
 // Localized badge for any enum status (order / payment / transfer / PO / invoice)
 export function StatusBadge({ value, tone }: { value: string; tone?: 'order' | 'payment' | 'generic' }) {
+  void tone;
   const t = useTranslations('admin');
   const key = `status_${value}`;
   let label: string;

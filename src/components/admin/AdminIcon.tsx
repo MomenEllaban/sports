@@ -4,7 +4,6 @@ import {
   Archive,
   BarChart3,
   Bell,
-  Boxes,
   Building2,
   CalendarClock,
   ClipboardCheck,
@@ -16,10 +15,8 @@ import {
   LayoutDashboard,
   Megaphone,
   Menu,
-  Monitor,
   Package,
   PanelsTopLeft,
-  Percent,
   Printer,
   ReceiptText,
   RotateCcw,
@@ -28,14 +25,12 @@ import {
   ShoppingBag,
   Star,
   Store,
-  Tags,
   TicketPercent,
   Truck,
   UserCog,
   Users,
   WalletCards,
   Warehouse,
-  X,
   type LucideProps,
 } from 'lucide-react';
 import type { AdminIconName } from '@/config/admin-navigation';
@@ -87,4 +82,3 @@ export function AdminIcon({ name, ...props }: { name: AdminIconName } & LucidePr
   return <Icon aria-hidden="true" {...props} />;
 }
 
-export { X };

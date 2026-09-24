@@ -242,12 +242,19 @@ export default function ReturnDetails({ data, canAct }: Props) {
         </div>
       )}
 
+      {confirm?.action === 'reject' && (
+        <div className="mt-3">
+          <label htmlFor="return-reject-reason" className="mb-1 block text-xs font-bold text-slate-300">سبب الرفض</label>
+          <input id="return-reject-reason" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="اكتب سبب الرفض للعميل" className="min-h-11 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100" />
+        </div>
+      )}
+
       <ConfirmDialog
         open={confirm !== null}
         title={confirm?.title || ''}
         impact={confirm?.impact || ''}
         confirmLabel="تأكيد"
-        onConfirm={() => confirm && call(confirm.action, confirm.action === 'reject' ? { reason: '' } : {})}
+        onConfirm={() => confirm && call(confirm.action, confirm.action === 'reject' ? { reason: reason.trim() } : {})}
         onClose={() => setConfirm(null)}
         busy={busy !== ''}
       />

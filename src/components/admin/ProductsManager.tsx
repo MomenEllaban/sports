@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter, Link } from '@/i18n/routing';
+import { useRouter, usePathname, Link } from '@/i18n/routing';
 import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package, Upload, Image as ImageIcon, Loader2, Cloud, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
-import { inputCls, Button } from '@/components/ui/foundation';
+import { inputCls, Button, SafeImage } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
@@ -48,6 +48,12 @@ const EMPTY_BRAND = { nameAr: '', nameEn: '' };
 
 type ActiveTab = 'products' | 'categories' | 'brands';
 
+function tabFromPath(pathname: string): ActiveTab {
+  if (pathname.endsWith('/categories')) return 'categories';
+  if (pathname.endsWith('/brands')) return 'brands';
+  return 'products';
+}
+
 export default function ProductsManager({
   products,
   categories,
@@ -59,11 +65,12 @@ export default function ProductsManager({
 }) {
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname() || '';
   const { toast } = useToast();
   const isAr = locale === 'ar';
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('products');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => tabFromPath(pathname));
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -90,6 +97,10 @@ export default function ProductsManager({
   // Brand modals
   const [showAddBrand, setShowAddBrand] = useState(false);
   const [brandForm, setBrandForm] = useState(EMPTY_BRAND);
+
+  useEffect(() => {
+    setActiveTab(tabFromPath(pathname));
+  }, [pathname]);
 
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
@@ -587,10 +598,12 @@ export default function ProductsManager({
                 key={idx}
                 className="relative group rounded-xl overflow-hidden border border-slate-700 bg-slate-950 aspect-square flex items-center justify-center shadow"
               >
-                <img
+                <SafeImage
                   src={imgUrl}
                   alt={`Product ${idx + 1}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="160px"
+                  className="object-cover"
                 />
                 {idx === 0 ? (
                   <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 text-[9px] font-black flex items-center gap-0.5 shadow">
@@ -682,13 +695,15 @@ export default function ProductsManager({
       {/* Tab Navigation */}
       <div className="flex gap-1 bg-slate-950 p-1 rounded-2xl w-fit">
         {[
-          { key: 'products' as ActiveTab, label: isAr ? 'المنتجات' : 'Products', icon: <Package className="w-3.5 h-3.5" /> },
-          { key: 'categories' as ActiveTab, label: isAr ? 'التصنيفات' : 'Categories', icon: <Tag className="w-3.5 h-3.5" /> },
-          { key: 'brands' as ActiveTab, label: isAr ? 'الماركات' : 'Brands', icon: <Bookmark className="w-3.5 h-3.5" /> },
+          { key: 'products' as ActiveTab, href: '/admin/products', label: isAr ? 'المنتجات' : 'Products', icon: <Package className="w-3.5 h-3.5" /> },
+          { key: 'categories' as ActiveTab, href: '/admin/products/categories', label: isAr ? 'التصنيفات' : 'Categories', icon: <Tag className="w-3.5 h-3.5" /> },
+          { key: 'brands' as ActiveTab, href: '/admin/products/brands', label: isAr ? 'الماركات' : 'Brands', icon: <Bookmark className="w-3.5 h-3.5" /> },
         ].map((tab) => (
-          <button
+          <Link
             key={tab.key}
+            href={tab.href}
             onClick={() => setActiveTab(tab.key)}
+            aria-current={activeTab === tab.key ? 'page' : undefined}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeTab === tab.key
                 ? 'bg-blue-600 text-white shadow'
@@ -697,7 +712,7 @@ export default function ProductsManager({
           >
             {tab.icon}
             {tab.label}
-          </button>
+          </Link>
         ))}
       </div>
 
@@ -760,11 +775,12 @@ export default function ProductsManager({
                     <td className="p-3">
                       {prod.images && prod.images.length > 0 ? (
                         <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-900 border border-slate-700/80 shadow-sm flex items-center justify-center group/img">
-                          <img
+                          <SafeImage
                             src={prod.images[0]}
                             alt={isAr ? prod.nameAr : prod.nameEn}
-                            className="w-full h-full object-cover transition-transform group-hover/img:scale-110 duration-200"
-                            loading="lazy"
+                            fill
+                            sizes="44px"
+                            className="object-cover transition-transform group-hover/img:scale-110 duration-200"
                           />
                           {prod.images.length > 1 && (
                             <span className="absolute bottom-0.5 right-0.5 bg-slate-950/90 text-[8px] px-1 rounded text-amber-400 font-bold border border-slate-800">

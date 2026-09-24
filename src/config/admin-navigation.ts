@@ -91,7 +91,6 @@ export interface AdminNavGroup {
 const ALL_ADMIN: readonly AdminRole[] = ADMIN_ROLES;
 const MANAGERS: readonly AdminRole[] = ['SUPER_ADMIN', 'BRANCH_MANAGER'];
 const FINANCE: readonly AdminRole[] = ['SUPER_ADMIN', 'FINANCE'];
-const OPERATIONS: readonly AdminRole[] = ['SUPER_ADMIN', 'BRANCH_MANAGER', 'STAFF'];
 const SALES_OPERATIONS: readonly AdminRole[] = ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'];
 
 const ordersTabs: readonly AdminTab[] = [
@@ -117,6 +116,7 @@ const inventoryTabs: readonly AdminTab[] = [
   { key: 'movements', labelAr: 'حركة المخزون', labelEn: 'Movements', href: '/admin/inventory/movements' },
   { key: 'transfers', labelAr: 'التحويلات', labelEn: 'Transfers', href: '/admin/inventory/transfers' },
   { key: 'count', labelAr: 'الجرد والتسوية', labelEn: 'Stocktake', href: '/admin/inventory/count' },
+  { key: 'labels', labelAr: 'الباركود والطباعة', labelEn: 'Barcode & printing', href: '/admin/inventory/labels' },
   { key: 'alerts', labelAr: 'تنبيهات النقص', labelEn: 'Low stock', href: '/admin/inventory/alerts' },
 ];
 
@@ -265,7 +265,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'inventory', section: 'inventory', labelAr: 'المخزون والتحويلات', labelEn: 'Inventory & transfers',
-        href: '/admin/inventory', icon: 'inventory', allowedRoles: OPERATIONS, tabs: tabSet(inventoryTabs), status: 'live',
+        href: '/admin/inventory', icon: 'inventory', allowedRoles: MANAGERS, tabs: tabSet(inventoryTabs), status: 'live',
       },
       {
         key: 'stocktake', section: 'stocktake', labelAr: 'الجرد وتسوية المخزون', labelEn: 'Stocktake & reconciliation',
@@ -273,7 +273,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'barcode', section: 'barcode', labelAr: 'الباركود والطباعة', labelEn: 'Barcode & printing',
-        href: '/admin/inventory/labels', icon: 'barcode', allowedRoles: OPERATIONS, status: 'live',
+        href: '/admin/inventory/labels', icon: 'barcode', allowedRoles: MANAGERS, status: 'live',
       },
     ],
   },
@@ -285,15 +285,15 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     items: [
       {
         key: 'purchasing', section: 'purchasing', labelAr: 'أوامر التوريد', labelEn: 'Purchase orders',
-        href: '/admin/purchasing', icon: 'purchasing', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], tabs: tabSet(purchasingTabs), status: 'live',
+        href: '/admin/purchasing', icon: 'purchasing', allowedRoles: MANAGERS, tabs: tabSet(purchasingTabs), status: 'live',
       },
       {
         key: 'suppliers', section: 'suppliers', labelAr: 'الموردون', labelEn: 'Suppliers',
-        href: '/admin/purchasing/suppliers', icon: 'suppliers', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], status: 'live',
+        href: '/admin/purchasing/suppliers', icon: 'suppliers', allowedRoles: MANAGERS, status: 'live',
       },
       {
         key: 'purchase-invoices', section: 'purchase-invoices', labelAr: 'فواتير شراء ومرتجعات الموردين', labelEn: 'Purchase invoices & returns',
-        href: '/admin/purchasing/invoices', icon: 'invoices', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], status: 'partial',
+        href: '/admin/purchasing/invoices', icon: 'invoices', allowedRoles: MANAGERS, status: 'partial',
       },
     ],
   },
@@ -361,7 +361,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     items: [
       {
         key: 'employees', section: 'employees', labelAr: 'الموظفون', labelEn: 'Employees',
-        href: '/admin/employees', icon: 'employees', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], tabs: tabSet(employeesTabs), status: 'live',
+        href: '/admin/employees', icon: 'employees', allowedRoles: MANAGERS, tabs: tabSet(employeesTabs), status: 'live',
       },
       {
         key: 'attendance', section: 'attendance', labelAr: 'الحضور والانصراف', labelEn: 'Attendance',

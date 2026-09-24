@@ -10,14 +10,9 @@ import {
   Edit2,
   Trash2,
   Shield,
-  Mail,
-  Phone,
-  Building,
-  KeyRound,
   CheckCircle2,
   XCircle,
   Search,
-  UserCheck,
 } from 'lucide-react';
 import { Role } from '@prisma/client';
 import { useToast } from '@/components/Toast';

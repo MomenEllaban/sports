@@ -6,6 +6,7 @@ import { useLocale } from 'next-intl';
 export default function AdminError({ error, reset }: { error: Error; reset: () => void }) {
   const locale = useLocale();
   const isAr = locale === 'ar';
+  void error;
   return (
     <div className="flex items-center justify-center py-16">
       <div className="glass-panel p-8 rounded-3xl border border-rose-500/30 max-w-md w-full text-center space-y-4 animate-fade-up">

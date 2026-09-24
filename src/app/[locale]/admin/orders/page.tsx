@@ -60,8 +60,8 @@ export default async function AdminOrdersPage() {
     subtotal: num(s.subtotal),
     discountAmount: num(s.discountAmount),
     taxAmount: num(s.taxAmount),
-    orderStatus: 'DELIVERED',
-    paymentStatus: 'PAID',
+    orderStatus: s.paymentStatus === 'PAID' ? 'DELIVERED' : 'PENDING',
+    paymentStatus: s.paymentStatus,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.createdAt.toISOString(),
     items: s.items.map((i) => ({

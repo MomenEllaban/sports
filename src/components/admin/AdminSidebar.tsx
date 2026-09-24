@@ -47,7 +47,7 @@ export default function AdminSidebar({
   const isAr = locale === 'ar';
   const { data: session } = useSession();
   const rawRole = (session?.user as { role?: unknown } | undefined)?.role;
-  const role: AdminRole = isAdminRole(rawRole) ? rawRole : 'SUPER_ADMIN';
+  const role: AdminRole | undefined = isAdminRole(rawRole) ? rawRole : undefined;
 
   const [collapsed, setCollapsed] = useState(false);
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
@@ -163,21 +163,23 @@ export default function AdminSidebar({
             </div>
           </div>
 
-          <Link
-            href="/pos"
-            onClick={onClose}
-            title={isAr ? 'فتح نقطة البيع POS' : 'Open POS'}
-            className={`mb-4 inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-amber-400/50 bg-gradient-to-l from-amber-500/25 to-amber-400/10 px-3 text-xs font-black text-amber-300 shadow-lg shadow-amber-500/10 transition hover:border-amber-300 hover:bg-amber-500 hover:text-slate-950 ${showLabels ? 'justify-start' : ''}`}
-          >
-            <Monitor className="h-5 w-5 shrink-0" aria-hidden="true" />
-            {showLabels && <span>{isAr ? 'نقطة البيع POS' : 'Point of Sale POS'}</span>}
-          </Link>
+          {!!role && (['SUPER_ADMIN', 'BRANCH_MANAGER', 'CASHIER'] as readonly string[]).includes(role) && (
+            <Link
+              href="/pos"
+              onClick={onClose}
+              title={isAr ? 'فتح نقطة البيع POS' : 'Open POS'}
+              className={`mb-4 inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-amber-400/50 bg-gradient-to-l from-amber-500/25 to-amber-400/10 px-3 text-xs font-black text-amber-300 shadow-lg shadow-amber-500/10 transition hover:border-amber-300 hover:bg-amber-500 hover:text-slate-950 ${showLabels ? 'justify-start' : ''}`}
+            >
+              <Monitor className="h-5 w-5 shrink-0" aria-hidden="true" />
+              {showLabels && <span>{isAr ? 'نقطة البيع POS' : 'Point of Sale POS'}</span>}
+            </Link>
+          )}
 
           {showLabels ? (
             <div className="mb-4 space-y-1.5 rounded-2xl border border-slate-800 bg-slate-950/90 p-3 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[10px] font-medium text-slate-400">{isAr ? 'المستخدم المسجل' : 'Signed in'}</span>
-                <span className="max-w-[7rem] truncate rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">{role}</span>
+                <span className="max-w-[7rem] truncate rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">{role || (isAr ? 'جارٍ التحقق' : 'Checking role')}</span>
               </div>
               <p className="truncate font-black text-slate-100">{userName}</p>
               {userEmail && <p className="truncate font-mono text-[10px] text-slate-400" dir="ltr">{userEmail}</p>}
@@ -219,6 +221,11 @@ export default function AdminSidebar({
               );
             })}
           </nav>
+          {groups.length === 0 && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center text-[11px] text-slate-500">
+              {isAr ? 'جارٍ تحميل الصلاحيات…' : 'Loading permissions…'}
+            </div>
+          )}
         </div>
         <div className="border-t border-slate-800 p-3 text-center text-[10px] text-slate-500">
           {showLabels ? 'Sports Champions ERP · v1.0' : 'ERP'}
@@ -242,7 +249,11 @@ function SidebarLink({ item, pathname, collapsed, isAr, onNavigate }: { item: Ad
     >
       <AdminIcon name={item.icon} className="h-4.5 w-4.5 shrink-0" />
       {!collapsed && <span className="min-w-0 flex-1 truncate text-xs font-bold">{label}</span>}
-      {!collapsed && item.status === 'planned' && <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300">قريبًا</span>}
+      {!collapsed && item.status && item.status !== 'live' && (
+        <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] ${item.status === 'partial' ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'}`}>
+          {item.status === 'partial' ? 'جزئي' : 'قريبًا'}
+        </span>
+      )}
       {!collapsed && <NavPending className={active ? 'text-white' : 'text-blue-400'} />}
     </Link>
   );

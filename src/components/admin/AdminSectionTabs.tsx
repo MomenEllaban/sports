@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React from 'react';
+import { useLocale } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
 import { findAdminItemBySection, pathMatches } from '@/config/admin-navigation';
 
 export default function AdminSectionTabs({ section, className = '' }: { section: string; className?: string }) {
   const pathname = usePathname() || '/admin';
+  const locale = useLocale();
+  const isAr = locale === 'ar';
   const entry = findAdminItemBySection(section);
   const tabs = entry?.item.tabs ?? [];
 
-  const activeHref = useMemo(() => {
-    const match = tabs.find((tab) => pathMatches(pathname, tab.href));
-    return match?.href ?? tabs[0]?.href;
-  }, [pathname, tabs]);
+  const activeHref = tabs.find((tab) => pathMatches(pathname, tab.href))?.href ?? tabs[0]?.href;
 
   if (!entry || tabs.length === 0) return null;
 
@@ -37,9 +37,12 @@ export default function AdminSectionTabs({ section, className = '' }: { section:
                 : 'border-slate-800 bg-slate-950/30 text-slate-400 hover:border-slate-700 hover:bg-slate-800/60 hover:text-slate-200'
             }`}
           >
-            {tab.labelAr}
-            {tab.labelEn !== tab.labelAr && (
-              <span className="hidden text-[10px] font-normal opacity-60 sm:inline">{tab.labelEn}</span>
+            {isAr ? tab.labelAr : tab.labelEn}
+            {isAr && tab.labelEn !== tab.labelAr && (
+              <span className="hidden text-[10px] font-normal opacity-60 sm:inline" dir="ltr">{tab.labelEn}</span>
+            )}
+            {!isAr && tab.labelAr !== tab.labelEn && (
+              <span className="hidden text-[10px] font-normal opacity-60 sm:inline" dir="rtl">{tab.labelAr}</span>
             )}
           </Link>
         );

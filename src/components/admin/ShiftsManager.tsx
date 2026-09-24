@@ -6,6 +6,16 @@ import { useRouter } from '@/i18n/routing';
 import { Clock3, DollarSign, AlertCircle, CheckCircle2, Search, Filter, Printer, X } from 'lucide-react';
 import { DataTable } from '@/components/ui/foundation';
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char] || char);
+}
+
 export interface ShiftRow {
   id: string;
   cashierId: string;
@@ -130,12 +140,18 @@ export default function ShiftsManager({
     const printWindow = window.open('', '_blank', 'width=420,height=650');
     if (!printWindow) return;
 
+    const shiftId = escapeHtml(shift.id);
+    const branchName = escapeHtml(shift.branchName);
+    const cashierName = escapeHtml(shift.cashierName);
+    const openNote = escapeHtml(shift.openNote);
+    const closeNote = escapeHtml(shift.closeNote);
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html dir="rtl" lang="ar">
         <head>
           <meta charset="utf-8">
-          <title>تقرير تقفيل الدرج Z-Report - ${shift.id}</title>
+          <title>تقرير تقفيل الدرج Z-Report - ${shiftId}</title>
           <style>
             body { font-family: monospace, sans-serif; font-size: 12px; margin: 15px; color: #000; line-height: 1.4; }
             .text-center { text-align: center; }
@@ -152,9 +168,9 @@ export default function ShiftsManager({
             <div>تقرير تقفيل الوردية (Z-REPORT)</div>
             <div class="divider"></div>
           </div>
-          <div class="row"><span>الفرع:</span><span class="bold">${shift.branchName}</span></div>
-          <div class="row"><span>الكاشير:</span><span class="bold">${shift.cashierName}</span></div>
-          <div class="row"><span>معرف الوردية:</span><span>${shift.id.slice(-8)}</span></div>
+          <div class="row"><span>الفرع:</span><span class="bold">${branchName}</span></div>
+          <div class="row"><span>الكاشير:</span><span class="bold">${cashierName}</span></div>
+          <div class="row"><span>معرف الوردية:</span><span>${shiftId.slice(-8)}</span></div>
           <div class="row"><span>تاريخ الفتح:</span><span>${new Date(shift.openedAt).toLocaleString('ar-EG')}</span></div>
           <div class="row"><span>تاريخ الإغلاق:</span><span>${shift.closedAt ? new Date(shift.closedAt).toLocaleString('ar-EG') : 'مفتوحة الآن'}</span></div>
           <div class="divider"></div>
@@ -167,8 +183,8 @@ export default function ShiftsManager({
             <span>الفرق (عجز / زيادة):</span>
             <span>${shift.difference > 0 ? '+' : ''}${shift.difference.toFixed(2)} ج.م</span>
           </div>
-          ${shift.openNote ? `<div class="divider"></div><div><b>ملاحظة الفتح:</b> ${shift.openNote}</div>` : ''}
-          ${shift.closeNote ? `<div class="divider"></div><div><b>ملاحظة الإغلاق:</b> ${shift.closeNote}</div>` : ''}
+          ${openNote ? `<div class="divider"></div><div><b>ملاحظة الفتح:</b> ${openNote}</div>` : ''}
+          ${closeNote ? `<div class="divider"></div><div><b>ملاحظة الإغلاق:</b> ${closeNote}</div>` : ''}
           <div class="divider"></div>
           <div class="text-center" style="margin-top: 15px;">
             <div>توقيع الكاشير: ........................</div>

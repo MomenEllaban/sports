@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Bell, LogOut, Menu, ShieldCheck, UserRound } from 'lucide-react';
-import { Link } from '@/i18n/routing';
+import { Link, usePathname } from '@/i18n/routing';
 import ThemeToggle from './ThemeToggle';
 import { LocaleSwitcher } from '@/components/ui/foundation';
 import AdminCommandPalette from './AdminCommandPalette';
@@ -28,6 +28,7 @@ const ROLE_LABELS_EN: Record<string, string> = {
 export default function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { data: session } = useSession();
   const locale = useLocale();
+  const pathname = usePathname() || '/admin';
   const tSetup = useTranslations('setup');
   const isAr = locale === 'ar';
   const [unreadCount, setUnreadCount] = useState(0);
@@ -48,7 +49,7 @@ export default function AdminHeader({ onMenuClick }: { onMenuClick?: () => void 
       })
       .catch(() => { /* setup badge stays hidden on error */ });
     return () => { cancelled = true; };
-  }, []);
+  }, [pathname]);
 
   const role = (session?.user as unknown as { role?: string } | undefined)?.role;
   const roleLabel = role ? (isAr ? ROLE_LABELS_AR[role] ?? role : ROLE_LABELS_EN[role] ?? role) : '';

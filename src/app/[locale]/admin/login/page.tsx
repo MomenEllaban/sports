@@ -8,11 +8,11 @@ export default async function AdminLoginPage({
 }) {
   const { callbackUrl } = await searchParams;
 
-  // Sanitize callbackUrl: remove host if any and strip leading locale prefixes (/ar or /en)
-  let cleanCallback = callbackUrl ? callbackUrl.replace(/^https?:\/\/[^\/]+/, '') : '/admin';
-  cleanCallback = cleanCallback.replace(/^\/(?:ar|en)(?=\/|$)+/g, '') || '/admin';
-  if (!cleanCallback.startsWith('/')) {
-    cleanCallback = `/${cleanCallback}`;
+  // Only same-site absolute paths are allowed. Reject protocol-relative URLs
+  // (//evil.example) and absolute URLs instead of trying to rewrite them.
+  let cleanCallback = '/admin';
+  if (typeof callbackUrl === 'string' && callbackUrl.startsWith('/') && !callbackUrl.startsWith('//')) {
+    cleanCallback = callbackUrl.replace(/^\/(?:ar|en)(?=\/|$)+/g, '') || '/admin';
   }
 
   return (

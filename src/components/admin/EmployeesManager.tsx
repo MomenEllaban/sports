@@ -88,7 +88,7 @@ export default function EmployeesManager({
       roleTitle: emp.roleTitle,
       salary: String(emp.salary),
       salaryType: emp.salaryType,
-      commissionRate: String(emp.commissionRate),
+      commissionRate: String((emp.commissionRate * 100).toFixed(2).replace(/\.00$/, '')),
       branchId: emp.branch.id,
     });
     setFormError('');
@@ -349,7 +349,7 @@ export default function EmployeesManager({
                   {emp.salary.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}
                   <span className="text-[10px] text-slate-500 mr-1">/{salaryTypeLabel(emp.salaryType)}</span>
                 </td>
-                <td className="p-3 text-slate-300">{emp.commissionRate > 0 ? `${emp.commissionRate}%` : '—'}</td>
+                <td className="p-3 text-slate-300">{emp.commissionRate > 0 ? `${(emp.commissionRate * 100).toFixed(2).replace(/\.00$/, '')}%` : '—'}</td>
                 <td className="p-3">
                   <button
                     onClick={() => handleToggleActive(emp)}

@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
         description="متابعة فورية للمبيعات والمخزون والورديات عبر كافة الفروع"
         actions={
           <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
-            محدث مباشرة
+            آخر تحديث عند الفتح
           </span>
         }
       />
