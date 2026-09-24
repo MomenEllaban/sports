@@ -3,6 +3,7 @@
 import React from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { Button } from '@/components/ui/foundation';
 
 export default function StorefrontError({ reset }: { reset: () => void }) {
   const locale = useLocale();
@@ -13,9 +14,9 @@ export default function StorefrontError({ reset }: { reset: () => void }) {
         <h1 className="text-xl font-black">{isAr ? 'حدث خطأ أثناء تحميل الصفحة' : 'Something went wrong'}</h1>
         <p className="text-xs text-slate-400">{isAr ? 'حاول مجدداً أو عُد للرئيسية.' : 'Try again or go home.'}</p>
         <div className="flex justify-center gap-3">
-          <button onClick={reset} className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all">
+          <Button onClick={reset} variant="primary">
             {isAr ? 'إعادة المحاولة' : 'Retry'}
-          </button>
+          </Button>
           <Link href="/" className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all">
             {isAr ? 'الرئيسية' : 'Home'}
           </Link>

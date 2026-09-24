@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
 import { useSession } from 'next-auth/react';
@@ -8,7 +8,7 @@ import { LocaleSwitcher, Stepper, Button } from '@/components/ui/foundation';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import PosPaymentModal from '@/components/pos/PosPaymentModal';
 import PosReceiptModal, { type PosReceiptData } from '@/components/pos/PosReceiptModal';
-import { ShoppingCart, Barcode, Printer, User, Check, X, Trash2 } from 'lucide-react';
+import { ShoppingCart, Barcode, User, Check, X, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface DbProduct {
@@ -262,12 +262,18 @@ export default function PosTerminalPage() {
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.nameAr.includes(searchTerm) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.barcode && p.barcode.includes(searchTerm))
-  );
+  const deferredSearch = useDeferredValue(searchTerm);
+  const filteredProducts = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase();
+    if (!term) return products;
+    return products.filter(
+      (p) =>
+        p.nameAr.toLowerCase().includes(term) ||
+        p.nameEn.toLowerCase().includes(term) ||
+        p.sku.toLowerCase().includes(term) ||
+        (p.barcode && p.barcode.toLowerCase().includes(term))
+    );
+  }, [products, deferredSearch]);
 
   const handleApplyDiscount = () => {
     const val = Number(discountInput);
@@ -664,6 +670,35 @@ export default function PosTerminalPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const term = searchTerm.trim().toLowerCase();
+                  if (!term) return;
+                  const exact = products.find(
+                    (p) =>
+                      (p.barcode && p.barcode.toLowerCase() === term) ||
+                      p.sku.toLowerCase() === term
+                  ) || (filteredProducts.length === 1 ? filteredProducts[0] : null);
+                  if (exact) {
+                    const stock = exact.inventories?.[0]?.stockQuantity || 0;
+                    if (stock > 0) {
+                      addItemToTicket({
+                        id: exact.id,
+                        sku: exact.sku,
+                        barcode: exact.barcode,
+                        nameAr: exact.nameAr,
+                        nameEn: exact.nameEn,
+                        price: exact.price,
+                        stockQuantity: stock,
+                      });
+                      setSearchTerm('');
+                    } else {
+                      toast(`الصنف ${exact.nameAr} نفد من المخزون`, 'error');
+                    }
+                  }
+                }
+              }}
               placeholder="امسح البار كود أو ابحث باسم المنتج / SKU..."
               aria-label="بحث المنتجات بالباركود أو الاسم"
               className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-sm font-semibold text-slate-100 focus:outline-none focus:border-amber-500 shadow-inner placeholder:text-slate-500"
@@ -673,7 +708,7 @@ export default function PosTerminalPage() {
           </div>
 
           {/* Products Quick Touch Grid */}
-          <div className="flex-1 overflow-y-auto pr-1">
+          <div className="flex-1 overflow-y-auto pr-1 min-h-[50vh] lg:min-h-0">
             {loading ? (
               <div className="text-center text-xs text-slate-500 py-12">جاري تحميل المنتجات...</div>
             ) : loadError ? (

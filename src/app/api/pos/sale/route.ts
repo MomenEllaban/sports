@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ success: false, error: 'الفاتورة فارغة: أضف صنفاً واحداً على الأقل' }, { status: 400 });
     }
-    if (!['CASH', 'CARD', 'INSTAPAY'].includes(paymentMethod)) {
+    if (!['CASH', 'CARD', 'INSTAPAY', 'FAWRY', 'VODAFONE_CASH'].includes(paymentMethod)) {
       return NextResponse.json({ success: false, error: 'طريقة الدفع غير صالحة' }, { status: 400 });
     }
 

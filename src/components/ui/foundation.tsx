@@ -185,15 +185,49 @@ export function Pagination({
 
 // ── DataTable (responsive: cards on small screens) ───────
 export interface Column<T> { key: string; header: string; render: (row: T) => React.ReactNode; hideOnMobile?: boolean }
-export function DataTable<T extends { id: string }>({ rows, columns, emptyTitle, emptyHint, actionLabel, onAction, page, pageSize, onPageChange }: {
-  rows: T[]; columns: Column<T>[]; emptyTitle: string; emptyHint?: string; actionLabel?: string; onAction?: () => void;
-  page?: number; pageSize?: number; onPageChange?: (p: number) => void;
+export function DataTable<T extends { id: string }>({
+  rows,
+  columns,
+  emptyTitle,
+  emptyHint,
+  actionLabel,
+  onAction,
+  page,
+  pageSize,
+  onPageChange,
+  totalCount,
+  loading,
+}: {
+  rows: T[];
+  columns: Column<T>[];
+  emptyTitle: string;
+  emptyHint?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (p: number) => void;
+  totalCount?: number;
+  loading?: boolean;
 }) {
+  if (loading && rows.length === 0) {
+    return (
+      <div className="space-y-2 p-4 rounded-card border border-slate-800 bg-slate-900/40">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
+  }
+
   if (rows.length === 0) return <EmptyState title={emptyTitle} hint={emptyHint} actionLabel={actionLabel} onAction={onAction} />;
   const showPager = typeof page === 'number' && typeof pageSize === 'number' && onPageChange;
-  const totalPages = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+  const isServerPaged = typeof totalCount === 'number';
+  const effectiveTotal = isServerPaged ? totalCount : rows.length;
+  const totalPages = pageSize ? Math.max(1, Math.ceil(effectiveTotal / pageSize)) : 1;
   const safePage = showPager ? Math.min(Math.max(1, page!), totalPages) : 1;
-  const visible = showPager ? rows.slice((safePage - 1) * pageSize!, safePage * pageSize!) : rows;
+  const visible = isServerPaged ? rows : (showPager ? rows.slice((safePage - 1) * pageSize!, safePage * pageSize!) : rows);
   return (
     <>
       {/* Desktop table */}

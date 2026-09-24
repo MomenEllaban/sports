@@ -1,12 +1,12 @@
-'use client';
-
 import React, { useState } from 'react';
-import { Search, Package, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Search, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { ReturnRequestPanel, ReturnTrackerPanel } from '@/components/storefront/ReturnPortal';
 
 export default function TrackingPage() {
+  const locale = useLocale();
+  const isAr = locale === 'ar';
   const tCommon = useTranslations('common');
   const tTracking = useTranslations('orderTracking');
   const searchParams = useSearchParams();
@@ -45,10 +45,10 @@ export default function TrackingPage() {
       if (data.success && data.order) {
         setOrderResult(data.order);
       } else {
-        setErrorMsg(data.message || 'لم نتمكن من العثور على طلب بهذا الرقم أو الموبايل.');
+        setErrorMsg(data.message || (isAr ? 'لم نتمكن من العثور على طلب بهذا الرقم أو الموبايل.' : 'Could not find an order with this number or phone.'));
       }
     } catch {
-      setErrorMsg('تعذر الاتصال بالسيرفر. حاول مرة أخرى.');
+      setErrorMsg(isAr ? 'تعذر الاتصال بالسيرفر. حاول مرة أخرى.' : 'Server connection failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,12 +61,13 @@ export default function TrackingPage() {
   }
 
   return (
-
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12 space-y-8 w-full">
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-black text-slate-100">{tTracking('title')}</h1>
           <p className="text-xs text-slate-400">
-            أدخل رقم الموبايل الخاص بالطلب أو رقم الفاتورة لمتابعة حالة الشحنة لحظة بلحظة.
+            {isAr
+              ? 'أدخل رقم الموبايل الخاص بالطلب أو رقم الفاتورة لمتابعة حالة الشحنة لحظة بلحظة.'
+              : 'Enter the mobile phone or invoice number for your order to track shipping in real-time.'}
           </p>
         </div>
 
@@ -120,7 +121,7 @@ export default function TrackingPage() {
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
-                <span className="text-xs font-bold text-slate-400">رقم الطلب:</span>
+                <span className="text-xs font-bold text-slate-400">{isAr ? 'رقم الطلب:' : 'Order Number:'}</span>
                 <h2 className="text-xl font-black text-amber-400">{orderResult.orderNumber}</h2>
               </div>
 
@@ -129,7 +130,7 @@ export default function TrackingPage() {
                   {orderResult.orderStatus}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-slate-900 text-slate-300 font-bold text-xs border border-slate-800">
-                  شركة الشحن: {orderResult.shippingProvider}
+                  {isAr ? 'شركة الشحن: ' : 'Carrier: '}{orderResult.shippingProvider}
                 </span>
               </div>
             </div>
@@ -138,18 +139,18 @@ export default function TrackingPage() {
             <div className="grid grid-cols-3 gap-3 text-center text-xs">
               <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
                 <Clock className="w-5 h-5 text-amber-400 mx-auto" />
-                <div className="font-bold text-slate-200">تأكيد الطلب</div>
-                <div className="text-[10px] text-slate-400">تم الاستلام</div>
+                <div className="font-bold text-slate-200">{isAr ? 'تأكيد الطلب' : 'Order Confirmed'}</div>
+                <div className="text-[10px] text-slate-400">{isAr ? 'تم الاستلام' : 'Received'}</div>
               </div>
               <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
                 <Truck className="w-5 h-5 text-blue-400 mx-auto" />
-                <div className="font-bold text-slate-200">جاري الشحن</div>
-                <div className="text-[10px] text-slate-400">{orderResult.trackingNumber || 'بانتظار التحديث'}</div>
+                <div className="font-bold text-slate-200">{isAr ? 'جاري الشحن' : 'In Transit'}</div>
+                <div className="text-[10px] text-slate-400">{orderResult.trackingNumber || (isAr ? 'بانتظار التحديث' : 'Awaiting update')}</div>
               </div>
               <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 mx-auto" />
-                <div className="font-bold text-slate-200">التسليم النهائي</div>
-                <div className="text-[10px] text-slate-400">العميل</div>
+                <div className="font-bold text-slate-200">{isAr ? 'التسليم النهائي' : 'Delivered'}</div>
+                <div className="text-[10px] text-slate-400">{isAr ? 'العميل' : 'Customer'}</div>
               </div>
             </div>
 
@@ -158,7 +159,7 @@ export default function TrackingPage() {
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
                 <div className="font-bold text-slate-200 flex items-center gap-1">
                   <MapPin className="w-4 h-4 text-amber-400" />
-                  منطقة التوصيل:
+                  {isAr ? 'منطقة التوصيل:' : 'Delivery Zone:'}
                 </div>
                 <p className="text-slate-400">{orderResult.deliveryZone}</p>
               </div>
@@ -166,7 +167,7 @@ export default function TrackingPage() {
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
                 <div className="font-bold text-slate-200 flex items-center gap-1">
                   <Phone className="w-4 h-4 text-blue-400" />
-                  بيانات التواصل:
+                  {isAr ? 'بيانات التواصل:' : 'Contact Info:'}
                 </div>
                 <p className="text-slate-400">{orderResult.guestName} - {orderResult.guestPhone}</p>
               </div>
@@ -174,7 +175,7 @@ export default function TrackingPage() {
 
             {/* Items List */}
             <div className="space-y-2 border-t border-slate-800 pt-4">
-              <h3 className="font-bold text-xs text-slate-300">المنتجات الشاملة في الشحنة:</h3>
+              <h3 className="font-bold text-xs text-slate-300">{isAr ? 'المنتجات الشاملة في الشحنة:' : 'Items in Shipment:'}</h3>
               <div className="space-y-2">
                 {orderResult.items.map((item, idx) => (
                   <div key={idx} className="flex justify-between text-xs p-2 rounded-xl bg-slate-900/60">

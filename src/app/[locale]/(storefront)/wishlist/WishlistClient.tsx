@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { getWishlist } from '@/components/storefront/WishlistButton';
 import { SafeImage } from '@/components/ui/foundation';
 import { EmptyState } from '@/components/ui/foundation';
@@ -18,6 +18,7 @@ interface Item {
 
 /** Guest wishlist page (T08): resolves saved IDs to live products. */
 export default function WishlistClient() {
+  const router = useRouter();
   const [ids, setIds] = useState<string[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +41,7 @@ export default function WishlistClient() {
 
   if (loading) return <p className="py-10 text-center text-xs text-slate-500">جاري التحميل...</p>;
   if (ids.length === 0) {
-    return <EmptyState title="قائمة الأمنيات فارغة" hint="اضغط على القلب في أي منتج لحفظه هنا." actionLabel="تصفح الكتالوج" onAction={() => (window.location.href = '/catalog')} />;
+    return <EmptyState title="قائمة الأمنيات فارغة" hint="اضغط على القلب في أي منتج لحفظه هنا." actionLabel="تصفح الكتالوج" onAction={() => router.push('/catalog')} />;
   }
 
   return (

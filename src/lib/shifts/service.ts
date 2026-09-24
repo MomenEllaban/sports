@@ -23,16 +23,18 @@ export async function getOpenShift(cashierId: string) {
  * Card/InstaPay never touch the drawer.
  */
 export async function expectedCashFor(shiftId: string, openingFloat: number): Promise<number> {
-  const sales = await prisma.sale.findMany({
-    where: { shiftId, paymentMethod: { in: CASH_METHODS } },
-    select: { totalAmount: true },
-  });
-  const refunds = await prisma.refund.findMany({
-    where: { shiftId, status: 'DONE', method: 'CASH' },
-    select: { amount: true },
-  });
-  const cash = sales.reduce((s, x) => s + num(x.totalAmount), 0);
-  const paid = refunds.reduce((s, x) => s + num(x.amount), 0);
+  const [salesAgg, refundsAgg] = await Promise.all([
+    prisma.sale.aggregate({
+      where: { shiftId, paymentMethod: { in: CASH_METHODS } },
+      _sum: { totalAmount: true },
+    }),
+    prisma.refund.aggregate({
+      where: { shiftId, status: 'DONE', method: 'CASH' },
+      _sum: { amount: true },
+    }),
+  ]);
+  const cash = num(salesAgg._sum.totalAmount);
+  const paid = num(refundsAgg._sum.amount);
   return Math.round((openingFloat + cash - paid) * 100) / 100;
 }
 

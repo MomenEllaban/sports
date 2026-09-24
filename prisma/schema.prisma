@@ -168,6 +168,8 @@ model BranchInventory {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, productId])
+  @@index([stockQuantity])
+  @@index([productId])
 }
 
 model StockTransfer {
@@ -347,6 +349,11 @@ model Product {
   inventoryLogs      InventoryLog[]
   reviews            Review[]
   returnItems        ReturnItem[]
+
+  @@index([isActive, categoryId])
+  @@index([groupSlug])
+  @@index([brandId])
+  @@index([isFeatured])
 }
 
 model Order {
@@ -395,6 +402,12 @@ model Order {
   returns    ReturnRequest[]
   // T-RMA derived status: NONE | PARTIAL | FULL (RETURNED only when FULL).
   returnStatus String @default("NONE")
+
+  @@index([orderStatus, createdAt])
+  @@index([paymentStatus, createdAt])
+  @@index([branchId, createdAt])
+  @@index([customerId])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -407,6 +420,9 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Sale {
@@ -444,6 +460,11 @@ model Sale {
   returns    ReturnRequest[]
   // T-RMA derived status: NONE | PARTIAL | FULL.
   returnStatus String @default("NONE")
+
+  @@index([branchId, createdAt])
+  @@index([cashierId, createdAt])
+  @@index([createdAt])
+  @@index([shiftId])
 }
 
 // T05: cashier shifts (cash drawer sessions). One OPEN shift per cashier max.
@@ -483,6 +504,9 @@ model SaleItem {
 
   sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
 }
 
 model InventoryLog {
@@ -500,6 +524,10 @@ model InventoryLog {
 
   branch  Branch  @relation(fields: [branchId], references: [id])
   product Product @relation(fields: [productId], references: [id])
+
+  @@index([branchId, productId, createdAt])
+  @@index([referenceId])
+  @@index([createdAt])
 }
 
 model Supplier {
@@ -590,6 +618,8 @@ model Notification {
   createdAt  DateTime         @default(now())
 
   branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([branchId, isRead, createdAt])
 }
 
 model TaxInvoice {
@@ -759,4 +789,7 @@ model AuditLog {
   entityId  String?
   branchId  String?
   metadata  String?
+
+  @@index([createdAt, entity])
+  @@index([entityId])
 }

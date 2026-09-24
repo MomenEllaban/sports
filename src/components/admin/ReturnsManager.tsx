@@ -98,7 +98,7 @@ export default function ReturnsManager({ initial, branches, counts }: {
       </div>
 
       {/* Filters */}
-      <form onSubmit={(e) => { e.preventDefault(); load(); }} className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+      <form onSubmit={(e) => { e.preventDefault(); load(); }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث برقم RTN/طلب/هاتف..." aria-label="بحث" className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" dir="ltr" />
         <select value={channel} onChange={(e) => setChannel(e.target.value)} aria-label="القناة" className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
           <option value="">كل القنوات</option>
@@ -121,7 +121,7 @@ export default function ReturnsManager({ initial, branches, counts }: {
           title={isAr ? 'لا توجد مرتجعات مطابقة' : 'No matching returns'}
           hint={isAr ? 'أنشئ أول طلب مرتجع من الزر أعلاه.' : 'Create the first return above.'}
           actionLabel={isAr ? 'مرتجع جديد' : 'New return'}
-          onAction={() => (window.location.href = '/admin/returns/new')}
+          onAction={() => router.push('/admin/returns/new')}
         />
       ) : (
         <DataTable

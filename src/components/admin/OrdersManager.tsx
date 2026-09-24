@@ -76,6 +76,12 @@ export default function OrdersManager({
   const [newOrderError, setNewOrderError] = useState('');
 
   const [page, setPage] = useState(1);  const PAGE_SIZE = 10;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [orderList, setOrderList] = useState(orders);
+
+  useEffect(() => {
+    setOrderList(orders);
+  }, [orders]);
 
   const [newOrderForm, setNewOrderForm] = useState({
     guestName: '',
@@ -90,11 +96,18 @@ export default function OrdersManager({
     { productId: products[0]?.id || '', quantity: 1 },
   ]);
 
-  const filtered = orders.filter(
-    (o) =>
-      (statusFilter === 'ALL' || o.orderStatus === statusFilter) &&
-      (sourceFilter === 'ALL' || o.orderSource === sourceFilter)
-  );
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = orderList.filter((o) => {
+    if (statusFilter !== 'ALL' && o.orderStatus !== statusFilter) return false;
+    if (sourceFilter !== 'ALL' && o.orderSource !== sourceFilter) return false;
+    if (q) {
+      const matchNum = o.orderNumber.toLowerCase().includes(q);
+      const matchPhone = o.guestPhone?.toLowerCase().includes(q);
+      const matchName = o.guestName?.toLowerCase().includes(q);
+      if (!matchNum && !matchPhone && !matchName) return false;
+    }
+    return true;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -102,15 +115,15 @@ export default function OrdersManager({
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, sourceFilter]);
+  }, [statusFilter, sourceFilter, searchQuery]);
 
   const changeStatus = async (id: string, orderStatus: string) => {
     setUpdatingId(id);
     setError('');
     try {
       await apiFetch(`/api/admin/orders/${id}`, 'PATCH', { orderStatus });
+      setOrderList((prev) => prev.map((o) => (o.id === id ? { ...o, orderStatus } : o)));
       toast(t('orderStatusUpdated'), 'success');
-      router.refresh();
     } catch {
       const msg = t('operationFailed');
       setError(msg);
@@ -199,6 +212,13 @@ export default function OrdersManager({
           {isAr ? `إجمالي الطلبات: ${filtered.length} طلب` : `Total orders: ${filtered.length}`}
         </span>
         <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={isAr ? 'بحث برقم الطلب / الموبايل / الاسم...' : 'Search by order no / phone / name...'}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs placeholder:text-slate-500 w-48 sm:w-60 min-h-[36px]"
+          />
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
