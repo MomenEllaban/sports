@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
 import { useSession } from 'next-auth/react';
+import { useLocale } from 'next-intl';
 import { LocaleSwitcher, Stepper, Button } from '@/components/ui/foundation';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import PosPaymentModal from '@/components/pos/PosPaymentModal';
@@ -18,14 +19,24 @@ interface DbProduct {
   nameAr: string;
   nameEn: string;
   price: number;
+  categoryId: string;
+  brandId: string | null;
+  category: { id: string; nameAr: string; nameEn: string } | null;
+  brand: { id: string; nameAr: string; nameEn: string } | null;
   inventories: Array<{ stockQuantity: number }>;
 }
 
 export default function PosTerminalPage() {
   const { toast } = useToast();
   const { data: session } = useSession();
+  const locale = useLocale();
+  const isAr = locale === 'ar';
   const cashierName = session?.user?.name || (session?.user?.email ? session.user.email.split('@')[0] : '');
   const [products, setProducts] = useState<DbProduct[]>([]);
+  const [categoryFilters, setCategoryFilters] = useState<Array<{ id: string; nameAr: string; nameEn: string }>>([]);
+  const [brandFilters, setBrandFilters] = useState<Array<{ id: string; nameAr: string; nameEn: string }>>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [selectedBrandId, setSelectedBrandId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -246,6 +257,8 @@ export default function PosTerminalPage() {
         }
 
         setProducts(data.products);
+        setCategoryFilters(Array.isArray(data.filters?.categories) ? data.filters.categories : []);
+        setBrandFilters(Array.isArray(data.filters?.brands) ? data.filters.brands : []);
         if (data.branch) {
           setActiveBranch(data.branch);
           setBranchIdState(data.branch.id);
@@ -268,15 +281,13 @@ export default function PosTerminalPage() {
   const deferredSearch = useDeferredValue(searchTerm);
   const filteredProducts = useMemo(() => {
     const term = deferredSearch.trim().toLowerCase();
-    if (!term) return products;
-    return products.filter(
-      (p) =>
-        p.nameAr.toLowerCase().includes(term) ||
-        p.nameEn.toLowerCase().includes(term) ||
-        p.sku.toLowerCase().includes(term) ||
-        (p.barcode && p.barcode.toLowerCase().includes(term))
-    );
-  }, [products, deferredSearch]);
+    return products.filter((product) => {
+      if (selectedCategoryId && product.categoryId !== selectedCategoryId) return false;
+      if (selectedBrandId && product.brandId !== selectedBrandId) return false;
+      if (!term) return true;
+      return product.nameAr.toLowerCase().includes(term) || product.nameEn.toLowerCase().includes(term) || product.sku.toLowerCase().includes(term) || (product.barcode && product.barcode.toLowerCase().includes(term));
+    });
+  }, [products, deferredSearch, selectedCategoryId, selectedBrandId]);
 
   const handleApplyDiscount = () => {
     const val = Number(discountInput);
@@ -713,6 +724,18 @@ export default function PosTerminalPage() {
               autoFocus
             />
             <Barcode className="w-5 h-5 text-amber-400 absolute left-3 top-9" />
+          </div>
+
+          <div className="space-y-2" aria-label={isAr ? 'فلاتر المنتجات' : 'Product filters'}>
+            <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isAr ? 'التصنيفات' : 'Categories'}>
+              <button type="button" onClick={() => setSelectedCategoryId('')} aria-pressed={!selectedCategoryId} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${!selectedCategoryId ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? 'كل التصنيفات' : 'All categories'}</button>
+              {categoryFilters.map((category) => <button key={category.id} type="button" onClick={() => setSelectedCategoryId(category.id)} aria-pressed={selectedCategoryId === category.id} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${selectedCategoryId === category.id ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? category.nameAr : category.nameEn}</button>)}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isAr ? 'الماركات' : 'Brands'}>
+              <button type="button" onClick={() => setSelectedBrandId('')} aria-pressed={!selectedBrandId} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${!selectedBrandId ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? 'كل الماركات' : 'All brands'}</button>
+              {brandFilters.map((brand) => <button key={brand.id} type="button" onClick={() => setSelectedBrandId(brand.id)} aria-pressed={selectedBrandId === brand.id} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${selectedBrandId === brand.id ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? brand.nameAr : brand.nameEn}</button>)}
+            </div>
+            <p className="text-[10px] text-slate-500" aria-live="polite">{isAr ? `${filteredProducts.length} نتيجة` : `${filteredProducts.length} results`}</p>
           </div>
 
           {/* Products Quick Touch Grid */}

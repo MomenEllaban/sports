@@ -58,33 +58,36 @@ export async function GET(req: Request) {
           products: [],
           branch: null,
           branches,
+          filters: { categories: [], brands: [] },
         });
       }
       return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
     }
 
-    const products = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        ...(q
-          ? {
-              OR: [
-                { nameAr: { contains: q, mode: 'insensitive' } },
-                { nameEn: { contains: q, mode: 'insensitive' } },
-                { sku: { contains: q, mode: 'insensitive' } },
-                { barcode: { contains: q } },
-              ],
-            }
-          : {}),
-      },
-      ...(q ? { take: 50 } : {}),
-      include: {
-        inventories: {
-          where: { branchId: ctx.branch.id },
+    const [products, categories, brands] = await Promise.all([
+      prisma.product.findMany({
+        where: {
+          isActive: true,
+          ...(q ? { OR: [
+            { nameAr: { contains: q, mode: 'insensitive' } },
+            { nameEn: { contains: q, mode: 'insensitive' } },
+            { sku: { contains: q, mode: 'insensitive' } },
+            { barcode: { contains: q, mode: 'insensitive' } },
+          ] } : {}),
         },
-      },
-      orderBy: { nameAr: 'asc' },
-    });
+        ...(q ? { take: 50 } : {}),
+        select: {
+          id: true, sku: true, barcode: true, nameAr: true, nameEn: true, price: true,
+          categoryId: true, brandId: true,
+          category: { select: { id: true, nameAr: true, nameEn: true } },
+          brand: { select: { id: true, nameAr: true, nameEn: true } },
+          inventories: { where: { branchId: ctx.branch.id }, select: { stockQuantity: true } },
+        },
+        orderBy: { nameAr: 'asc' },
+      }),
+      prisma.category.findMany({ where: { products: { some: { isActive: true } } }, select: { id: true, nameAr: true, nameEn: true }, orderBy: { nameAr: 'asc' } }),
+      prisma.brand.findMany({ where: { products: { some: { isActive: true } } }, select: { id: true, nameAr: true, nameEn: true }, orderBy: { nameAr: 'asc' } }),
+    ]);
 
     // Branch options for managers/admins who may switch branches explicitly.
     const branches = await selectableBranches(ctx.role, userId);
@@ -92,9 +95,10 @@ export async function GET(req: Request) {
     return NextResponse.json({
       success: true,
       // T10: Decimal -> number at the API boundary.
-      products: products.map((p) => ({ ...p, price: num(p.price), costPrice: num(p.costPrice) })),
+      products: products.map((p) => ({ ...p, price: num(p.price) })),
       branch: ctx.branch,
       branches,
+      filters: { categories, brands },
     });
   } catch (error) {
     console.error(error);

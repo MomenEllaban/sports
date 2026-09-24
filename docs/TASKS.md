@@ -32,7 +32,7 @@
 
 ## F) POS
 
-- [ ] ❌ **F1 — POS category/brand filters:** chips touch-friendly مع خيار «الكل» والبحث/الباركود الحالي.
+- [x] ✅ **F1 — POS category/brand filters:** API facets حقيقية، chips touch-friendly للتصنيف/الماركة مع «الكل»، والبحث/الباركود والاختيار السريع محفوظة.
 
 ## G) Storefront / المنتجات
 
