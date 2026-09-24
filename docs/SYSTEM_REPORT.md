@@ -950,7 +950,7 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 - Phase 2: `5ea3a94` — nested routes/module pages.
 - Phase 3: `b4de357` — security/payment/logic hardening.
 - UX round commits: `e853258` (locale/colors), `7ef4f98` (orders/invoices), `f4a84cb` (purchasing), `e3e3c13` (schema), `2e0116f` (reports/reorder), `258a958` (batch stocktake), `1d950f7` (POS filters), `338ae6b` (storefront/wishlist).
-- Report commit: يُضاف بعد اعتماد التقرير.
+- Report/metadata commit: `4a47b1a`.
 - لم يتم push إلى `main` مباشرة؛ يتم push للbranch(feature) بعد الفحص النهائي.
 - الملفات المحلية غير المتتبعة `scripts/debug-*.ts` و`scripts/.stock-snap.json` لم يتم stage أو حذف.
 
