@@ -22,9 +22,9 @@
 
 ## D) التقارير
 
-- [ ] ❌ **D1 — فصل التقارير:** routes ومكونات مستقلة وفهرس مُجمّع بدل aliases.
-- [ ] ❌ **D2 — فلاتر server-side:** from/to/search/branch/فلاتر خاصة، URL query params، pagination، أعمدة المنتج الكاملة، CSV/Excel.
-- [ ] ❌ **D3 — تقرير كشكول النواقص:** low-stock/reorder point، checkbox encoded supplier/user/date/note، filter، وإنشاء PO من المحدد.
+- [x] ✅ **D1 — فصل التقارير:** routes مستقلة للمبيعات والمخزون والفروع والمالية وكشكول النواقص، وفهرس مُجمّع لم يعد alias واحدًا.
+- [x] ✅ **D2 — فلاتر server-side:** from/to/search/branch وpagination في query/URL، أعمدة SKU/باركود/تصنيف/ماركة/أسعار/كميات الفروع، وتصدير CSV بنفس الفلاتر.
+- [x] ✅ **D3 — تقرير كشكول النواقص:** reorderPoint/quantity لكل فرع، checkbox محفوظة في ReorderRequest مع user/date/note/supplier، فلاتر المتابعة، وإنشاء PO من المحدد.
 
 ## E) المخزون / الجرد
 

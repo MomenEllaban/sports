@@ -190,6 +190,7 @@ const reportsTabs: readonly AdminTab[] = [
   { key: 'inventory', labelAr: 'المخزون', labelEn: 'Inventory', href: '/admin/reports/inventory' },
   { key: 'branches', labelAr: 'الفروع', labelEn: 'Branches', href: '/admin/reports/branches' },
   { key: 'finance', labelAr: 'المالية والأرباح', labelEn: 'Finance & profit', href: '/admin/reports/finance' },
+  { key: 'reorder', labelAr: 'كشكول النواقص', labelEn: 'Shortages reorder sheet', href: '/admin/reports/reorder' },
 ];
 
 const websiteTabs: readonly AdminTab[] = [
