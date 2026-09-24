@@ -27,6 +27,6 @@ describe('admin navigation config', () => {
   it('matches nested routes without making /admin match every child', () => {
     expect(pathMatches('/admin/orders/online', '/admin/orders')).toBe(true);
     expect(pathMatches('/admin/ordersx', '/admin/orders')).toBe(false);
-    expect(pathMatches('/admin/settings/setup', '/admin')).toBe(true);
+    expect(pathMatches('/admin/settings/setup', '/admin')).toBe(false);
   });
 });
