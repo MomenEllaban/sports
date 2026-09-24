@@ -1,10 +1,21 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 
 type Phase = 'loading' | 'fading' | 'hidden';
+
+function claimFirstView(): boolean {
+  try {
+    if (sessionStorage.getItem('sc:preloader-shown') === '1') return false;
+    sessionStorage.setItem('sc:preloader-shown', '1');
+    return true;
+  } catch {
+    // Storage unavailable (private mode) → behave like before (always show).
+    return true;
+  }
+}
 
 export default function Preloader() {
   const t = useTranslations('common');
@@ -14,14 +25,23 @@ export default function Preloader() {
   const [phase, setPhase] = useState<Phase>('loading');
   const timers = useRef<number[]>([]);
 
+  const claimed = useRef(false);
+  useLayoutEffect(() => {
+    if (claimed.current) return;
+    claimed.current = true;
+    if (!claimFirstView()) setPhase('hidden');
+  }, []);
+
   useEffect(() => {
+    if (phase === 'hidden') return;
+    const toClear = timers.current;
     let finished = false;
     const finish = () => {
       if (finished) return;
       finished = true;
       setProgress(100);
-      timers.current.push(window.setTimeout(() => setPhase('fading'), 200));
-      timers.current.push(window.setTimeout(() => setPhase('hidden'), 700));
+      toClear.push(window.setTimeout(() => setPhase('fading'), 200));
+      toClear.push(window.setTimeout(() => setPhase('hidden'), 700));
     };
 
     // Smooth the progress bar until the REAL load event fires.
@@ -42,9 +62,9 @@ export default function Preloader() {
       window.clearInterval(bump);
       window.clearTimeout(maxWait);
       window.removeEventListener('load', finish);
-      timers.current.forEach((x) => window.clearTimeout(x));
+      toClear.forEach((x) => window.clearTimeout(x));
     };
-  }, []);
+  }, [phase]);
 
   if (phase === 'hidden') return null;
 
