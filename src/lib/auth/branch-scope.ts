@@ -7,7 +7,7 @@ import type { AppSession } from './guards';
  * Empty assignment intentionally means no access rather than all access.
  */
 export function scopedBranchIds(session: AppSession | null): string[] | null {
-  if (session?.user?.role === 'SUPER_ADMIN') return null;
+  if (session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'FINANCE') return null;
   return Array.isArray(session?.user?.branchIds)
     ? session.user.branchIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
     : [];

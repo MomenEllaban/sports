@@ -1,6 +1,6 @@
 # التقرير الشامل لنظام أبطال الرياضة — ERP + Storefront + POS
 
-**تاريخ التقرير:** 24 سبتمبر 2026
+**تاريخ التقرير:** 25 سبتمبر 2026
 **الفرع:** `refactor/admin-sidebar-restructure`
 **المصدر:** `MomenEllaban/sports`
 **نطاق التقرير:** لوحة الإدارة، المسارات والتشغيل، الأمان، منطق المخزون والطلبات والمرتجعات، وكل ما طلبته المهمة.
@@ -576,14 +576,12 @@ tests/                       unit/integration/e2e
 
 ### 4.30 التقارير — `/admin/reports`
 
-- **المسار:** `/admin/reports`
-- **الغرض:** product margin, cashier, dead stock, branch/shipping/returns.
-- **المحتوى/التبويTabs:** overview/sales/inventory/branches/finance aliases common ReportsClient.
-- **الدata والـ API:** report summary handler; OrderItem/SaleItem/ReturnItem/Product/Inventory aggregates.
-- **الصلاحيات:** `SUPER_ADMIN`, `BRANCH_MANAGER`, `FINANCE`.
-- **الحالة:** 🟡 جزئية.
-- **ملاحظات:** تم تحسين paid-only revenue، end-of-day date، وduplicate discount count. مازال in-memory 2000-row limits، historical cost وbranch scope ناقصان.
-- **توصيات:** SQL groupBy/aggregate، cursor pagination، cost snapshots، ABC/reorder.
+- **المسار:** `/admin/reports` plus independent `/sales`, `/inventory`, `/branches`, `/finance`, and `/reorder` routes.
+- **المحتوى/التبويTabs:** overview cards and route-specific server-rendered tables; no longer aliases to one client.
+- **الدata والـ API:** `src/lib/reports/data.ts`, reorder service, and CSV export endpoint.
+- **الصلاحيات:** `SUPER_ADMIN`, `BRANCH_MANAGER`, `FINANCE` with branch scope.
+- **الحالة:** ✅ جولة التصحيحات؛ see Section 10 for bounded aggregation caveat.
+- **توصيات:** SQL groupBy/materialized views for high-volume installations and historical cost snapshots.
 
 ### 4.31 إدارة محتوى الموقع — `/admin/website/content`
 
@@ -937,13 +935,13 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 |---|---|
 | `npm run typecheck` | ✅ PASS |
 | `npm run lint` | ✅ PASS، 0 warnings بعد تنظيف الـ lint |
-| `npm run build` | ✅ PASS، production build، 245 routes |
-| `npm run test:unit` | ✅ 14 ملف اختبار / 65 اختبارًا ناجحًا |
-| `npm run test:int` | ✅ 22 ملف اختبار / 79 اختبارًا ناجحًا |
-| `npm run test:dashboard` | ✅ 171/171 |
+| `npm run build` | ✅ PASS، production build، 252 routes |
+| `npm run test:unit` | ✅ 17 ملف اختبار / 70 اختبارًا ناجحًا |
+| `npm run test:int` | ✅ 26 ملف اختبار / 87 اختبارًا ناجحًا |
+| `npm run test:dashboard` | ✅ 173/173 |
 | Browser E2E visual | ⚠️ لم يتم تشغيله في البيئة الحالية؛ desktop browser غير متصل |
-| `npm run check:i18n` | يُشغل قبل التسليم النهائي |
-| `npm run check:invariants` | يُشغل على test DB المعزولة |
+| `npm run check:i18n` | ✅ 207 keys each |
+| `npm run check:invariants` | ✅ INVARIANTS CLEAN |
 
 ### 9.5 Git
 
@@ -951,6 +949,7 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 - Phase 1: `c6bbe3d` — categorized admin shell.
 - Phase 2: `5ea3a94` — nested routes/module pages.
 - Phase 3: `b4de357` — security/payment/logic hardening.
+- UX round commits: `e853258` (locale/colors), `7ef4f98` (orders/invoices), `f4a84cb` (purchasing), `e3e3c13` (schema), `2e0116f` (reports/reorder), `258a958` (batch stocktake), `1d950f7` (POS filters), `338ae6b` (storefront/wishlist).
 - Report commit: يُضاف بعد اعتماد التقرير.
 - لم يتم push إلى `main` مباشرة؛ يتم push للbranch(feature) بعد الفحص النهائي.
 - الملفات المحلية غير المتتبعة `scripts/debug-*.ts` و`scripts/.stock-snap.json` لم يتم stage أو حذف.
@@ -958,3 +957,57 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 ### 9.6 خلاصة الجاهزية
 
 النظام الآن أفضل تنظيمًا من ناحية التنقل والوصول، والصفحات الجديدة لا تعرض بيانات وهمية،(build/lint/typecheck clean، والـ routes是真的 موجودة. قبل إعلان production-ready يجب إغلاق P0 المتعلقًا بـ branch isolation، payment proof/webhooks، online idempotency/reservation، وتدوير الأسرار. هذه البنود موثقة وليست مخفية.
+
+---
+
+## 10. جولة التصحيحات UX والميزات — 25 سبتمبر 2026
+
+هذه الجولة منفصلة عن إعادة هيكلة الـ shell السابقة، ونفّذت على نفس الـ branch. الحالة في `docs/TASKS.md` هي المصدر التشغيلي السريع.
+
+### 10.1 حالة البنود الأربعة عشر
+
+| البند | الحالة | التنفيذ الفعلي |
+|---|---|---|
+| A1 العربية default locale | ✅ | `localePrefix: always`، redirect صريح `/` إلى `/ar`، وroot page redirect؛ حافظت روابط next-intl على `/ar` و`/en`. |
+| A2 الألوان والتباين | 🟡 | semantic tokens لحالات السلامة، mappings للضوء، وتطبيق على badges/Sidebar/Command Palette. لم يُنفذ فحص axe/WCAG بصري كامل، والـ legacy literals ما زالت تحتاج مرحلة تدريجية. |
+| B1 تغيير حالة الطلب | ✅ | Confirm Dialog يعرض الطلب من→إلى والأثر، endpoint state machine مع `expectedFromStatus`، ومنع تغيير payment status من نفس المسار. |
+| B2 تعديل الطلب | ✅ | PENDING/CONFIRMED فقط، server totals، optimistic `editVersion`، stock delta transaction، قيود invoice/return/payment، وAudit داخل transaction. |
+| B3 الفاتورة القديمة | ✅ | snapshot issuance، viewer/print، reprint marker و`requestId` idempotency، `InvoiceReprint` وAudit. السجلات القديمة reconstructed وتُوسم Legacy. |
+| C1 صفحة الموردين | ✅ | route مستقلة، CRUD، كشف ملخص لكل مورد، POs والمدفوعات، ومنع حذف مورد مرتبط بسجلات مالية. |
+| C2 Purchase Order | ✅ | بحث name/SKU/barcode، dedupe UI/API، quantities/cost، total فوري، responsive، draft/confirm، ومنع استلام DRAFT. |
+| D1 فصل التقارير | ✅ | overview إضافة إلى routes مستقلة للمبيعات والمخزون والفروع والمالية والنواقص. |
+| D2 فلاتر التقارير | ✅ | server-side aggregation/filter/pagination، URL query state، أعمدة المنتج الكاملة، وCSV export endpoint. |
+| D3 كشكول النواقص | ✅ | reorder point/quantity لكل branch، `ReorderRequest` يحفظ checkbox/user/date/note/supplier، filters، وإنشاء PO من المحدد. |
+| E1 Batch Stocktake | ✅ | `StocktakeSession` + `StocktakeLine`، جدول كامل، draft/approve ذري، drift guard، InventoryLog لكل فرق، variance report/CSV. |
+| F1 POS filters | ✅ | facets API للتصنيف/الماركة، chips touch-friendly و«الكل»، وباركود/SKU يظل fastest path. |
+| G1 Product pagination | ✅ | Storefront server pagination/URL filters/sort/count، وAdmin Products server page pagination. |
+| G2 Wishlist | ✅ | `WishlistItem` DB للعميل، localStorage للزائر، merge عند login، حذف/نقل للسلة/عداد، وقلب sibling غير nesting. |
+
+### 10.2 Migrations والقرارات
+
+- `22_order_edit_version`: `Order.editVersion` لحماية التعديلات المتزامنة.
+- `23_invoice_reprints`: invoice snapshot/reprint count/audit record.
+- `24_reorder_requests`: per-branch reorder policy and durable `ReorderRequest`.
+- `25_batch_stocktake`: stocktake session/line enums and tables.
+- `26_wishlist_items`: composite-key `WishlistItem` for idempotent customer lists.
+
+تم تطبيق migrations 22–26 على Neon عبر `prisma migrate deploy`، ومزامنة test DB عبر `prisma db push` في بيئة الاختبار المعزولة. لم تُضف أي أسرار إلى Git.
+
+### 10.3 الملفات الرئيسية في الجولة
+
+- Routing/locale: `src/i18n/routing.ts`, `src/middleware.ts`, `src/app/page.tsx`, `src/app/globals.css`.
+- Orders/B3: `src/components/admin/OrdersManager.tsx`, `src/components/admin/InvoiceActions.tsx`, `src/app/api/admin/orders/**`, `src/app/api/admin/tax-invoices/[id]/route.ts`, `src/lib/invoices/snapshot.ts`.
+- Purchasing: `src/app/[locale]/admin/purchasing/suppliers/page.tsx`, `src/components/admin/PurchasingManager.tsx`, `src/app/api/admin/purchase-orders/**`.
+- Reports/reorder: `src/lib/reports/**`, `src/components/admin/ReportTableClient.tsx`, `src/components/admin/ReorderClient.tsx`, `src/app/api/admin/reports/**`.
+- Stocktake: `src/lib/inventory/stocktake.ts`, `src/app/api/admin/stocktakes/**`, `src/components/admin/StocktakeClient.tsx`.
+- POS/storefront/wishlist: `src/app/api/pos/products/route.ts`, `src/app/[locale]/pos/page.tsx`, catalog server page، `src/components/storefront/WishlistButton.tsx`, `src/app/api/account/wishlist/**`.
+
+### 10.4 التحقق والقيود المتبقية
+
+- typecheck/lint/build/check:i18n ناجحة بعد مجموعة الميزات النهائية.
+- Focused integration tests cover order edit, purchase-order draft workflow, reorder requests, batch stocktake, POS branch protection, and existing report behavior.
+- A2 remains 🟡 because no automated visual WCAG/axe run is available in this environment; do not describe it as fully audited.
+- Supplier account is a commitments/payments summary until supplier-payment-to-PO allocation and return credit notes exist.
+- Report aggregation currently has bounded source reads before in-memory aggregation; high-volume installations should move these reports to SQL groupBy/materialized views.
+- Existing production risks from the previous report remain explicit: broad historical branch isolation, online order idempotency/reservation, exchange netting, refund watchdog, live ETA/signing, and DB-level stock constraints.
+- Desktop browser visual/E2E was unavailable in the session; run it in CI/staging before release.

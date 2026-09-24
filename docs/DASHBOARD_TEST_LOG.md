@@ -1,10 +1,10 @@
 # Dashboard Test Log — automated flow
 
-> Generated 2026-09-24T19:58:10.731Z · no-browser audit (pages + loaders + security + link integrity).
+> Generated 2026-09-24T22:28:27.074Z · no-browser audit (pages + loaders + security + link integrity).
 
 ## Summary
 
-- **Passed:** 171
+- **Passed:** 173
 - **Failed:** 0
 
 ## Checks
@@ -72,6 +72,7 @@
 | ✅ | /admin/reports/finance/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/reports/inventory/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/reports/page.tsx | loader + error inherited from admin group |
+| ✅ | /admin/reports/reorder/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/reports/sales/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/returns/[id]/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/returns/exchanges/page.tsx | loader + error inherited from admin group |
@@ -150,12 +151,13 @@
 | ✅ | /admin/purchasing/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/purchasing/receiving/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/purchasing/returns/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
-| ✅ | /admin/purchasing/suppliers/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/reports/branches/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
-| ✅ | /admin/reports/finance/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
-| ✅ | /admin/reports/inventory/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/purchasing/suppliers/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/reports/branches/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/reports/finance/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/reports/inventory/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/reports/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
-| ✅ | /admin/reports/sales/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/reports/reorder/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/reports/sales/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/returns/[id]/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/returns/exchanges/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/returns/new/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |

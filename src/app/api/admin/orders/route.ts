@@ -4,6 +4,7 @@ import { requireRole } from '@/lib/auth/guards';
 import { canAccessBranch } from '@/lib/auth/branch-scope';
 import { computeTotals, num } from '@/lib/pricing';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
+import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
 
 const genOrderNumber = () => `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -108,6 +109,35 @@ export async function POST(req: Request) {
               paymentStatus: 'PENDING',
               notes: notes || null,
               items: { create: orderItemsData },
+            },
+          });
+          await tx.taxInvoice.create({
+            data: {
+              invoiceNumber: orderNumber,
+              orderId: created.id,
+              branchId,
+              totalAmount: totals.total,
+              vatAmount: totals.vat,
+              status: 'SUBMITTED',
+              snapshotSource: 'ISSUED',
+              snapshot: makeInvoiceSnapshot({
+                invoiceNumber: orderNumber,
+                source: 'ORDER',
+                sourceId: created.id,
+                createdAt: new Date(),
+                branch: { id: branch.id, name: branch.name, nameEn: branch.nameEn },
+                customer: { name: guestName || null, phone: String(guestPhone).trim() },
+                paymentMethod: String(paymentMethod),
+                subtotal: totals.subtotal,
+                discount: 0,
+                vat: totals.vat,
+                deliveryFee: 0,
+                total: totals.total,
+                lines: orderItemsData.map((line) => {
+                  const product = byId.get(line.productId);
+                  return { productId: line.productId, nameAr: product?.nameAr || 'منتج رياضي', nameEn: product?.nameEn || 'Sports product', sku: product?.sku || line.productId, barcode: product?.barcode || null, quantity: line.quantity, unitPrice: line.unitPrice, totalPrice: line.totalPrice };
+                }),
+              }),
             },
           });
           return { id: created.id, orderNumber };

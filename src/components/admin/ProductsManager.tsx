@@ -62,6 +62,9 @@ export default function ProductsManager({
   totalCount,
   initialPage = 1,
   initialSearch = '',
+  initialCategoryId = '',
+  initialBrandId = '',
+  initialStatus = '',
 }: {
   products: ProductRow[];
   categories: Array<{ id: string; nameAr: string; nameEn: string }>;
@@ -70,6 +73,9 @@ export default function ProductsManager({
   totalCount?: number;
   initialPage?: number;
   initialSearch?: string;
+  initialCategoryId?: string;
+  initialBrandId?: string;
+  initialStatus?: string;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -80,6 +86,9 @@ export default function ProductsManager({
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => tabFromPath(pathname));
   const [search, setSearch] = useState(initialSearch);
+  const [categoryFilter, setCategoryFilter] = useState(initialCategoryId);
+  const [brandFilter, setBrandFilter] = useState(initialBrandId);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
@@ -127,13 +136,16 @@ export default function ProductsManager({
   }, [search, activeTab, serverSide]);
 
   useEffect(() => {
-    if (serverSide) { setPage(initialPage); setSearch(initialSearch); }
-  }, [initialPage, initialSearch, serverSide]);
+    if (serverSide) { setPage(initialPage); setSearch(initialSearch); setCategoryFilter(initialCategoryId); setBrandFilter(initialBrandId); setStatusFilter(initialStatus); }
+  }, [initialPage, initialSearch, initialCategoryId, initialBrandId, initialStatus, serverSide]);
 
   const submitSearch = () => {
     if (!serverSide) return;
     const params = new URLSearchParams();
     if (search.trim()) params.set('query', search.trim());
+    if (categoryFilter) params.set('categoryId', categoryFilter);
+    if (brandFilter) params.set('brandId', brandFilter);
+    if (statusFilter) params.set('status', statusFilter);
     params.set('page', '1');
     router.push(`${pathname}?${params.toString()}`);
   };
@@ -756,6 +768,11 @@ export default function ProductsManager({
                 className="pr-9 pl-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-64 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
               />
             </div>
+            {serverSide && <div className="flex flex-wrap items-center gap-2">
+              <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); }} onBlur={submitSearch} aria-label={isAr ? 'التصنيف' : 'Category'} className="min-h-[44px] rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs"><option value="">{isAr ? 'كل التصنيفات' : 'All categories'}</option>{categories.map((item) => <option key={item.id} value={item.id}>{isAr ? item.nameAr : item.nameEn}</option>)}</select>
+              <select value={brandFilter} onChange={(e) => { setBrandFilter(e.target.value); }} onBlur={submitSearch} aria-label={isAr ? 'الماركة' : 'Brand'} className="min-h-[44px] rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs"><option value="">{isAr ? 'كل الماركات' : 'All brands'}</option>{brands.map((item) => <option key={item.id} value={item.id}>{isAr ? item.nameAr : item.nameEn}</option>)}</select>
+              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); }} onBlur={submitSearch} aria-label={isAr ? 'الحالة' : 'Status'} className="min-h-[44px] rounded-xl border border-slate-700 bg-slate-900 px-2 text-xs"><option value="">{isAr ? 'كل الحالات' : 'All statuses'}</option><option value="active">{isAr ? 'نشط' : 'Active'}</option><option value="inactive">{isAr ? 'موقوف' : 'Inactive'}</option></select>
+            </div>}
             <div className="flex items-center gap-2">
               <button
                 onClick={exportCsv}
