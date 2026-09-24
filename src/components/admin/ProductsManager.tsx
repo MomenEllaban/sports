@@ -58,10 +58,18 @@ export default function ProductsManager({
   products,
   categories,
   brands,
+  serverSide = false,
+  totalCount,
+  initialPage = 1,
+  initialSearch = '',
 }: {
   products: ProductRow[];
   categories: Array<{ id: string; nameAr: string; nameEn: string }>;
   brands: Array<{ id: string; nameAr: string; nameEn: string }>;
+  serverSide?: boolean;
+  totalCount?: number;
+  initialPage?: number;
+  initialSearch?: string;
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -71,11 +79,11 @@ export default function ProductsManager({
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => tabFromPath(pathname));
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const PAGE_SIZE = 8;
 
   // Product modals
@@ -107,21 +115,38 @@ export default function ProductsManager({
   const stockOf = (p: ProductRow, frag: string) =>
     p.inventories.find((i) => i.branch.name.includes(frag))?.stockQuantity ?? 0;
 
-  const filtered = products.filter(
-    (p) =>
-      p.nameAr.includes(search) ||
-      p.nameEn.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase()) ||
-      (p.barcode || '').includes(search)
+  const filtered = serverSide ? products : products.filter(
+    (p) => p.nameAr.includes(search) || p.nameEn.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode || '').includes(search),
   );
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil((serverSide ? totalCount || products.length : filtered.length) / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const pagedRows = serverSide ? products : filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   useEffect(() => {
-    setPage(1);
-  }, [search, activeTab]);
+    if (!serverSide) setPage(1);
+  }, [search, activeTab, serverSide]);
+
+  useEffect(() => {
+    if (serverSide) { setPage(initialPage); setSearch(initialSearch); }
+  }, [initialPage, initialSearch, serverSide]);
+
+  const submitSearch = () => {
+    if (!serverSide) return;
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('query', search.trim());
+    params.set('page', '1');
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const changePage = (nextPage: number) => {
+    setPage(nextPage);
+    if (serverSide) {
+      const params = new URLSearchParams();
+      if (search.trim()) params.set('query', search.trim());
+      params.set('page', String(nextPage));
+      router.push(`${pathname}?${params.toString()}`);
+    }
+  };
 
   const exportCsv = () => {
     const header = 'sku,barcode,nameAr,nameEn,price,costPrice,category,brand,isActive';
@@ -725,6 +750,7 @@ export default function ProductsManager({
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitSearch(); }}
                 placeholder={isAr ? 'بحث بالاسم أو SKU أو باركود...' : 'Search by name, SKU or barcode...'}
                 aria-label={isAr ? 'بحث في المنتجات' : 'Search products'}
                 className="pr-9 pl-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-64 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
@@ -855,7 +881,7 @@ export default function ProductsManager({
               <span className="text-[11px] font-bold text-slate-400">
                 {isAr ? `${filtered.length} منتج` : `${filtered.length} products`}
               </span>
-              <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+              <Pagination page={safePage} totalPages={totalPages} onPageChange={changePage} />
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
+import { clearGuestWishlist, getWishlist } from '@/components/storefront/WishlistButton';
 import { User, Phone, Package, Star, MapPin, LogOut, Trash2, Plus } from 'lucide-react';
 
 interface PortalOrder {
@@ -79,6 +80,11 @@ export default function AccountClient() {
       });
       const data = await res.json();
       if (data.success) {
+        const guestIds = getWishlist();
+        if (guestIds.length > 0) {
+          const merge = await fetch('/api/account/wishlist/merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productIds: guestIds }) });
+          if (merge.ok) clearGuestWishlist();
+        }
         setPhone('');
         setOrderNumber('');
         await load();

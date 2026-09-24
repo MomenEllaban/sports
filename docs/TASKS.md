@@ -36,8 +36,8 @@
 
 ## G) Storefront / المنتجات
 
-- [ ] ❌ **G1 — Product pagination:** server-side pagination/load-more في Admin وStorefront مع URL filters/order/count.
-- [ ] ❌ **G2 — Wishlist:** زر non-nested، صفحة wishlist، DB للمسجل وlocalStorage للزائر مع merge/login، move-to-cart/delete/count.
+- [x] ✅ **G1 — Product pagination:** pagination/عدد النتائج والفلاتر/الترتيب في URL للـStorefront، وتصفير page مع تغيير الفلتر؛ Admin Products يمرر pagination من الخادم.
+- [x] ✅ **G2 — Wishlist:** قلب sibling غير متداخل، WishlistItem DB للمسجل، localStorage للزائر مع merge عند الدخول، نقل للسلة/حذف/عداد_header، وعزل privacy للـDB.
 
 ## حالة التنفيذ الأولية
 
