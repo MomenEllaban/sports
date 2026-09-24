@@ -12,7 +12,9 @@ export default function AdminSectionTabs({ section, className = '' }: { section:
   const entry = findAdminItemBySection(section);
   const tabs = entry?.item.tabs ?? [];
 
-  const activeHref = tabs.find((tab) => pathMatches(pathname, tab.href))?.href ?? tabs[0]?.href;
+  const activeHref = tabs
+    .filter((tab) => pathMatches(pathname, tab.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? tabs[0]?.href;
 
   if (!entry || tabs.length === 0) return null;
 

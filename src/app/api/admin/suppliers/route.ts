@@ -22,8 +22,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, contactPerson, phone, email, address, taxNumber } = body;
 
-    if (!name) {
+    if (typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ success: false, error: 'اسم المورد مطلوب' }, { status: 400 });
+    }
+    if (email !== undefined && email !== null && email !== '' && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
+      return NextResponse.json({ success: false, error: 'البريد الإلكتروني غير صالح' }, { status: 400 });
     }
 
     const code = `SUP-${Date.now()}`;

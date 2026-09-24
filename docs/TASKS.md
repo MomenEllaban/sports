@@ -17,8 +17,8 @@
 
 ## C) المشتريات والموردون
 
-- [ ] ❌ **C1 — صفحة الموردين المستقلة:** `/admin/purchasing/suppliers` ببياناتها وCRUD وكشف الحساب والمدفوعات وPOs الخاصة.
-- [ ] ❌ **C2 — نموذج Purchase Order:** بحث الصنف بالاسم/الباركود، quantities/cost، total فوري، منع التكرار، validation، responsive، draft/confirm.
+- [x] ✅ **C1 — صفحة الموردين المستقلة:** `/admin/purchasing/suppliers` أصبحت Server Component مستقلة مع CRUD، اختيار مورد، ملخص الالتزامات والمدفوعات، POs والمدفوعات الخاصة، وحماية الحذف من السجلات المالية.
+- [x] ✅ **C2 — نموذج Purchase Order:** بحث بالاسم/SKU/الباركود، اختيار أصناف غير مكررة، quantities/cost، إجمالي لحظي، validation responsive، وحفظ draft/confirm مع API server authoritative ومنع استلام المسودة.
 
 ## D) التقارير
 

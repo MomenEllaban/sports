@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { incrementStock } from '@/lib/inventory/service';
+import { canAccessBranch } from '@/lib/auth/branch-scope';
 
 class PoError extends Error {
   status: number;
@@ -32,6 +33,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const updated = await prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findUnique({ where: { id }, include: { items: true } });
       if (!po) throw new PoError(404, 'Purchase order not found');
+      if (!canAccessBranch(session, po.branchId)) throw new PoError(403, 'Purchase order is outside your branch scope');
+      if (po.status === 'DRAFT') throw new PoError(409, 'Cannot receive a draft purchase order');
       if (po.status === 'CANCELLED' || po.status === 'RECEIVED') {
         throw new PoError(400, 'Purchase order already closed');
       }
