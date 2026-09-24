@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls, Button } from '@/components/ui/foundation';
+import { inputCls, Button, NumberField } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 interface SupplierOpt { id: string; name: string; code: string }
@@ -229,11 +229,11 @@ export default function PurchasingManager({
                 </div>
                 <div className="col-span-3">
                   {idx === 0 && <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الكمية' : 'Qty'}</label>}
-                  <input type="number" min="1" value={line.quantityOrdered} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, quantityOrdered: Number(e.target.value) } : l)))} className={inputCls} placeholder={isAr ? 'الكمية' : 'Qty'} />
+                  <NumberField min={1} step={1} value={line.quantityOrdered} onChange={(v) => setLines(lines.map((l, i) => (i === idx ? { ...l, quantityOrdered: v } : l)))} placeholder={isAr ? 'الكمية' : 'Qty'} />
                 </div>
                 <div className="col-span-3">
                   {idx === 0 && <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'التكلفة (ج.م)' : 'Unit Cost'}</label>}
-                  <input type="number" min="0" value={line.unitCost} onChange={(e) => setLines(lines.map((l, i) => (i === idx ? { ...l, unitCost: Number(e.target.value) } : l)))} className={inputCls} placeholder={isAr ? 'سعر الوحدة' : 'Unit cost'} />
+                  <NumberField min={0} step={0.01} value={line.unitCost} onChange={(v) => setLines(lines.map((l, i) => (i === idx ? { ...l, unitCost: v } : l)))} placeholder={isAr ? 'سعر الوحدة' : 'Unit cost'} />
                 </div>
               </div>
             ))}
@@ -261,7 +261,7 @@ export default function PurchasingManager({
             </div>
             <div>
               <label htmlFor="ret-qty" className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الكمية المرتجعة *' : 'Return qty *'}</label>
-              <input id="ret-qty" type="number" min={1} value={returnQty} onChange={(e) => setReturnQty(Math.max(1, Math.floor(Number(e.target.value) || 1)))} className={inputCls} />
+              <NumberField id="ret-qty" min={1} step={1} value={returnQty} onChange={setReturnQty} />
             </div>
             <div>
               <label htmlFor="ret-reason" className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'سبب الإرجاع (إجباري) *' : 'Reason (required) *'}</label>
@@ -281,11 +281,11 @@ export default function PurchasingManager({
             {receiving.items.map((i) => (
               <div key={i.id} className="flex justify-between items-center gap-3 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
                 <span className="font-bold text-slate-200">{pName(i.product)} <span className="text-slate-500">({i.quantityReceived}/{i.quantityOrdered})</span></span>
-                <input
-                  type="number" min="0" max={i.quantityOrdered - i.quantityReceived}
+                <NumberField
+                  min={0} max={i.quantityOrdered - i.quantityReceived} step={1}
                   value={receiveQty[i.id] ?? 0}
-                  onChange={(e) => setReceiveQty({ ...receiveQty, [i.id]: Number(e.target.value) })}
-                  className="w-24 p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100"
+                  onChange={(v) => setReceiveQty({ ...receiveQty, [i.id]: v })}
+                  inputClassName="w-24"
                 />
               </div>
             ))}

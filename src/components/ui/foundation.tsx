@@ -49,6 +49,66 @@ export function Button({ variant = 'primary', className = '', type = 'button', .
 export const inputCls =
   'w-full min-h-[44px] px-3 py-2 rounded-control bg-slate-900 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors';
 
+// ── NumberField: debounce-free numeric editing without caret loss ──
+// The raw text stays in local state while typing, so the field can always
+// be cleared/edited freely (Number() never snaps back mid-keystroke).
+// The parsed, min/max-clamped value is committed to the parent on blur/Enter.
+interface NumberFieldProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'type' | 'value' | 'defaultValue'> {
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number | 'any';
+  inputClassName?: string;
+}
+
+export function NumberField({
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  inputClassName = '',
+  onBlur,
+  onKeyDown,
+  ...rest
+}: NumberFieldProps) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commit = (raw: string) => {
+    let next = Number(raw);
+    if (!Number.isFinite(next)) next = 0;
+    if (typeof min === 'number' && next < min) next = min;
+    if (typeof max === 'number' && next > max) next = max;
+    setDraft(null);
+    onChange(next);
+  };
+
+  return (
+    <input
+      type="number"
+      inputMode="decimal"
+      dir="ltr"
+      min={min}
+      max={max}
+      step={step}
+      value={draft ?? (value || '')}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={(e) => {
+        commit(e.target.value);
+        onBlur?.(e);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+        onKeyDown?.(e);
+      }}
+      {...rest}
+      className={`${inputCls} font-mono tabular-nums ${inputClassName}`}
+    />
+  );
+}
+
 // ── Skeleton (F0 §1.5): shimmer placeholder for loading states ──
 export function Skeleton({ className = '' }: { className?: string }) {
   return <div aria-hidden="true" className={`animate-pulse rounded-card bg-slate-800/60 ${className}`} />;

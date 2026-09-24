@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Search, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';

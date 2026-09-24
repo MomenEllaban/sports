@@ -6,7 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { Save } from 'lucide-react';
 import { apiFetch, Field, fieldInputCls } from './ui';
 import { useToast } from '@/components/Toast';
-import { Button } from '@/components/ui/foundation';
+import { Button, NumberField } from '@/components/ui/foundation';
 
 interface Zone {
   id: string;
@@ -72,14 +72,12 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
     <div className="flex gap-2 items-end">
       <div className="flex-1">
         <Field label={label} hint={hint}>
-          <input
-            type="number"
+          <NumberField
             min={0}
             step="any"
-            value={String(form[key] ?? '')}
-            onChange={(e) => set(key, Number(e.target.value))}
-            className={fieldInputCls}
-            dir="ltr"
+            value={Number(form[key] ?? 0)}
+            onChange={(v) => set(key, v)}
+            inputClassName={fieldInputCls}
           />
         </Field>
       </div>
@@ -157,13 +155,12 @@ export default function SettingsManager({ initial }: { initial: Record<string, u
             <div key={z.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center gap-3 text-xs">
               <span className="font-bold text-slate-200">{isAr ? z.nameAr : z.nameEn}</span>
               <span className="flex items-center gap-1">
-                <input
-                  type="number"
+                <NumberField
                   min={0}
+                  step={0.01}
                   value={z.fee}
-                  onChange={(e) => setZoneFee(z.id, Number(e.target.value))}
-                  className="w-20 p-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 text-xs"
-                  dir="ltr"
+                  onChange={(v) => setZoneFee(z.id, v)}
+                  inputClassName="w-20 text-center"
                   aria-label={`${z.id} fee`}
                 />
                 <span className="text-amber-400 font-bold">{isAr ? 'ج.م' : 'EGP'}</span>

@@ -5,7 +5,7 @@ import { useRouter } from '@/i18n/routing';
 import { ShoppingCart, MessageCircle, Ruler } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { STORE_WHATSAPP_INTL } from '@/components/storefront/ProductCard';
-import { SafeImage, Button } from '@/components/ui/foundation';
+import { SafeImage, Button, NumberField } from '@/components/ui/foundation';
 import { sizesOf, colorsOf, type VariantOption } from '@/lib/catalog/groups';
 
 export interface SizeChart {
@@ -206,16 +206,14 @@ export default function ProductDetailsClient({
             >
               −
             </button>
-            <input
+            <NumberField
               id="qty"
-              type="number"
               min={1}
               max={Math.max(1, totalStock)}
+              step={1}
               value={qty}
-              onChange={(e) =>
-                setQty(Math.max(1, Math.min(totalStock || 1, Number(e.target.value) || 1)))
-              }
-              className="w-16 text-center py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-sm font-bold"
+              onChange={setQty}
+              inputClassName="w-16 text-center py-1.5"
             />
             <button
               onClick={() => setQty((q) => Math.min(totalStock || 1, q + 1))}

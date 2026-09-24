@@ -6,14 +6,8 @@ import { useLocale } from 'next-intl';
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(true);
-  let isAr = true;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const locale = useLocale();
-    isAr = locale === 'ar';
-  } catch {
-    isAr = typeof document !== 'undefined' && document.documentElement.dir === 'rtl';
-  }
+  const locale = useLocale();
+  const isAr = locale === 'ar';
 
   useEffect(() => {
     // Read saved preference

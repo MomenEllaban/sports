@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
+import { NumberField } from '@/components/ui/foundation';
 
 /** Printable EAN-13 label sheet (T13): search product → copies → print. */
 export default function LabelsClient({ products }: {
@@ -60,7 +61,7 @@ export default function LabelsClient({ products }: {
         </div>
         <div>
           <label htmlFor="lb-copies" className="block font-bold text-slate-300 mb-1">نسخ/صنف</label>
-          <input id="lb-copies" type="number" min={1} max={100} value={copies} onChange={(e) => setCopies(Math.max(1, Math.min(100, Number(e.target.value) || 1)))} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
+          <NumberField id="lb-copies" min={1} max={100} step={1} value={copies} onChange={setCopies} inputClassName="w-full text-center" />
         </div>
         <div className="flex items-end">
           <button onClick={() => window.print()} disabled={selected.length === 0} className="w-full min-h-[44px] px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold">

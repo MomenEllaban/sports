@@ -78,7 +78,10 @@ export default function PosTerminalPage() {
   useEffect(() => {
     fetchPosProducts();
     fetchShiftStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-once; later loads are explicit
+  }, []);
 
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F10') {
         e.preventDefault();

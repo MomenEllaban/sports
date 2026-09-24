@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
 export type ToastKind = 'success' | 'error' | 'info';
@@ -34,8 +34,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, 3500);
   }, []);
 
+  const value = useMemo(() => ({ toast }), [toast]);
+
   return (
-    <Ctx.Provider value={{ toast }}>
+    <Ctx.Provider value={value}>
       {children}
       <div className="fixed bottom-5 end-5 z-[100] space-y-2 w-[calc(100vw-2.5rem)] max-w-sm" aria-live="polite">
         {items.map((t) => (

@@ -6,7 +6,7 @@ import { useRouter, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
-import { inputCls, Button } from '@/components/ui/foundation';
+import { inputCls, Button, NumberField } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
 
@@ -515,11 +515,12 @@ export default function OrdersManager({
                   >
                     {products.map((p) => <option key={p.id} value={p.id}>{isAr ? p.nameAr : p.nameEn} — {p.price.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</option>)}
                   </select>
-                  <input
-                    type="number" min="1"
+                  <NumberField
+                    min={1}
+                    step={1}
                     value={line.quantity}
-                    onChange={(e) => setOrderLines(orderLines.map((l, i) => (i === idx ? { ...l, quantity: Number(e.target.value) } : l)))}
-                    className={`${inputCls} col-span-3`}
+                    onChange={(v) => setOrderLines(orderLines.map((l, i) => (i === idx ? { ...l, quantity: v } : l)))}
+                    inputClassName="col-span-3"
                     placeholder={isAr ? 'الكمية' : 'Qty'}
                   />
                   <button type="button" onClick={() => setOrderLines(orderLines.filter((_, i) => i !== idx))} className="col-span-1 text-rose-400 hover:text-rose-300 font-bold text-lg">×</button>

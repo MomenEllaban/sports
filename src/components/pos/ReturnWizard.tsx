@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { RotateCcw, Search, ArrowLeftRight } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { Stepper, SafeImage, ConfirmDialog, Button } from '@/components/ui/foundation';
+import { Stepper, SafeImage, ConfirmDialog, Button, NumberField } from '@/components/ui/foundation';
 
 interface LookupItem {
   saleItemId: string; productId: string; nameAr: string; sku: string;
@@ -240,7 +240,7 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
                 ))}
                 <div className="flex items-center gap-2">
                   <label htmlFor="rw-exqty" className="font-bold text-slate-300">الكمية:</label>
-                  <input id="rw-exqty" type="number" min={1} value={exchangeQty} onChange={(e) => setExchangeQty(Math.max(1, Math.floor(Number(e.target.value) || 1)))} className="w-20 min-h-[44px] p-2 rounded-xl bg-slate-900 border border-slate-700 font-bold text-center" />
+                  <NumberField id="rw-exqty" min={1} step={1} value={exchangeQty} onChange={setExchangeQty} inputClassName="w-20 text-center" />
                 </div>
               </div>
             )}
