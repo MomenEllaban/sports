@@ -3,38 +3,44 @@ import OrdersManager from '@/components/admin/OrdersManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
+import { branchResourceWhere, branchResourceWhereForSale, branchWhere } from '@/lib/auth/branch-scope';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminOrdersPage() {
-  await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+  const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const [orders, sales, products, branches] = await Promise.all([
     prisma.order.findMany({
+      where: branchResourceWhere(session),
       orderBy: { createdAt: 'desc' },
       include: {
-        items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
+        items: { include: { product: { select: { id: true, nameAr: true, nameEn: true, sku: true } } } },
         customer: { select: { id: true, name: true, phone: true } },
         branch: { select: { id: true, name: true } },
         returns: { select: { id: true, returnNumber: true, status: true, refunds: { select: { id: true, status: true, amount: true } } } },
+        taxInvoice: { select: { id: true } },
       },
     }),
     // POS cashier sales appear here too (source POS, completed/paid) — single source of truth stays the Sale table
     prisma.sale.findMany({
+      where: branchResourceWhereForSale(session),
       orderBy: { createdAt: 'desc' },
       include: {
-        items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
+        items: { include: { product: { select: { id: true, nameAr: true, nameEn: true, sku: true } } } },
         customer: { select: { id: true, name: true, phone: true } },
         branch: { select: { id: true, name: true } },
+        taxInvoice: { select: { id: true } },
       },
     }),
     prisma.product.findMany({ where: { isActive: true }, select: { id: true, nameAr: true, nameEn: true, price: true } }),
-    prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true, nameEn: true } }),
+    prisma.branch.findMany({ where: { isActive: true, ...branchWhere(session) }, select: { id: true, name: true, nameEn: true } }),
   ]);
 
   const orderRows = orders.map((o) => ({
     kind: 'ORDER' as const,
     ...o,
-    receiptImage: (o as { receiptImage?: string | null }).receiptImage ?? null,
+    receiptImage: o.receiptImage ?? null,
+    invoiceId: o.taxInvoice?.id ?? null,
     returns: o.returns.map((r) => ({ ...r, refunds: r.refunds.map((f) => ({ ...f, amount: num(f.amount) })) })),
     totalAmount: num(o.totalAmount),
     subtotal: num(o.subtotal),
@@ -62,10 +68,12 @@ export default async function AdminOrdersPage() {
     taxAmount: num(s.taxAmount),
     orderStatus: s.paymentStatus === 'PAID' ? 'DELIVERED' : 'PENDING',
     paymentStatus: s.paymentStatus,
+    invoiceId: s.taxInvoice?.id ?? null,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.createdAt.toISOString(),
     items: s.items.map((i) => ({
       id: i.id,
+      productId: i.productId,
       quantity: i.quantity,
       unitPrice: num(i.unitPrice),
       totalPrice: num(i.totalPrice),

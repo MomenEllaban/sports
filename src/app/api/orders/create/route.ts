@@ -9,6 +9,7 @@ import { computeStackedTotals, num, linesSubtotal } from '@/lib/pricing';
 import { getVatRate, getRedeemRule } from '@/lib/settings';
 import { quoteCoupon, consumeCoupon, redeemPoints, CouponError } from '@/lib/discounts/coupons';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
+import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
 
 const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -274,6 +275,36 @@ export async function POST(req: Request) {
               qrCodeData: currentReceipt.qrCodeDataUrl,
               status: currentReceipt.status,
               etaResponseText: currentReceipt.message,
+              snapshotSource: 'ISSUED',
+              snapshot: makeInvoiceSnapshot({
+                invoiceNumber: orderNumber,
+                source: 'ORDER',
+                sourceId: created.id,
+                createdAt: new Date(),
+                branch: { id: flagshipBranch.id, name: flagshipBranch.name, nameEn: flagshipBranch.nameEn },
+                customer: { name: name || customer.name, phone },
+                paymentMethod: String(paymentMethod),
+                subtotal: totals.subtotal,
+                discount: totals.totalDiscount,
+                vat: totals.vat,
+                deliveryFee: serverDeliveryFee,
+                total: totals.total,
+                etaUuid: currentReceipt.etaUuid,
+                qrCodeData: currentReceipt.qrCodeDataUrl,
+                lines: orderItemsData.map((line) => {
+                  const product = byId.get(line.productId);
+                  return {
+                    productId: line.productId,
+                    nameAr: product?.nameAr || 'منتج رياضي',
+                    nameEn: product?.nameEn || 'Sports product',
+                    sku: product?.sku || line.productId,
+                    barcode: product?.barcode || null,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                    totalPrice: line.totalPrice,
+                  };
+                }),
+              }),
             },
           });
           return { id: created.id, orderNumber };

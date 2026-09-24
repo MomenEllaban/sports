@@ -6,16 +6,19 @@ import { useRouter, usePathname, Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { Plus, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
-import { inputCls, Button, NumberField } from '@/components/ui/foundation';
+import { inputCls, Button, NumberField, ConfirmDialog } from '@/components/ui/foundation';
+import { nextOrderStatuses, transitionImpact } from '@/lib/orders/transitions';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
+import InvoiceActions from './InvoiceActions';
 
 interface OrderItem {
   id: string;
+  productId: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  product: { nameAr: string; nameEn: string; sku: string };
+  product: { id?: string; nameAr: string; nameEn: string; sku: string };
 }
 
 interface OrderRow {
@@ -36,7 +39,9 @@ interface OrderRow {
   taxAmount: number;
   orderStatus: string;
   paymentStatus: string;
+  editVersion?: number;
   receiptImage?: string | null;
+  invoiceId?: string | null;
   returnStatus?: string;
   returns?: Array<{ id: string; returnNumber: string; status: string; refunds: Array<{ id: string; status: string; amount: number }> }>;
   createdAt: string;
@@ -81,6 +86,7 @@ export default function OrdersManager({
   const [statusFilter, setStatusFilter] = useState(() => filtersFromPath(pathname).status);
   const [sourceFilter, setSourceFilter] = useState(() => filtersFromPath(pathname).source);
   const [updatingId, setUpdatingId] = useState('');
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ id: string; from: string; to: string } | null>(null);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showNewOrder, setShowNewOrder] = useState(false);
@@ -113,6 +119,11 @@ export default function OrdersManager({
   const [orderLines, setOrderLines] = useState<Array<{ productId: string; quantity: number }>>([
     { productId: products[0]?.id || '', quantity: 1 },
   ]);
+  const [editingOrder, setEditingOrder] = useState<OrderRow | null>(null);
+  const [editLines, setEditLines] = useState<Array<{ productId: string; quantity: number }>>([]);
+  const [editForm, setEditForm] = useState({ guestName: '', guestPhone: '', deliveryAddress: '', notes: '', discountAmount: '' });
+  const [editError, setEditError] = useState('');
+  const [editing, setEditing] = useState(false);
 
   const q = searchQuery.trim().toLowerCase();
   const filtered = orderList.filter((o) => {
@@ -135,19 +146,81 @@ export default function OrdersManager({
     setPage(1);
   }, [statusFilter, sourceFilter, searchQuery]);
 
-  const changeStatus = async (id: string, orderStatus: string) => {
-    setUpdatingId(id);
+  const requestStatusChange = (order: OrderRow, to: string) => {
+    if (!nextOrderStatuses(order.orderStatus).some((status) => status === to)) return;
+    setError('');
+    setPendingStatusChange({ id: order.id, from: order.orderStatus, to });
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatusChange) return;
+    const pending = pendingStatusChange;
+    setUpdatingId(pending.id);
     setError('');
     try {
-      await apiFetch(`/api/admin/orders/${id}`, 'PATCH', { orderStatus });
-      setOrderList((prev) => prev.map((o) => (o.id === id ? { ...o, orderStatus } : o)));
+      await apiFetch(`/api/admin/orders/${pending.id}/status`, 'PATCH', {
+        toStatus: pending.to,
+        expectedFromStatus: pending.from,
+      });
+      setOrderList((prev) => prev.map((o) => (o.id === pending.id ? { ...o, orderStatus: pending.to } : o)));
+      setPendingStatusChange(null);
       toast(t('orderStatusUpdated'), 'success');
-    } catch {
-      const msg = t('operationFailed');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : t('operationFailed');
+      setPendingStatusChange(null);
       setError(msg);
       toast(msg, 'error');
+      router.refresh();
     } finally {
       setUpdatingId('');
+    }
+  };
+
+  const canEditOrder = (order: OrderRow) => order.kind === 'ORDER'
+    && ['PENDING', 'CONFIRMED'].includes(order.orderStatus)
+    && order.paymentStatus === 'PENDING'
+    && !order.receiptImage;
+
+  const openEditOrder = (order: OrderRow) => {
+    if (!canEditOrder(order)) return;
+    setEditingOrder(order);
+    setEditError('');
+    setEditForm({
+      guestName: order.guestName || order.customer?.name || '',
+      guestPhone: order.guestPhone,
+      deliveryAddress: order.deliveryAddress,
+      notes: '',
+      discountAmount: String(order.discountAmount || 0),
+    });
+    setEditLines(order.items.map((item) => ({ productId: item.productId, quantity: item.quantity })));
+  };
+
+  const handleEditOrder = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingOrder) return;
+    setEditing(true);
+    setEditError('');
+    try {
+      const discount = Number(editForm.discountAmount || 0);
+      if (!Number.isFinite(discount) || discount < 0) throw new Error(isAr ? 'الخصم غير صالح' : 'Invalid discount');
+      await apiFetch(`/api/admin/orders/${editingOrder.id}/edit`, 'PATCH', {
+        expectedVersion: editingOrder.editVersion || 0,
+        guestName: editForm.guestName,
+        guestPhone: editForm.guestPhone,
+        deliveryAddress: editForm.deliveryAddress,
+        notes: editForm.notes,
+        discountAmount: discount,
+        items: editLines,
+      });
+      setEditingOrder(null);
+      toast(isAr ? 'تم تعديل الطلب وتسجيله في سجل التدقيق' : 'Order updated and audited', 'success');
+      router.refresh();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t('operationFailed');
+      setEditError(message);
+      toast(message, 'error');
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -353,10 +426,12 @@ export default function OrdersManager({
                       <select
                         value={ord.orderStatus}
                         disabled={updatingId === ord.id}
-                        onChange={(e) => changeStatus(ord.id, e.target.value)}
-                        className="px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs disabled:opacity-60"
+                        onChange={(e) => requestStatusChange(ord, e.target.value)}
+                        aria-label={isAr ? 'تأكيد تغيير حالة الطلب' : 'Confirm order status change'}
+                        className="min-h-[44px] px-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs disabled:opacity-60"
                       >
-                        {SELECTABLE_ORDER_STATUSES.map((s) => (
+                        <option value={ord.orderStatus}>{t(`status_${ord.orderStatus}`)}</option>
+                        {nextOrderStatuses(ord.orderStatus).map((s) => (
                           <option key={s} value={s}>{t(`status_${s}`)}</option>
                         ))}
                       </select>
@@ -364,6 +439,15 @@ export default function OrdersManager({
                       <span className="text-[11px] text-slate-500 font-bold" title={isAr ? 'بيع كاشير مكتمل ومدفوع' : 'Completed paid POS sale'}>
                         {isAr ? 'بيع مكتمل' : 'Completed'}
                       </span>
+                    )}
+                    {canEditOrder(ord) && (
+                      <button
+                        type="button"
+                        onClick={() => openEditOrder(ord)}
+                        className="mt-2 min-h-[44px] px-2.5 rounded-lg border border-blue-500/40 bg-blue-500/10 text-blue-300 text-[10px] font-bold hover:bg-blue-500/20"
+                      >
+                        {isAr ? 'تعديل الطلب' : 'Edit order'}
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -386,6 +470,10 @@ export default function OrdersManager({
                               </div>
                             </div>
                           ))}
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-slate-950 p-3">
+                          <span className="text-[11px] font-bold text-slate-300">{isAr ? 'الفاتورة' : 'Invoice'}</span>
+                          <InvoiceActions invoiceId={ord.invoiceId} compact />
                         </div>
                         {/* Order Summary */}
                         <div className="mt-3 flex flex-wrap gap-4 text-[11px] text-slate-400">
@@ -472,6 +560,77 @@ export default function OrdersManager({
       )}
 
       {/* New Manual Order Modal */}
+      <ConfirmDialog
+        open={Boolean(pendingStatusChange)}
+        title={isAr ? 'تأكيد تغيير حالة الطلب' : 'Confirm order status change'}
+        impact={pendingStatusChange ? `${isAr ? 'رقم الطلب' : 'Order'}: ${pendingStatusChange.id}\n${isAr ? 'من' : 'From'}: ${t(`status_${pendingStatusChange.from}`)} ← ${isAr ? 'إلى' : 'to'} ${t(`status_${pendingStatusChange.to}`)}\n${transitionImpact(pendingStatusChange.to) === 'RESTOCK'
+          ? (isAr ? 'سيتم إرجاع كميات الأصناف إلى مخزون الفرع.' : 'The order quantities will be returned to branch stock.')
+          : transitionImpact(pendingStatusChange.to) === 'FULFILLMENT'
+            ? (isAr ? 'سيتم تحديث مسار الشحن/التسليم. لن يتغير المخزون.' : 'Fulfillment/tracking will advance. Stock will not change.')
+            : (isAr ? 'لن يتغير المخزون من هذه العملية.' : 'This transition will not change stock.')}` : ''}
+        confirmLabel={isAr ? 'تأكيد التغيير' : 'Confirm change'}
+        onConfirm={confirmStatusChange}
+        onClose={() => setPendingStatusChange(null)}
+        busy={Boolean(updatingId)}
+      />
+
+      {editingOrder && (
+        <Modal title={isAr ? `تعديل الطلب ${editingOrder.orderNumber}` : `Edit order ${editingOrder.orderNumber}`} onClose={() => setEditingOrder(null)} size="lg">
+          <form onSubmit={handleEditOrder} className="space-y-4 text-xs">
+            {editError && <div role="alert" className="status-danger rounded-xl border p-3 font-bold">{editError}</div>}
+            <p className="text-slate-400">{isAr ? 'تُحسب الإجماليات والمخزون على الخادم، ولا يمكن تعديل طلب بعد التجهيز أو الدفع.' : 'Totals and stock are recalculated on the server; shipped or paid orders cannot be edited.'}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>{isAr ? 'اسم العميل' : 'Customer name'}</label>
+                <input value={editForm.guestName} onChange={(e) => setEditForm({ ...editForm, guestName: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>{isAr ? 'رقم الموبايل' : 'Phone'}</label>
+                <input required dir="ltr" value={editForm.guestPhone} onChange={(e) => setEditForm({ ...editForm, guestPhone: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>{isAr ? 'عنوان التوصيل' : 'Delivery address'}</label>
+              <input required value={editForm.deliveryAddress} onChange={(e) => setEditForm({ ...editForm, deliveryAddress: e.target.value })} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>{isAr ? 'الخصم (ج.م)' : 'Discount (EGP)'}</label>
+              <input type="number" min="0" step="0.01" value={editForm.discountAmount} onChange={(e) => setEditForm({ ...editForm, discountAmount: e.target.value })} className={inputCls} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <label className={labelCls + ' mb-0'}>{isAr ? 'الأصناف' : 'Items'}</label>
+                <span className="font-bold text-slate-300">{isAr ? 'الإجمالي التقديري' : 'Indicative total'}: {(editLines.reduce((sum, line) => { const p = products.find((item) => item.id === line.productId); return sum + (p?.price || 0) * line.quantity; }, 0)).toLocaleString()}</span>
+              </div>
+              <div className="space-y-2">
+                {editLines.map((line, index) => {
+                  const selectedIds = new Set(editLines.filter((_, i) => i !== index).map((item) => item.productId));
+                  return (
+                    <div key={`${line.productId}-${index}`} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_100px_auto] gap-2 items-center">
+                      <select value={line.productId} onChange={(e) => setEditLines(editLines.map((item, i) => i === index ? { ...item, productId: e.target.value } : item))} className={inputCls}>
+                        {products.filter((product) => !selectedIds.has(product.id)).map((product) => <option key={product.id} value={product.id}>{isAr ? product.nameAr : product.nameEn} — {product.price.toLocaleString()}</option>)}
+                      </select>
+                      <NumberField min={1} step={1} value={line.quantity} onChange={(value) => setEditLines(editLines.map((item, i) => i === index ? { ...item, quantity: value } : item))} inputClassName="w-full" />
+                      <button type="button" onClick={() => setEditLines(editLines.filter((_, i) => i !== index))} className="min-h-[44px] px-3 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-500/10" aria-label={isAr ? 'حذف الصنف' : 'Remove item'}>×</button>
+                    </div>
+                  );
+                })}
+              </div>
+              <button type="button" onClick={() => {
+                const used = new Set(editLines.map((line) => line.productId));
+                const next = products.find((product) => !used.has(product.id));
+                if (next) setEditLines([...editLines, { productId: next.id, quantity: 1 }]);
+              }} className="mt-2 min-h-[44px] text-blue-400 font-bold hover:underline text-xs">+ {isAr ? 'إضافة صنف' : 'Add item'}</button>
+            </div>
+            <div>
+              <label className={labelCls}>{isAr ? 'ملاحظات التعديل' : 'Edit notes'}</label>
+              <textarea rows={2} value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} className={`${inputCls} resize-none`} />
+            </div>
+            <Button type="submit" variant="primary" disabled={editing} className="w-full">{editing ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديل' : 'Save changes')}</Button>
+          </form>
+        </Modal>
+      )}
+
       {showNewOrder && (
         <Modal title={isAr ? 'إضافة طلب يدوي (واتساب/هاتف)' : 'Add Manual Order (WhatsApp/Phone)'} onClose={() => setShowNewOrder(false)}>
           <form onSubmit={handleCreateOrder} className="space-y-3 text-xs">

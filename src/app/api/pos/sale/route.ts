@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { buildEtaReceipt } from '@/lib/eta';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
+import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 import { resolvePosContext, PosContextError } from '@/lib/pos/context';
 import { authorizeDiscount, DiscountAuthError } from '@/lib/pos/discount';
@@ -278,6 +279,36 @@ export async function POST(req: Request) {
               qrCodeData: currentReceipt.qrCodeDataUrl,
               status: currentReceipt.status,
               etaResponseText: currentReceipt.message,
+              snapshotSource: 'ISSUED',
+              snapshot: makeInvoiceSnapshot({
+                invoiceNumber: saleNumber,
+                source: 'SALE',
+                sourceId: created.id,
+                createdAt: new Date(),
+                branch: { id: ctx.branch.id, name: ctx.branch.name, nameEn: ctx.branch.nameEn },
+                cashier: { id: ctx.cashierId },
+                paymentMethod: String(paymentMethod),
+                subtotal: totals.subtotal,
+                discount: totals.totalDiscount,
+                vat: totals.vat,
+                deliveryFee: 0,
+                total: totals.total,
+                etaUuid: currentReceipt.etaUuid,
+                qrCodeData: currentReceipt.qrCodeDataUrl,
+                lines: priced.map((line) => {
+                  const product = byId.get(line.productId);
+                  return {
+                    productId: line.productId,
+                    nameAr: product?.nameAr || 'منتج رياضي',
+                    nameEn: product?.nameEn || 'Sports product',
+                    sku: product?.sku || line.productId,
+                    barcode: product?.barcode || null,
+                    quantity: line.quantity,
+                    unitPrice: line.unitPrice,
+                    totalPrice: line.totalPrice,
+                  };
+                }),
+              }),
             },
           });
           return { id: created.id, saleNumber };

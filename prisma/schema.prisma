@@ -394,6 +394,8 @@ model Order {
   notes            String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  // B02: optimistic version for safe order edits.
+  editVersion      Int              @default(0)
 
   branch     Branch      @relation(fields: [branchId], references: [id])
   customer   Customer?   @relation(fields: [customerId], references: [id])
@@ -634,14 +636,35 @@ model TaxInvoice {
   qrCodeData      String?
   status          TaxInvoiceStatus @default(SUBMITTED)
   etaResponseText String?
-  createdAt       DateTime         @default(now())
+  // Immutable presentation snapshot captured at issuance; legacy rows may be null.
+  snapshot         Json?
+  snapshotSource   String           @default("LEGACY_RECONSTRUCTED")
+  reprintCount     Int              @default(0)
+  lastReprintedAt  DateTime?
+  createdAt        DateTime         @default(now())
 
-  branch Branch @relation(fields: [branchId], references: [id])
+  branch   Branch          @relation(fields: [branchId], references: [id])
+  reprints InvoiceReprint[]
   order  Order? @relation(fields: [orderId], references: [id])
   sale   Sale?  @relation(fields: [saleId], references: [id])
 }
 
-// T16: coupons + usage ledger (single source for promo discounts).
+model InvoiceReprint {
+  id           String   @id @default(cuid())
+  taxInvoiceId String
+  requestId    String   @unique
+  copyNumber   Int
+  locale       String   @default("ar")
+  reason       String?
+  printedById  String?
+  createdAt    DateTime @default(now())
+
+  taxInvoice TaxInvoice @relation(fields: [taxInvoiceId], references: [id], onDelete: Cascade)
+
+  @@index([taxInvoiceId, createdAt])
+}
+
+
 model Coupon {
   id          String    @id @default(cuid())
   code        String    @unique

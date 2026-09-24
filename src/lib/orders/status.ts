@@ -1,23 +1,16 @@
 import { prisma } from '@/lib/db';
 import { incrementStock } from '@/lib/inventory/service';
 import type { OrderStatus } from '@prisma/client';
+import { ORDER_TRANSITIONS as CLIENT_ORDER_TRANSITIONS } from './transitions';
 
 type S = OrderStatus;
+
+export const ORDER_TRANSITIONS: Record<S, S[]> = CLIENT_ORDER_TRANSITIONS as unknown as Record<S, S[]>;
 
 /**
  * Allowed order transitions (T08, documented single source of truth).
  * Terminal: CANCELLED, RETURNED. Cancel/return triggers exactly-once restock.
  */
-export const ORDER_TRANSITIONS: Record<S, S[]> = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['PROCESSING', 'CANCELLED'],
-  PROCESSING: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['DELIVERED', 'RETURNED', 'CANCELLED'],
-  DELIVERED: ['RETURNED'],
-  CANCELLED: [],
-  RETURNED: [],
-};
-
 export function canTransition(from: S, to: S): boolean {
   return (ORDER_TRANSITIONS[from] || []).includes(to);
 }
@@ -40,7 +33,8 @@ export class OrderTransitionError extends Error {
 export async function transitionOrder(
   orderId: string,
   to: S,
-  actingUserId?: string
+  actingUserId?: string,
+  expectedFrom?: S
 ): Promise<{ orderNumber: string; from: S; to: S }> {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -52,6 +46,11 @@ export async function transitionOrder(
     throw e;
   }
   const from = order.orderStatus as S;
+  if (expectedFrom && expectedFrom !== from) {
+    const e = new OrderTransitionError(`Order changed concurrently (expected ${expectedFrom}, now ${from})`);
+    e.status = 409;
+    throw e;
+  }
   if (from === to) {
     throw new OrderTransitionError(`Order is already ${to}`);
   }
@@ -60,13 +59,25 @@ export async function transitionOrder(
   }
 
   if (!isRestockingStatus(to)) {
-    const updated = await prisma.order.updateMany({
-      where: { id: orderId, orderStatus: from },
-      data: { orderStatus: to },
-    });
-    if (updated.count !== 1) {
-      throw new OrderTransitionError(`Order changed concurrently (now not ${from})`);
-    }
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.updateMany({
+        where: { id: orderId, orderStatus: from },
+        data: { orderStatus: to },
+      });
+      if (updated.count !== 1) {
+        throw new OrderTransitionError(`Order changed concurrently (now not ${from})`);
+      }
+      await tx.auditLog.create({
+        data: {
+          actorId: actingUserId || null,
+          action: 'order.status_changed',
+          entity: 'Order',
+          entityId: orderId,
+          branchId: order.branchId,
+          metadata: JSON.stringify({ from, to }),
+        },
+      });
+    }, { maxWait: 10000, timeout: 20000 });
     return { orderNumber: order.orderNumber, from, to };
   }
 
@@ -90,6 +101,16 @@ export async function transitionOrder(
         createdById: actingUserId,
       });
     }
+    await tx.auditLog.create({
+      data: {
+        actorId: actingUserId || null,
+        action: 'order.status_changed',
+        entity: 'Order',
+        entityId: orderId,
+        branchId: order.branchId,
+        metadata: JSON.stringify({ from, to, restocked: true }),
+      },
+    });
   }, { maxWait: 10000, timeout: 20000 });
 
   return { orderNumber: order.orderNumber, from, to };

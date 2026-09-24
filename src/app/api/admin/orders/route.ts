@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { canAccessBranch } from '@/lib/auth/branch-scope';
 import { computeTotals, num } from '@/lib/pricing';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 
@@ -8,7 +9,7 @@ const genOrderNumber = () => `ORD-2026-${Math.floor(100000 + Math.random() * 900
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const body = await req.json();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
     const branch = await prisma.branch.findFirst({ where: { id: branchId, isActive: true } });
     if (!branch) {
       return NextResponse.json({ success: false, error: 'الفرع غير صالح' }, { status: 400 });
+    }
+    if (!canAccessBranch(session, branchId)) {
+      return NextResponse.json({ success: false, error: 'لا تملك صلاحية إنشاء طلب في هذا الفرع' }, { status: 403 });
     }
 
     // Validate item shape first so we can load all products in one query.
@@ -101,7 +105,7 @@ export async function POST(req: Request) {
               deliveryFee: 0,
               deliveryZone: 'MANUAL',
               totalAmount: totals.total,
-              paymentStatus: paymentMethod === 'CASH' || paymentMethod === 'COD' ? 'PAID' : 'PENDING',
+              paymentStatus: 'PENDING',
               notes: notes || null,
               items: { create: orderItemsData },
             },

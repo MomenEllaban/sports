@@ -12,6 +12,7 @@ import { computeTotals } from '@/lib/pricing';
 import { buildEtaReceipt } from '@/lib/eta';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { captureError } from '@/lib/monitor';
+import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
 
 const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
 
@@ -262,6 +263,36 @@ async function createExchangeSale(
             invoiceNumber: saleNumber, etaUuid: receipt.etaUuid, saleId: s.id,
             branchId: ctx.branch.id, totalAmount: totals.total, vatAmount: totals.vat,
             qrCodeData: receipt.qrCodeDataUrl, status: receipt.status, etaResponseText: receipt.message,
+            snapshotSource: 'ISSUED',
+            snapshot: makeInvoiceSnapshot({
+              invoiceNumber: saleNumber,
+              source: 'SALE',
+              sourceId: s.id,
+              createdAt: new Date(),
+              branch: { id: ctx.branch.id, name: 'فرع POS' },
+              cashier: { id: ctx.cashierId },
+              paymentMethod: method,
+              subtotal: totals.subtotal,
+              discount: 0,
+              vat: totals.vat,
+              deliveryFee: 0,
+              total: totals.total,
+              etaUuid: receipt.etaUuid,
+              qrCodeData: receipt.qrCodeDataUrl,
+              lines: priced.map((line) => {
+                const product = byId.get(line.productId);
+                return {
+                  productId: line.productId,
+                  nameAr: product?.nameAr || 'منتج رياضي',
+                  nameEn: product?.nameEn || 'Sports product',
+                  sku: product?.sku || line.productId,
+                  barcode: product?.barcode || null,
+                  quantity: line.quantity,
+                  unitPrice: line.unitPrice,
+                  totalPrice: line.totalPrice,
+                };
+              }),
+            }),
           },
         });
         return s;

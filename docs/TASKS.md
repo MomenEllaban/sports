@@ -11,9 +11,9 @@
 
 ## B) الطلبات
 
-- [ ] ❌ **B1 — تأكيد تغيير حالة الطلب:** Confirm Dialog يعرض الطلب، الحالة الحالية→الجديدة، والأثر، مع rollback للـ UI.
-- [ ] ❌ **B2 — تعديل الطلب:** تعديل بيانات العميل/العنوان/الأصناف/الخصم/الملاحظات في الحالات المسموحة، مع server totals وstock delta وAudit Log.
-- [ ] ❌ **B3 — الفاتورة القديمة:** زر عرض/إعادة طباعة snapshot الطلب أو البيع، مع توضيح أنها نسخة معادة الطباعة وتسجيلها في Audit.
+- [x] ✅ **B1 — تأكيد تغيير حالة الطلب:** Confirm Dialog يعرض رقم الطلب، الحالة الحالية→الجديدة، وأثر الإرجاع/التشغيل، مع endpoint متوقع الحالة وrollback للـ UI وتسجيل Audit.
+- [x] ✅ **B2 — تعديل الطلب:** endpoint فعلي لـ PENDING/CONFIRMED مع optimistic version، server-side totals، stock delta داخل transaction، قيود الدفع/الفاتورة/المرتجع، وAudit Log؛ اختبارات rollback/stale مضافة.
+- [x] ✅ **B3 — الفاتورة القديمة:** snapshot issuance للطلبات/المبيعات، عرض/إعادة طباعة مع توضيح أنها نسخة معادة، requestId/idempotency، وAudit/InvoiceReprint؛ السجلات القديمة تُعرض كـ legacy reconstructed بوسم واضح.
 
 ## C) المشتريات والموردون
 
