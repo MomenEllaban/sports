@@ -81,4 +81,3 @@ export function AdminIcon({ name, ...props }: { name: AdminIconName } & LucidePr
   const Icon = ICONS[name] ?? Menu;
   return <Icon aria-hidden="true" {...props} />;
 }
-
