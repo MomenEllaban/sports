@@ -1,328 +1,251 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname, Link } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
 import { useSession } from 'next-auth/react';
-import {
-  LayoutDashboard,
-  ShoppingBag,
-  Package,
-  Layers,
-  Truck,
-  HandCoins,
-  Users,
-  UserCog,
-  DollarSign,
-  Briefcase,
-  BarChart3,
-  Bell,
-  Clock3,
-  RotateCcw,
-  Star,
-  TicketPercent,
-  Settings,
-  ShieldAlert,
-  Monitor,
-  PanelLeftClose,
-  PanelLeftOpen,
-  User,
-} from 'lucide-react';
-import { Role } from '@prisma/client';
 import Image from 'next/image';
+import { Monitor, PanelLeftClose, PanelLeftOpen, User, X } from 'lucide-react';
+import {
+  ADMIN_ROLES,
+  getVisibleAdminGroups,
+  normalizeAdminPath,
+  pathMatches,
+  type AdminNavItem,
+  type AdminRole,
+} from '@/config/admin-navigation';
+import { AdminIcon } from './AdminIcon';
 import NavPending from '@/components/layout/NavPending';
 
-export interface SidebarItem {
-  key: string;
-  labelAr: string;
-  labelEn: string;
-  href: string;
-  icon: React.ReactNode;
-  allowedRoles?: Role[];
+const GROUP_STORAGE_KEY = 'admin:sidebar-groups';
+const COLLAPSED_STORAGE_KEY = 'admin:sidebar-collapsed';
+
+function Tooltip({ children, label }: { children: React.ReactNode; label: string }) {
+  return (
+    <span className="group/tooltip relative inline-flex min-w-0">
+      {children}
+      <span className="pointer-events-none absolute start-1/2 top-full z-50 mt-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-bold text-slate-200 opacity-0 shadow-xl transition-opacity group-hover/tooltip:block group-hover/tooltip:opacity-100 rtl:translate-x-1/2">
+        {label}
+      </span>
+    </span>
+  );
 }
 
-export default function AdminSidebar() {
-  const pathname = usePathname();
+function isAdminRole(value: unknown): value is AdminRole {
+  return typeof value === 'string' && (ADMIN_ROLES as readonly string[]).includes(value);
+}
+
+export default function AdminSidebar({
+  mobileOpen = false,
+  onClose,
+}: {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
+  const pathname = usePathname() || '/admin';
   const locale = useLocale();
   const isAr = locale === 'ar';
   const { data: session } = useSession();
-
-  const userRole = (session?.user as { role?: Role })?.role || Role.SUPER_ADMIN;
+  const rawRole = (session?.user as { role?: unknown } | undefined)?.role;
+  const role: AdminRole = isAdminRole(rawRole) ? rawRole : 'SUPER_ADMIN';
 
   const [collapsed, setCollapsed] = useState(false);
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
-    let saved = false;
+    let savedCollapsed = false;
+    let savedGroups: Record<string, boolean> = {};
     try {
-      saved = localStorage.getItem('admin:sidebar-collapsed') === '1';
+      savedCollapsed = localStorage.getItem(COLLAPSED_STORAGE_KEY) === '1';
+      const raw = localStorage.getItem(GROUP_STORAGE_KEY);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') savedGroups = parsed as Record<string, boolean>;
+      }
     } catch {
-      /* private-mode storage unavailable: keep expanded */
+      // Private browsing and storage-disabled browsers use defaults.
     }
-    setCollapsed(saved);
+    setCollapsed(savedCollapsed);
+    setGroupOpen(savedGroups);
   }, []);
 
+  useEffect(() => {
+    const currentPath = normalizeAdminPath(pathname);
+    const currentGroup = getVisibleAdminGroups(role).find((group) =>
+      group.items.some((item) => pathMatches(currentPath, item.href)),
+    );
+    if (currentGroup) {
+      setGroupOpen((previous) => {
+        if (previous[currentGroup.key]) return previous;
+        const next = { ...previous, [currentGroup.key]: true };
+        try {
+          localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // Ignore storage failures.
+        }
+        return next;
+      });
+    }
+  }, [pathname, role]);
+
+  const groups = useMemo(() => getVisibleAdminGroups(role), [role]);
+
   const toggleCollapsed = () => {
-    setCollapsed((c) => {
-      const next = !c;
+    setCollapsed((current) => {
+      const next = !current;
       try {
-        localStorage.setItem('admin:sidebar-collapsed', next ? '1' : '0');
+        localStorage.setItem(COLLAPSED_STORAGE_KEY, next ? '1' : '0');
       } catch {
-        /* ignore */
+        // Ignore storage failures.
       }
       return next;
     });
   };
 
-  const sidebarNav: SidebarItem[] = [
-    {
-      key: 'dashboard',
-      labelAr: 'لوحة المعلومات والملخص',
-      labelEn: 'Dashboard Overview',
-      href: '/admin',
-      icon: <LayoutDashboard className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
-    },
-    {
-      key: 'orders',
-      labelAr: 'إدارة الطلبات (Online/POS/WA)',
-      labelEn: 'Orders Management',
-      href: '/admin/orders',
-      icon: <ShoppingBag className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
-    },
-    {
-      key: 'products',
-      labelAr: 'المنتجات والكتالوج',
-      labelEn: 'Product Catalog',
-      href: '/admin/products',
-      icon: <Package className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
-    },
-    {
-      key: 'inventory',
-      labelAr: 'المخزون والتحويلات بين الفروع',
-      labelEn: 'Inventory & Stock Transfers',
-      href: '/admin/inventory',
-      icon: <Layers className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.STAFF],
-    },
-    {
-      key: 'purchasing',
-      labelAr: 'المشتريات وأوامر التوريد',
-      labelEn: 'Purchasing & Suppliers',
-      href: '/admin/purchasing',
-      icon: <Truck className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
-    },
-    {
-      key: 'customers',
-      labelAr: 'سجل العملاء والولاء',
-      labelEn: 'Customer Directory & Loyalty',
-      href: '/admin/customers',
-      icon: <Users className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
-    },
-    {
-      key: 'employees',
-      labelAr: 'الموظفين والكادر الوظيفي',
-      labelEn: 'Employees & Staff',
-      href: '/admin/employees',
-      icon: <UserCog className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
-    },
-    {
-      key: 'accounting',
-      labelAr: 'الحسابات، الأرباح، وضرائب ETA',
-      labelEn: 'Accounting & P&L',
-      href: '/admin/accounting',
-      icon: <DollarSign className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
-    },
-    {
-      key: 'payroll',
-      labelAr: 'مرتبات الموظفين والعمولات',
-      labelEn: 'Payroll & Commissions',
-      href: '/admin/payroll',
-      icon: <Briefcase className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
-    },
-    {
-      key: 'cod-settlement',
-      labelAr: 'تسوية التحصيل النقدي COD',
-      labelEn: 'COD Settlement',
-      href: '/admin/cod-settlement',
-      icon: <HandCoins className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.FINANCE],
-    },
-    {
-      key: 'returns',
-      labelAr: 'المرتجعات والاستبدال',
-      labelEn: 'Returns & Exchange',
-      href: '/admin/returns',
-      icon: <RotateCcw className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
-    },
-    {
-      key: 'reviews',
-      labelAr: 'تقييمات العملاء',
-      labelEn: 'Customer Reviews',
-      href: '/admin/reviews',
-      icon: <Star className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
-    },
-    {
-      key: 'coupons',
-      labelAr: 'الكوبونات والعروض',
-      labelEn: 'Coupons & Promos',
-      href: '/admin/coupons',
-      icon: <TicketPercent className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER],
-    },
-    {
-      key: 'shifts',
-      labelAr: 'الورديات والدرج',
-      labelEn: 'Shifts & Cash Drawer',
-      href: '/admin/shifts',
-      icon: <Clock3 className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
-    },
-    {
-      key: 'reports',
-      labelAr: 'التقارير التحليلية للفروع',
-      labelEn: 'Analytics & Reports',
-      href: '/admin/reports',
-      icon: <BarChart3 className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE],
-    },
-    {
-      key: 'notifications',
-      labelAr: 'مركز التنبيهات والإشعارات',
-      labelEn: 'Notification Center',
-      href: '/admin/notifications',
-      icon: <Bell className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN, Role.BRANCH_MANAGER, Role.FINANCE, Role.CASHIER, Role.STAFF],
-    },
-    {
-      key: 'users',
-      labelAr: 'المستخدمين والصلاحيات',
-      labelEn: 'Users & Permissions',
-      href: '/admin/users',
-      icon: <ShieldAlert className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN],
-    },
-    {
-      key: 'settings',
-      labelAr: 'إعدادات الفروع والضرائب',
-      labelEn: 'System & Branch Settings',
-      href: '/admin/settings',
-      icon: <Settings className="w-5 h-5" />,
-      allowedRoles: [Role.SUPER_ADMIN],
-    },
-  ];
+  const toggleGroup = (key: string) => {
+    if (collapsed) {
+      setCollapsed(false);
+      try {
+        localStorage.setItem(COLLAPSED_STORAGE_KEY, '0');
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+    setGroupOpen((previous) => {
+      const next = { ...previous, [key]: !(previous[key] ?? true) };
+      try {
+        localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore storage failures.
+      }
+      return next;
+    });
+  };
 
-  // Role Gating Filter: Hide Accounting & Payroll from CASHIER and STAFF
-  const filteredNav = sidebarNav.filter(
-    (item) => !item.allowedRoles || item.allowedRoles.includes(userRole)
-  );
+  const userName = session?.user?.name || (isAr ? 'مستخدم النظام' : 'System user');
+  const userEmail = session?.user?.email || '';
+  const visibleWidth = collapsed && !mobileOpen ? 'w-20' : 'w-72';
+  const showLabels = !collapsed || mobileOpen;
 
   return (
-    <aside className={`${collapsed ? 'w-20' : 'w-64'} h-full bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 min-h-0 overflow-y-auto transition-[width] duration-200 ease-in-out`}>
-      <div className="p-3 space-y-4 flex-1">
-        {/* Brand Header + Collapse toggle */}
-        <div className={`flex items-center gap-2 border-b border-slate-800 pb-3 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          <Link href="/admin" className={`flex items-center gap-3 min-w-0 ${collapsed ? 'flex-1 justify-center' : 'flex-1'}`}>
-            <Image
-              src="/logo.avif"
-              alt="أبطال الرياضة الإبراهيمية"
-              width={960}
-              height={822}
-              priority
-              quality={80}
-              sizes="48px"
-              className="h-10 w-auto rounded-lg object-contain shrink-0"
-            />
-            {!collapsed && (
-              <div className="min-w-0">
-                <h2 className="font-extrabold text-sm text-slate-100 truncate">ابطال الرياضة</h2>
-                <p className="text-[10px] text-amber-400 font-semibold truncate">ERP الإسكندرية</p>
-              </div>
-            )}
-          </Link>
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            title={collapsed ? (isAr ? 'توسيع القائمة الجانبية' : 'Expand sidebar') : (isAr ? 'طي القائمة الجانبية' : 'Collapse sidebar')}
-            aria-label={collapsed ? (isAr ? 'توسيع القائمة الجانبية' : 'Expand sidebar') : (isAr ? 'طي القائمة الجانبية' : 'Collapse sidebar')}
-            className="shrink-0 p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-          >
-            {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-          </button>
-        </div>
-
-        {/* User & Role Badge */}
-        {collapsed ? (
-          <div className="flex justify-center">
-            <div
-              title={`${session?.user?.name || (session?.user?.email ? session.user.email.split('@')[0] : 'مستخدم النظام')} — ${userRole}`}
-              className="w-10 h-10 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-center text-slate-300"
-            >
-              <User className="w-5 h-5" />
-            </div>
-          </div>
-        ) : (
-          <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-[10px] font-medium">المستخدم المسجل:</span>
-              <span className="font-black text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                {userRole}
-              </span>
-            </div>
-            <p className="font-black text-slate-100 text-xs truncate">
-              {session?.user?.name || (session?.user?.email ? session.user.email.split('@')[0] : 'مستخدم النظام')}
-            </p>
-            <p className="text-[10px] text-slate-400 font-mono truncate" dir="ltr">
-              {session?.user?.email || ''}
-            </p>
-          </div>
-        )}
-
-        {/* Navigation Items */}
-        <nav className="space-y-1">
-          {filteredNav.map((item) => {
-            const isActive = pathname === item.href;
-            const label = isAr ? item.labelAr : item.labelEn;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                title={collapsed ? label : undefined}
-                aria-label={label}
-                className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-3 px-3.5'} py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100'
-                }`}
+    <>
+      {mobileOpen && <button type="button" aria-label="إغلاق القائمة" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/70 lg:hidden" />}
+      <aside
+        className={`${visibleWidth} ${mobileOpen ? 'flex' : 'hidden lg:flex'} fixed inset-y-0 start-0 z-50 h-dvh flex-col overflow-y-auto border-e border-slate-800 bg-slate-900 transition-[width] duration-200 ease-out lg:static lg:z-auto lg:shrink-0`}
+        aria-label={isAr ? 'قائمة التنقل الرئيسية' : 'Primary navigation'}
+      >
+        <div className="flex min-h-0 flex-1 flex-col p-3">
+          <div className={`mb-4 flex items-center gap-2 border-b border-slate-800 pb-3 ${showLabels ? 'justify-between' : 'justify-center'}`}>
+            <Link href="/admin" onClick={onClose} className={`flex min-w-0 items-center gap-3 ${showLabels ? 'flex-1' : 'justify-center'}`}>
+              <Image src="/logo.avif" alt="أبطال الرياضة" width={960} height={822} priority quality={80} sizes="48px" className="h-10 w-auto shrink-0 rounded-lg object-contain" />
+              {showLabels && (
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-extrabold text-slate-100">ابطال الرياضة</h2>
+                  <p className="truncate text-[10px] font-semibold text-amber-400">ERP الإسكندرية</p>
+                </div>
+              )}
+            </Link>
+            <div className="flex shrink-0 items-center gap-1">
+              {mobileOpen && (
+                <button type="button" onClick={onClose} className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-300 hover:bg-slate-700" aria-label="إغلاق القائمة">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                title={collapsed ? (isAr ? 'توسيع القائمة الجانبية' : 'Expand sidebar') : (isAr ? 'طي القائمة الجانبية' : 'Collapse sidebar')}
+                aria-label={collapsed ? (isAr ? 'توسيع القائمة الجانبية' : 'Expand sidebar') : (isAr ? 'طي القائمة الجانبية' : 'Collapse sidebar')}
+                className="rounded-lg border border-slate-700 bg-slate-800/80 p-2 text-slate-300 transition-colors hover:bg-slate-700"
               >
-                {item.icon}
-                {!collapsed && <span className="flex-1">{label}</span>}
-                {!collapsed && <NavPending className={isActive ? 'text-white' : 'text-blue-400'} />}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+                {collapsed ? <PanelLeftOpen className="h-4 w-4" aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
 
-      {/* Footer Shortcut to POS */}
-      <div className="p-4 border-t border-slate-800">
-        <Link
-          href="/pos"
-          title={collapsed ? 'الانتقال لنقطة البيع POS' : undefined}
-          aria-label="الانتقال لنقطة البيع POS"
-          className={`${collapsed ? 'justify-center' : ''} w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/40 text-xs font-bold flex items-center gap-2 transition-all`}
-        >
-          <Monitor className="w-4 h-4" />
-          {!collapsed && <span>الانتقال لنقطة البيع POS</span>}
-        </Link>
-      </div>
-    </aside>
+          <Link
+            href="/pos"
+            onClick={onClose}
+            title={isAr ? 'فتح نقطة البيع POS' : 'Open POS'}
+            className={`mb-4 inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-amber-400/50 bg-gradient-to-l from-amber-500/25 to-amber-400/10 px-3 text-xs font-black text-amber-300 shadow-lg shadow-amber-500/10 transition hover:border-amber-300 hover:bg-amber-500 hover:text-slate-950 ${showLabels ? 'justify-start' : ''}`}
+          >
+            <Monitor className="h-5 w-5 shrink-0" aria-hidden="true" />
+            {showLabels && <span>{isAr ? 'نقطة البيع POS' : 'Point of Sale POS'}</span>}
+          </Link>
+
+          {showLabels ? (
+            <div className="mb-4 space-y-1.5 rounded-2xl border border-slate-800 bg-slate-950/90 p-3 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-slate-400">{isAr ? 'المستخدم المسجل' : 'Signed in'}</span>
+                <span className="max-w-[7rem] truncate rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">{role}</span>
+              </div>
+              <p className="truncate font-black text-slate-100">{userName}</p>
+              {userEmail && <p className="truncate font-mono text-[10px] text-slate-400" dir="ltr">{userEmail}</p>}
+            </div>
+          ) : (
+            <Tooltip label={userName}>
+              <div className="mb-4 flex h-10 items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/90 text-slate-300" aria-label={userName}>
+                <User className="h-5 w-5" aria-hidden="true" />
+              </div>
+            </Tooltip>
+          )}
+
+          <nav className="min-h-0 flex-1 space-y-2" aria-label={isAr ? 'أقسام الإدارة' : 'Admin sections'}>
+            {groups.map((group) => {
+              const groupActive = group.items.some((item) => pathMatches(pathname, item.href));
+              const isOpen = groupOpen[group.key] ?? true;
+              const groupLabel = isAr ? group.labelAr : group.labelEn;
+              return (
+                <section key={group.key} className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.key)}
+                    aria-expanded={isOpen}
+                    aria-controls={`admin-group-${group.key}`}
+                    className={`group flex min-h-10 w-full items-center rounded-xl border text-start transition-colors ${showLabels ? 'gap-2.5 px-3' : 'justify-center px-1'} ${groupActive ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-transparent text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'}`}
+                  >
+                    <AdminIcon name={group.icon} className="h-4.5 w-4.5 shrink-0" />
+                    {showLabels && <span className="min-w-0 flex-1 truncate text-xs font-black">{groupLabel}</span>}
+                    {showLabels && <span className={`text-[10px] transition-transform ${isOpen ? 'rotate-90' : ''} rtl-flip`} aria-hidden="true">›</span>}
+                  </button>
+                  {isOpen && (
+                    <div id={`admin-group-${group.key}`} className="space-y-1 ps-2">
+                      {group.items.map((item) => (
+                        <SidebarLink key={item.key} item={item} pathname={pathname} collapsed={!showLabels} isAr={isAr} onNavigate={onClose} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="border-t border-slate-800 p-3 text-center text-[10px] text-slate-500">
+          {showLabels ? 'Sports Champions ERP · v1.0' : 'ERP'}
+        </div>
+      </aside>
+    </>
   );
+}
+
+function SidebarLink({ item, pathname, collapsed, isAr, onNavigate }: { item: AdminNavItem; pathname: string; collapsed: boolean; isAr: boolean; onNavigate?: () => void }) {
+  const label = isAr ? item.labelAr : item.labelEn;
+  const active = pathMatches(pathname, item.href);
+  const link = (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      title={collapsed ? label : undefined}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      className={`group/link relative flex min-h-10 items-center rounded-xl transition-all ${collapsed ? 'justify-center px-1' : 'gap-2.5 px-3'} ${active ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-300 hover:bg-slate-800/80 hover:text-slate-100'}`}
+    >
+      <AdminIcon name={item.icon} className="h-4.5 w-4.5 shrink-0" />
+      {!collapsed && <span className="min-w-0 flex-1 truncate text-xs font-bold">{label}</span>}
+      {!collapsed && item.status === 'planned' && <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300">قريبًا</span>}
+      {!collapsed && <NavPending className={active ? 'text-white' : 'text-blue-400'} />}
+    </Link>
+  );
+
+  return collapsed ? <Tooltip label={label}>{link}</Tooltip> : link;
 }
