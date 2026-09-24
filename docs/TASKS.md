@@ -6,8 +6,8 @@
 
 ## A) عام
 
-- [ ] ❌ **A1 — العربية default locale:** routing/middleware والـ redirect من `/` إلى `/ar`، مع اختبار Admin/POS/Storefront.
-- [ ] ❌ **A2 — الألوان والتباين:** توحيد semantic tokens، وخفض الإجهاد البصري للأصفر، ومراجعة Dark/Light وWCAG AA.
+- [x] ✅ **A1 — العربية default locale:** routing/middleware والـ redirect من `/` إلى `/ar`، مع اختبار Admin/POS/Storefront.
+- [ ] 🟡 **A2 — الألوان والتباين:** أُضيفت semantic status tokens وطبقت على badges/لوحات Admin مع mappings للضوء؛ بقت مراجعة التباين البصري والـ legacy literals مرحلة تدريجية (لم يُثبت بعد فحص آلي WCAG لكل الصفحات).
 
 ## B) الطلبات
 

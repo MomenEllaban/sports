@@ -23,12 +23,12 @@ export function StatusBadge({ value, tone }: { value: string; tone?: 'order' | '
 
   const color =
     ['DELIVERED', 'PAID', 'COMPLETED', 'APPROVED', 'VALID', 'RECEIVED'].includes(value)
-      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+      ? 'status-success'
       : ['CANCELLED', 'FAILED', 'INVALID', 'REJECTED', 'RETURNED'].includes(value)
-        ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+        ? 'status-danger'
         : ['SHIPPED', 'PROCESSING', 'CONFIRMED', 'SUBMITTED'].includes(value)
-          ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-          : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+          ? 'status-info'
+          : 'status-warning';
 
   return (
     <span className={`px-2.5 py-1 rounded-full font-bold text-[10px] border w-fit ${color}`}>

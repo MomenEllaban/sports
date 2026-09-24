@@ -250,7 +250,7 @@ function SidebarLink({ item, pathname, collapsed, isAr, onNavigate }: { item: Ad
       <AdminIcon name={item.icon} className="h-4.5 w-4.5 shrink-0" />
       {!collapsed && <span className="min-w-0 flex-1 truncate text-xs font-bold">{label}</span>}
       {!collapsed && item.status && item.status !== 'live' && (
-        <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] ${item.status === 'partial' ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'}`}>
+        <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] ${item.status === 'partial' ? 'status-info' : 'status-warning'}`}>
           {item.status === 'partial' ? 'جزئي' : 'قريبًا'}
         </span>
       )}

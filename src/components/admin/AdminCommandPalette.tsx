@@ -163,7 +163,7 @@ export default function AdminCommandPalette() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">{entry.label}</span>
                   <span className="block truncate text-[11px] text-slate-500">{entry.group} · {entry.description}</span>
-                  {entry.status && entry.status !== 'live' && <span className={`mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${entry.status === 'partial' ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'}`}>{entry.status === 'partial' ? (isAr ? 'جزئي' : 'Partial') : (isAr ? 'قريبًا' : 'Planned')}</span>}
+                  {entry.status && entry.status !== 'live' && <span className={`mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${entry.status === 'partial' ? 'status-info' : 'status-warning'}`}>{entry.status === 'partial' ? (isAr ? 'جزئي' : 'Partial') : (isAr ? 'قريبًا' : 'Planned')}</span>}
                 </span>
                 {index === activeIndex && <CornerDownLeft className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />}
               </button>

@@ -10,6 +10,13 @@ const authSecret = requiredSecret('NEXTAUTH_SECRET', 'dev-insecure-nextauth-secr
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Arabic is the explicit default entry point. Keep query/hash parameters.
+  if (pathname === '/') {
+    const arabicUrl = req.nextUrl.clone();
+    arabicUrl.pathname = '/ar';
+    return NextResponse.redirect(arabicUrl, 307);
+  }
+
   // 1. Detect and cleanly redirect any repeated locale prefixes (e.g. /en/en/admin -> /en/admin)
   const repeatedLocaleMatch = pathname.match(/^\/(ar|en)(?:\/(ar|en))+(\/.*)?$/);
   if (repeatedLocaleMatch) {

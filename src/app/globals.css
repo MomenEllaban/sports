@@ -35,10 +35,16 @@
 
   --color-success: #059669;
   --color-success-ink: #34d399;
-  --color-warning: #f59e0b;
+  --color-warning: var(--status-warning);
   --color-danger: #e11d48;
   --color-danger-ink: #fb7185;
   --color-info: #3b82f6;
+
+  /* Status palette: one semantic source for badges, tables, alerts and KPIs. */
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --color-status-info: var(--status-info);
 
   /* Domain accents (only inside their domain) */
   --color-returns: #f97316;
@@ -75,6 +81,16 @@
     --border-base: rgba(255, 255, 255, 0.1);
     --border-subtle: #1e293b;
 
+    /* WCAG-oriented status tokens for dark surfaces. */
+    --status-success: #34d399;
+    --status-warning: #fbbf24;
+    --status-danger: #fb7185;
+    --status-info: #60a5fa;
+    --status-success-bg: rgba(16, 185, 129, 0.14);
+    --status-warning-bg: rgba(245, 158, 11, 0.14);
+    --status-danger-bg: rgba(225, 29, 72, 0.14);
+    --status-info-bg: rgba(59, 130, 246, 0.14);
+
     --input-bg: #0f172a;
     --input-border: #334155;
     --input-text: #f1f5f9;
@@ -99,6 +115,16 @@
 
     --border-base: rgba(0, 0, 0, 0.1);
     --border-subtle: #e2e8f0;
+
+    /* Darker text tokens preserve AA contrast on light surfaces. */
+    --status-success: #047857;
+    --status-warning: #92400e;
+    --status-danger: #be123c;
+    --status-info: #1d4ed8;
+    --status-success-bg: rgba(4, 120, 87, 0.09);
+    --status-warning-bg: rgba(146, 64, 14, 0.09);
+    --status-danger-bg: rgba(190, 18, 60, 0.09);
+    --status-info-bg: rgba(29, 78, 216, 0.09);
 
     --input-bg: #ffffff;
     --input-border: #cbd5e1;
@@ -126,8 +152,29 @@
   }
 }
 
+/* Semantic status surfaces used by new/updated admin UI. */
+.status-success {
+  color: var(--status-success) !important;
+  background-color: var(--status-success-bg) !important;
+  border-color: color-mix(in srgb, var(--status-success) 35%, transparent) !important;
+}
+.status-warning {
+  color: var(--status-warning) !important;
+  background-color: var(--status-warning-bg) !important;
+  border-color: color-mix(in srgb, var(--status-warning) 35%, transparent) !important;
+}
+.status-danger {
+  color: var(--status-danger) !important;
+  background-color: var(--status-danger-bg) !important;
+  border-color: color-mix(in srgb, var(--status-danger) 35%, transparent) !important;
+}
+.status-info {
+  color: var(--status-info) !important;
+  background-color: var(--status-info-bg) !important;
+  border-color: color-mix(in srgb, var(--status-info) 35%, transparent) !important;
+}
+
 /* ============================================================
-   LEGACY SLATE REMAP
    Dark mode is the authored default. These overrides remap slate
    surfaces to theme variables so both themes stay in sync until
    components migrate to the semantic tokens above (bg-base,
@@ -207,6 +254,13 @@
 [data-theme="light"] [class~="hover:bg-slate-900/80"]:hover { background-color: rgba(241, 245, 249, 0.85) !important; }
 
 /* --- Text on light surfaces --- */
+/* Reduce eye-straining yellow text on light surfaces. */
+[data-theme="light"] [class~="text-amber-300"],
+[data-theme="light"] [class~="text-amber-400"] { color: #92400e !important; }
+[data-theme="light"] [class~="bg-amber-500/10"] { background-color: rgba(146, 64, 14, 0.09) !important; }
+[data-theme="light"] [class~="bg-amber-500/15"] { background-color: rgba(146, 64, 14, 0.11) !important; }
+[data-theme="light"] [class~="bg-amber-500/20"] { background-color: rgba(146, 64, 14, 0.13) !important; }
+
 [data-theme="light"] [class~="text-slate-50"],
 [data-theme="light"] [class~="text-slate-100"],
 [data-theme="light"] [class~="text-slate-200"] { color: #0f172a !important; }
