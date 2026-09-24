@@ -139,12 +139,13 @@ Status: Done (تفصيل: `docs/design/group-09-polish.md`)
 - [x] Per-keystroke caret loss fix: `NumberField` primitive + all 9 `type="number"` sites; POS mount/keydown split (`d7afbd0`)
 - [x] Responsive pass: filter grids, AdminChrome spacing, POS two-pane stacking (`dabb43e`)
 - [x] Collapsible admin sidebar: icon-only (`w-20`) + native `title` tooltips, persisted in `localStorage`
+- [x] Input caret-loss fix (2nd wave): `Modal`/`ConfirmDialog` focus/scroll effects keyed on stable `onClose` ref; employee/product/supplier form fields called as functions (no per-keystroke remount)
 - [x] Table header alignment: verified logical `text-start` everywhere (RTL = right, LTR = left); no hardcoded text-right/left offenders
 - [x] Refresh persistence: Preloader claims once per session (`sessionStorage`) — content stays visible on refresh, no full-page cover
 - [x] Translation audit (ملحوظة): 8 admin surfaces on next-intl; بقية الشاشات إما `isAr` ثنائية أو عربية فقط — ترحيل شامل لـ next-intl = ميلستون منفصلة
 - [x] Regression: lint (0 err) / typecheck / build / `test:unit` 56/56
 
 Commit:
-`50628fc`
+`50628fc` (+ caret fix `87791b4`)
 
 Status: Done
