@@ -1,130 +1,30 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
-import { ClipboardCheck } from 'lucide-react';
-import { apiFetch } from '@/components/admin/ui';
-import { useToast } from '@/components/Toast';
-import { Stepper, ConfirmDialog } from '@/components/ui/foundation';
+import { apiFetch } from './ui';
+import { Button } from '@/components/ui/foundation';
 
-interface Branch { id: string; name: string }
-interface Product { id: string; nameAr: string; sku: string }
+type Product = { id: string; nameAr: string; nameEn: string; sku: string; barcode: string | null; category: { nameAr: string } | null; brand: { nameAr: string } | null };
+type Line = { id: string; productId: string; skuSnapshot: string; nameArSnapshot: string; nameEnSnapshot: string; expectedQuantity: number; countedQuantity: number | null; varianceQuantity: number | null; reasonCode: string | null; notes: string | null; unitCost: number | string };
+type Session = { id: string; stocktakeNumber: string; branchId: string; status: string; notes: string | null; createdAt: string; branch: { id: string; name: string }; _count: { lines: number } };
 
-/** Stocktake wizard (T13): branch → product → counted qty + mandatory reason → confirm. */
-export default function StocktakeClient({ branches, products }: { branches: Branch[]; products: Product[] }) {
-  const locale = useLocale();
-  const router = useRouter();
-  const { toast } = useToast();
-  const isAr = locale === 'ar';
-  const [branchId, setBranchId] = useState(branches[0]?.id || '');
-  const [query, setQuery] = useState('');
-  const [productId, setProductId] = useState('');
-  const [systemQty, setSystemQty] = useState<number | null>(null);
-  const [counted, setCounted] = useState('');
-  const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [last, setLast] = useState<{ previous: number; next: number; diff: number } | null>(null);
+export default function StocktakeClient({ branches, products, sessions: initialSessions }: { branches: Array<{ id: string; name: string; nameEn: string }>; products: Product[]; sessions: Session[] }) {
+  const locale = useLocale(); const isAr = locale === 'ar';
+  const [sessions, setSessions] = useState(initialSessions); const [branchId, setBranchId] = useState(branches[0]?.id || ''); const [selectedId, setSelectedId] = useState(initialSessions[0]?.id || ''); const [report, setReport] = useState<{ session: Session; lines: Line[]; summary: { lineCount: number; countedLineCount: number; varianceLineCount: number; varianceQuantity: number } } | null>(null); const [lines, setLines] = useState<Line[]>([]); const [search, setSearch] = useState(''); const [category, setCategory] = useState(''); const [notes, setNotes] = useState(''); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(''); const [error, setError] = useState('');
+  const categories = useMemo(() => [...new Set(products.map((product) => product.category?.nameAr || '—'))], [products]);
+  const load = async (id: string) => { if (!id) return; setBusy(true); setError(''); try { const data = await apiFetch(`/api/admin/stocktakes/${id}`, 'GET') as { session: Session; lines: Line[]; summary: { lineCount: number; countedLineCount: number; varianceLineCount: number; varianceQuantity: number } }; setSelectedId(id); setReport(data); setLines(data.lines); setNotes(data.session.notes || ''); } catch (err) { setError(err instanceof Error ? err.message : (isAr ? 'تعذر تحميل الجلسة' : 'Unable to load session')); } finally { setBusy(false); } };
+  const create = async () => { if (!branchId) return; setBusy(true); setError(''); try { const data = await apiFetch('/api/admin/stocktakes', 'POST', { branchId, productIds: products.map((product) => product.id), notes }) as { stocktake: Session }; setSessions((current) => [data.stocktake, ...current]); await load(data.stocktake.id); setMessage(isAr ? 'تم إنشاء جلسة الجرد' : 'Stocktake session created'); } catch (err) { setError(err instanceof Error ? err.message : (isAr ? 'تعذر إنشاء الجلسة' : 'Unable to create session')); } finally { setBusy(false); } };
+  const updateLine = (id: string, patch: Partial<Line>) => setLines((current) => current.map((line) => line.id === id ? { ...line, ...patch } : line));
+  const saveDraft = async () => { if (!selectedId) return; setBusy(true); setError(''); try { const data = await apiFetch(`/api/admin/stocktakes/${selectedId}/lines`, 'PATCH', { lines: lines.map((line) => ({ id: line.id, countedQuantity: line.countedQuantity, reasonCode: line.reasonCode, notes: line.notes })) }) as { stocktake: Session & { lines: Line[] } }; setLines(data.stocktake.lines); setMessage(isAr ? 'تم حفظ المسودة' : 'Draft saved'); } catch (err) { setError(err instanceof Error ? err.message : (isAr ? 'فشل حفظ المسودة' : 'Draft save failed')); } finally { setBusy(false); } };
+  const approve = async () => { if (!selectedId) return; setBusy(true); setError(''); try { await apiFetch(`/api/admin/stocktakes/${selectedId}/approve`, 'POST', {}); setMessage(isAr ? 'تم اعتماد الجرد وتطبيق الفروقات' : 'Stocktake approved and applied'); await load(selectedId); } catch (err) { setError(err instanceof Error ? err.message : (isAr ? 'فشل الاعتماد' : 'Approval failed')); } finally { setBusy(false); } };
+  const filtered = lines.filter((line) => { const term = search.trim().toLowerCase(); const matches = !term || [line.nameArSnapshot, line.nameEnSnapshot, line.skuSnapshot].some((value) => value.toLowerCase().includes(term)); const product = products.find((item) => item.id === line.productId); return matches && (!category || product?.category?.nameAr === category); });
+  const exportReport = () => { if (!report) return; const header = ['sku','name_ar','name_en','expected','counted','variance','reason','notes']; const esc = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`; const content = '\uFEFF' + [header.map(esc).join(','), ...report.lines.map((line) => [line.skuSnapshot,line.nameArSnapshot,line.nameEnSnapshot,line.expectedQuantity,line.countedQuantity,line.varianceQuantity,line.reasonCode,line.notes].map(esc).join(','))].join('\n'); const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = `${report.session.stocktakeNumber}.csv`; a.click(); URL.revokeObjectURL(url); };
 
-  const matches = query.trim()
-    ? products.filter((p) => p.nameAr.includes(query.trim()) || p.sku.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 8)
-    : [];
-
-  useEffect(() => {
-    setSystemQty(null);
-    if (!branchId || !productId) return;
-    fetch(`/api/admin/inventory/adjust-info?branchId=${branchId}&productId=${productId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.success) setSystemQty(d.qty);
-      })
-      .catch(() => null);
-  }, [branchId, productId]);
-
-  const diff = systemQty !== null && counted !== '' ? Number(counted) - systemQty : null;
-
-  const submit = async () => {
-    if (!branchId || !productId || counted === '' || !reason.trim() || busy) return;
-    setBusy(true);
-    try {
-      const res = (await apiFetch('/api/admin/inventory/adjust', 'POST', {
-        branchId, productId, countedQty: Number(counted), reason: reason.trim(),
-      })) as { previous: number; next: number; diff: number };
-      setLast(res);
-      toast(isAr ? `تمت التسوية: ${res.previous} → ${res.next}` : `Adjusted: ${res.previous} → ${res.next}`, 'success');
-      setCounted('');
-      setReason('');
-      setConfirming(false);
-      setSystemQty(res.next);
-      router.refresh();
-    } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'فشل', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="max-w-xl space-y-4">
-      <Stepper steps={[isAr ? 'الفرع والصنف' : 'Branch & item', isAr ? 'العد والسبب' : 'Count & reason', isAr ? 'تأكيد' : 'Confirm']} active={productId ? (reason.trim() && counted !== '' ? 2 : 1) : 0} />
-      <div className="grid sm:grid-cols-2 gap-3 text-xs">
-        <div>
-          <label htmlFor="st-branch" className="block font-bold text-slate-300 mb-1">الفرع *</label>
-          <select id="st-branch" value={branchId} onChange={(e) => setBranchId(e.target.value)} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </div>
-        <div className="relative">
-          <label htmlFor="st-search" className="block font-bold text-slate-300 mb-1">الصنف *</label>
-          <input id="st-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث بالاسم أو SKU..." className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
-          {matches.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 max-h-48 overflow-y-auto">
-              {matches.map((p) => (
-                <li key={p.id}>
-                  <button onClick={() => { setProductId(p.id); setQuery(`${p.nameAr} (${p.sku})`); }} className="w-full min-h-[44px] text-start px-3 py-2 hover:bg-slate-800 text-xs">
-                    <span className="font-bold">{p.nameAr}</span> <span className="text-slate-500 font-mono">{p.sku}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-      {productId && (
-        <div className="grid sm:grid-cols-2 gap-3 text-xs">
-          <div>
-            <label htmlFor="st-counted" className="block font-bold text-slate-300 mb-1">
-              الكمية المعدودة * {systemQty !== null && <span className="text-slate-500">(النظام: {systemQty})</span>}
-            </label>
-            <input id="st-counted" type="number" min={0} step={1} value={counted} onChange={(e) => setCounted(e.target.value)} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700 font-bold" />
-            {diff !== null && diff !== 0 && (
-              <p className={`mt-1 font-bold ${diff > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>الفرق: {diff > 0 ? '+' : ''}{diff}</p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="st-reason" className="block font-bold text-slate-300 mb-1">سبب التسوية (إجباري) *</label>
-            <input id="st-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="مثال: جرد شهري..." className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
-          </div>
-        </div>
-      )}
-      {last && <p role="status" className="text-xs text-emerald-400 font-bold flex items-center gap-1"><ClipboardCheck className="w-4 h-4" /> آخر تسوية: {last.previous} → {last.next} (الفرق {last.diff})</p>}
-      <button
-        onClick={() => setConfirming(true)}
-        disabled={!branchId || !productId || counted === '' || !reason.trim()}
-        className="min-h-[44px] px-6 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 text-xs font-black"
-      >
-        {isAr ? 'مراجعة وتأكيد التسوية' : 'Review & confirm'}
-      </button>
-      <ConfirmDialog
-        open={confirming}
-        title={isAr ? 'تأكيد تسوية المخزون؟' : 'Confirm stock adjustment?'}
-        impact={isAr ? `ستتغير الكمية من ${systemQty} إلى ${counted} مع سجل تدقيق دائم. لا يمكن التراجع الآلي.` : `Quantity changes from ${systemQty} to ${counted} with a permanent audit log.`}
-        confirmLabel={isAr ? 'تأكيد التسوية' : 'Confirm'}
-        onConfirm={submit}
-        onClose={() => { if (!busy) setConfirming(false); }}
-        busy={busy}
-      />
-    </div>
-  );
+  return <div className="space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4"><div><label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'الفرع' : 'Branch'}</label><select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="min-h-[44px] w-full rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs">{branches.map((branch) => <option key={branch.id} value={branch.id}>{isAr ? branch.name : branch.nameEn}</option>)}</select></div><div><label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'ملاحظات الجلسة' : 'Session notes'}</label><input value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-[44px] w-full rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs" /></div><div className="flex items-end"><Button onClick={create} disabled={busy || !branchId} variant="primary" className="w-full">{isAr ? 'إنشاء جلسة batch' : 'Create batch session'}</Button></div></div>
+    <div className="flex flex-wrap items-end gap-2"><div className="min-w-[260px] flex-1"><label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'جلسات الجرد' : 'Stocktake sessions'}</label><select value={selectedId} onChange={(e) => void load(e.target.value)} className="min-h-[44px] w-full rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs"><option value="">{isAr ? 'اختر جلسة' : 'Choose session'}</option>{sessions.map((item) => <option key={item.id} value={item.id}>{item.stocktakeNumber} — {item.branch.name} — {item.status}</option>)}</select></div>{report && <span className="min-h-[44px] inline-flex items-center rounded-xl border border-slate-700 px-3 text-xs">{isAr ? 'الأسطر' : 'Lines'}: {report.summary.lineCount} · {isAr ? 'الفروقات' : 'Variance'}: {report.summary.varianceQuantity}</span>}</div>
+    {message && <p role="status" className="status-success rounded-xl border p-3 text-xs font-bold">{message}</p>}{error && <p role="alert" className="status-danger rounded-xl border p-3 text-xs font-bold">{error}</p>}
+    {selectedId && <><div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-3"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={isAr ? 'بحث بالاسم/SKU' : 'Search name/SKU'} className="min-h-[44px] flex-1 rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs" /><select value={category} onChange={(e) => setCategory(e.target.value)} className="min-h-[44px] rounded-xl border border-slate-700 bg-slate-950 px-2 text-xs"><option value="">{isAr ? 'كل التصنيفات' : 'All categories'}</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><span className="text-xs text-slate-400">{isAr ? 'الفرق يُحسب لحظيًا' : 'Variance is live'}</span></div><div className="overflow-x-auto rounded-2xl border border-slate-800"><table className="w-full min-w-[1000px] text-xs text-start"><thead className="bg-slate-950 text-slate-400"><tr><th className="p-3">SKU</th><th className="p-3">الصنف</th><th className="p-3">الكمية بالنظام</th><th className="p-3">الكمية الفعلية</th><th className="p-3">الفرق</th><th className="p-3">السبب</th><th className="p-3">ملاحظة</th></tr></thead><tbody className="divide-y divide-slate-800">{filtered.map((line) => { const variance = line.countedQuantity === null ? null : line.countedQuantity - line.expectedQuantity; return <tr key={line.id}><td className="p-3 font-mono text-blue-300">{line.skuSnapshot}</td><td className="p-3 font-bold text-slate-100">{isAr ? line.nameArSnapshot : line.nameEnSnapshot}</td><td className="p-3">{line.expectedQuantity}</td><td className="p-3"><input type="number" min="0" step="1" value={line.countedQuantity ?? ''} onChange={(e) => updateLine(line.id, { countedQuantity: e.target.value === '' ? null : Number(e.target.value), varianceQuantity: e.target.value === '' ? null : Number(e.target.value) - line.expectedQuantity })} disabled={report?.session.status !== 'DRAFT'} className="min-h-[44px] w-28 rounded-lg border border-slate-700 bg-slate-950 px-2" /></td><td className={`p-3 font-black ${variance === null ? '' : variance < 0 ? 'text-rose-300' : variance > 0 ? 'text-emerald-300' : 'text-slate-400'}`}>{variance === null ? '—' : variance}</td><td className="p-3"><select value={line.reasonCode || ''} onChange={(e) => updateLine(line.id, { reasonCode: e.target.value || null })} disabled={report?.session.status !== 'DRAFT'} className="min-h-[44px] rounded-lg border border-slate-700 bg-slate-950 px-2"><option value="">{isAr ? 'بدون سبب' : 'No reason'}</option><option value="CYCLE_COUNT">CYCLE_COUNT</option><option value="DAMAGE">DAMAGE</option><option value="EXPIRY">EXPIRY</option><option value="RECEIVING_ERROR">RECEIVING_ERROR</option><option value="SALE_ERROR">SALE_ERROR</option><option value="THEFT">THEFT</option><option value="OTHER">OTHER</option></select></td><td className="p-3"><input value={line.notes || ''} onChange={(e) => updateLine(line.id, { notes: e.target.value })} disabled={report?.session.status !== 'DRAFT'} className="min-h-[44px] w-40 rounded-lg border border-slate-700 bg-slate-950 px-2" /></td></tr>; })}</tbody></table></div><div className="flex flex-wrap justify-end gap-2"><Button onClick={exportReport} variant="secondary">{isAr ? 'تصدير تقرير الفروقات' : 'Export variance report'}</Button>{report?.session.status === 'DRAFT' && <><Button onClick={saveDraft} disabled={busy} variant="secondary">{busy ? '…' : (isAr ? 'حفظ كمسودة' : 'Save draft')}</Button><Button onClick={approve} disabled={busy} variant="primary">{isAr ? 'اعتماد وتطبيق الفروقات' : 'Approve and apply'}</Button></>}</div></>}
+  </div>;
 }

@@ -28,7 +28,7 @@
 
 ## E) المخزون / الجرد
 
-- [ ] ❌ **E1 — Batch Stocktake:** StocktakeSession + StocktakeLine، جدول كامل، draft/approve transaction، InventoryLog، variance report/export.
+- [x] ✅ **E1 — Batch Stocktake:** StocktakeSession + StocktakeLine، جدول كل أصناف الفرع مع بحث/تصنيف، draft/approve transaction مع drift guard وInventoryLog، وتقرير/CSV فروقات.
 
 ## F) POS
 
