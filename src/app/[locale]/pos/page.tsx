@@ -508,7 +508,7 @@ export default function PosTerminalPage() {
   };
 
   return (
-    <div className="h-dvh max-h-dvh min-h-0 w-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans dir-rtl">
+    <div className="h-dvh max-h-dvh min-h-0 w-full max-w-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans dir-rtl">
       {/* POS Top Header Bar */}
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -654,9 +654,9 @@ export default function PosTerminalPage() {
           </form>
         </div>
       ) : (
-      <div className="app-scrollbar flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 overflow-y-auto lg:overflow-hidden p-2 lg:p-0">
+      <div className="app-scrollbar flex-1 min-w-0 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 overflow-y-auto lg:overflow-hidden p-2 lg:p-0">
         {/* Left Side: Product Selector & Barcode Scanner */}
-        <div className="lg:col-span-7 lg:border-e border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
+        <div className="lg:col-span-7 min-w-0 lg:border-e border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
           {/* Steps indicator */}
           <div className="flex items-center gap-2 text-[11px] font-bold" aria-label="خطوات البيع">
             <span className={`px-3 py-1.5 rounded-full border ${customer ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
@@ -813,7 +813,7 @@ export default function PosTerminalPage() {
         </div>
 
         {/* Right Side: Current Sale Ticket & Touch Numpad */}
-        <div className="lg:col-span-5 p-4 flex flex-col justify-between bg-slate-900/60 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800 min-h-[60vh] lg:min-h-0">
+        <div className="lg:col-span-5 min-w-0 p-4 flex flex-col justify-between bg-slate-900/60 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800 min-h-[60vh] lg:min-h-0">
           <div className="space-y-3 flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
               <h2 className="font-black text-sm text-slate-100 flex items-center gap-2">
