@@ -507,6 +507,12 @@ model Order {
   loyaltyDiscount  Decimal @db.Decimal(12, 2) @default(0.0)
   couponDiscount   Decimal @db.Decimal(12, 2) @default(0.0)
   notes            String?
+  // Client-supplied key that makes order creation idempotent. A retried
+  // checkout (double tap, network retry, refresh) replays the stored response
+  // instead of creating a second order. NULL keeps legacy rows valid and lets
+  // many rows share "no key" because Postgres treats NULLs as distinct in a
+  // unique index.
+  idempotencyKey   String?          @unique
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   // B02: optimistic version for safe order edits.
@@ -930,4 +936,14 @@ model AuditLog {
 
   @@index([createdAt, entity])
   @@index([entityId])
+}
+
+// Per-prefix, per-year counter backing the document numbers printed on
+// orders, POS sales and return tickets. The previous generator used
+// `Math.random()` inside a small fixed window, so a busy day could exhaust the
+// space and collide with the `@unique` number column.
+model Sequence {
+  key       String   @id
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
 }

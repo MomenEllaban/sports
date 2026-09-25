@@ -89,7 +89,7 @@ export default function NewReturnClient() {
           <option value="order">{L('طلب', 'Order')}</option>
           <option value="sale">{L('فاتورة POS', 'POS sale')}</option>
         </select>
-        <input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} dir="ltr" placeholder={docType === 'order' ? 'ORD-2026-XXXX' : 'POS-2026-XXXXX'} aria-label={L('رقم المستند', 'Document number')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono font-bold" />
+        <input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} dir="ltr" placeholder={docType === 'order' ? 'ORD-2026-000123' : 'POS-2026-000123'} aria-label={L('رقم المستند', 'Document number')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono font-bold" />
         <button onClick={lookup} disabled={busy} className="min-h-[44px] px-5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold">{L('بحث', 'Search')}</button>
       </div>
       {error && <p role="alert" className="text-xs font-bold text-rose-400">{error}</p>}

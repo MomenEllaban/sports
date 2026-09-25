@@ -12,14 +12,48 @@ import { getVatRate, getRedeemRule } from '@/lib/settings';
 import { quoteCoupon, consumeCoupon, redeemPoints, CouponError } from '@/lib/discounts/coupons';
 import { OrderSource, PaymentMethod, ShippingProvider, OrderStatus, PaymentStatus } from '@prisma/client';
 import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
+import { nextDocumentNumber, normalizeIdempotencyKey } from '@/lib/documents';
 
-const genOrderNumber = () => `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+/** The slice of `Order` needed to replay a repeated idempotency key. */
+type ReplayableOrder = {
+  orderNumber: string;
+  trackingNumber: string | null;
+  paymentStatus: PaymentStatus;
+  taxInvoice: { etaUuid: string | null } | null;
+};
+
+/**
+ * Replays a stored order for a repeated idempotency key. The payment gateway is
+ * deliberately not contacted again: a second init would create a second
+ * transaction for an order that already has one.
+ */
+function replayResponse(existing: ReplayableOrder) {
+  return NextResponse.json({
+    success: true,
+    replayed: true,
+    orderNumber: existing.orderNumber,
+    trackingNumber: existing.trackingNumber ?? '',
+    paymentPending: existing.paymentStatus !== PaymentStatus.PAID,
+    paymentInitializationError: null,
+    etaUuid: existing.taxInvoice?.etaUuid ?? null,
+  });
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { phone, name, address, fulfillmentType, zoneId, paymentMethod, items } = body;
 
+    // Idempotency: a retried checkout (double tap, refresh, flaky network) must
+    // not mint a second order. Replay the stored result before doing any work.
+    const idempotencyKey = normalizeIdempotencyKey(body.idempotencyKey);
+    if (idempotencyKey) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey },
+        include: { taxInvoice: { select: { etaUuid: true } } },
+      });
+      if (existing) return replayResponse(existing);
+    }
     if (!phone || !items || items.length === 0) {
       return apiError('VALIDATION_ERROR', 'رقم الموبايل والمنتجات مطلوبة.', 400);
     }
@@ -179,8 +213,13 @@ export async function POST(req: Request) {
     let receipt: Awaited<ReturnType<typeof buildEtaReceipt>> | null = null;
     let trackingNumber = '';
     let lastErr: unknown = null;
+
     for (let attempt = 0; attempt < 3; attempt++) {
-      const orderNumber = genOrderNumber();
+      // Allocated in its own short transaction so the ETA receipt — which needs
+      // the invoice number — can be built before the (longer) order transaction
+      // opens. A rollback burns the number, which is fine: gaps are harmless,
+      // duplicates are not.
+      const orderNumber = await prisma.$transaction((tx) => nextDocumentNumber(tx, 'ORD'));
       try {
         const currentReceipt = await buildEtaReceipt({
           branchId: flagshipBranch.id,
@@ -213,6 +252,7 @@ export async function POST(req: Request) {
           const created = await tx.order.create({
             data: {
               orderNumber,
+              idempotencyKey,
               orderSource: OrderSource.ONLINE,
               customerId: customer.id,
               guestPhone: phone,
@@ -308,7 +348,20 @@ export async function POST(req: Request) {
         break;
       } catch (e) {
         lastErr = e;
-        if ((e as { code?: string }).code === 'P2002') continue;
+        if ((e as { code?: string }).code === 'P2002') {
+          // Two different unique columns can fail here. If it was the
+          // idempotency key then a concurrent checkout won the race, so return
+          // that order instead of burning all retries and 500-ing.
+          if (idempotencyKey) {
+            const winner = await prisma.order.findUnique({
+              where: { idempotencyKey },
+              include: { taxInvoice: { select: { etaUuid: true } } },
+            });
+            if (winner) return replayResponse(winner);
+          }
+          // Otherwise it is a document-number collision; retry with a fresh one.
+          continue;
+        }
         if (e instanceof InsufficientStockError) {
           return apiError('VALIDATION_ERROR', 'المخزون لا يكفي', 400, undefined, { items: [{ productId: e.productId, available: e.available }] });
         }

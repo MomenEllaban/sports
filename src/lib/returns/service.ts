@@ -20,10 +20,10 @@ export class ReturnError extends Error {
   }
 }
 
+import { nextDocumentNumber } from '@/lib/documents';
+
 type Tx = Prisma.TransactionClient;
 export type FetchFn = typeof fetch;
-
-const genReturnNumber = () => `RTN-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
 export interface ReturnLineInput {
   refId?: string; // orderItemId or saleItemId
@@ -213,11 +213,13 @@ export async function requestReturn(input: RequestReturnInput) {
   if (!receiveBranch) throw new ReturnError(400, 'فرع الاستلام غير صالح');
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    const returnNumber = genReturnNumber();
     try {
       // Serialize per document: lock the order/sale row so concurrent
       // requests re-read committed returns (over-return guard holds).
       const created = await prisma.$transaction(async (tx: Tx) => {
+        // Allocated inside the transaction so a rollback also rolls back the
+        // counter, and so two concurrent returns cannot share a number.
+        const returnNumber = await nextDocumentNumber(tx, 'RTN');
         if (input.orderId) {
           await tx.$queryRaw`SELECT 1 FROM "Order" WHERE id = ${input.orderId} FOR UPDATE`;
         } else {
@@ -268,8 +270,8 @@ export async function requestReturn(input: RequestReturnInput) {
           include: { items: true },
         });
       });
-      await audit(input.actorId, 'return.request', created.id, { returnNumber, channel: input.channel });
-      await notifyCustomer(created.customerPhone, `تم استلام طلب المرتجع ${returnNumber} وجارٍ المراجعة.`, `Return request ${returnNumber} received and now under review.`, [returnNumber]);
+      await audit(input.actorId, 'return.request', created.id, { returnNumber: created.returnNumber, channel: input.channel });
+      await notifyCustomer(created.customerPhone, `تم استلام طلب المرتجع ${created.returnNumber} وجارٍ المراجعة.`, `Return request ${created.returnNumber} received and now under review.`, [created.returnNumber]);
       return { request: created, replay: false as boolean, frequencyWarning };
     } catch (e) {
       if ((e as { code?: string }).code === 'P2002') {
@@ -677,30 +679,35 @@ export async function backfillLegacy() {
     if (exists) continue;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await db.returnRequest.create({
-          data: {
-            returnNumber: genReturnNumber(),
-            orderId: o.id,
-            type: 'RETURN',
-            channel: 'ADMIN',
-            branchId: o.branchId,
-            status: 'COMPLETED',
-            customerId: o.customerId,
-            customerPhone: o.guestPhone,
-            source: 'LEGACY',
-            notes: 'تحويل تلقائي من حالة RETURNED القديمة (بلا حركة مخزون)',
-            items: {
-              create: o.items.map((i) => ({
-                orderItemId: i.id,
-                productId: i.productId,
-                quantity: i.quantity,
-                reasonCode: 'OTHER',
-                condition: 'GOOD',
-                disposition: 'RESTOCK',
-                refundAmount: 0,
-              })),
+        // Number allocation shares the transaction so a rollback cannot consume
+        // a value, and the backfill stays re-runnable.
+        await db.$transaction(async (tx) => {
+          const returnNumber = await nextDocumentNumber(tx, 'RTN');
+          await tx.returnRequest.create({
+            data: {
+              returnNumber,
+              orderId: o.id,
+              type: 'RETURN',
+              channel: 'ADMIN',
+              branchId: o.branchId,
+              status: 'COMPLETED',
+              customerId: o.customerId,
+              customerPhone: o.guestPhone,
+              source: 'LEGACY',
+              notes: 'تحويل تلقائي من حالة RETURNED القديمة (بلا حركة مخزون)',
+              items: {
+                create: o.items.map((i) => ({
+                  orderItemId: i.id,
+                  productId: i.productId,
+                  quantity: i.quantity,
+                  reasonCode: 'OTHER',
+                  condition: 'GOOD',
+                  disposition: 'RESTOCK',
+                  refundAmount: 0,
+                })),
+              },
             },
-          },
+          });
         });
         created++;
         break;

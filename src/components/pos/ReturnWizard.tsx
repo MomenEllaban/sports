@@ -145,7 +145,7 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
             <div className="grid sm:grid-cols-2 gap-2">
               <div>
                 <label htmlFor="rw-sale" className="block text-xs font-bold text-slate-300 mb-1">{L('رقم الفاتورة / باركود الإيصال', 'Invoice number / receipt barcode')}</label>
-                <input id="rw-sale" value={find} onChange={(e) => setFind(e.target.value)} dir="ltr" placeholder="POS-2026-XXXXX" className="w-full min-h-[44px] p-3 rounded-xl bg-slate-950 border border-slate-700 font-mono font-bold" />
+                <input id="rw-sale" value={find} onChange={(e) => setFind(e.target.value)} dir="ltr" placeholder="POS-2026-000123" className="w-full min-h-[44px] p-3 rounded-xl bg-slate-950 border border-slate-700 font-mono font-bold" />
               </div>
               <div>
                 <label htmlFor="rw-phone" className="block text-xs font-bold text-slate-300 mb-1">{L('أو هاتف العميل (آخر فواتيره)', 'Or customer phone (recent invoices)')}</label>

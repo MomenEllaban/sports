@@ -7,8 +7,7 @@ import { canAccessBranch } from '@/lib/auth/branch-scope';
 import { computeTotals, num } from '@/lib/pricing';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
-
-const genOrderNumber = () => `ORD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+import { nextDocumentNumber } from '@/lib/documents';
 
 export async function POST(req: Request) {
   try {
@@ -79,7 +78,7 @@ export async function POST(req: Request) {
     let order: { id: string; orderNumber: string } | null = null;
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const orderNumber = genOrderNumber();
+      const orderNumber = await prisma.$transaction((tx) => nextDocumentNumber(tx, 'ORD'));
       try {
         order = await prisma.$transaction(async (tx) => {
           for (const line of orderItemsData) {

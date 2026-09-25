@@ -13,8 +13,7 @@ import { computeStackedTotals, linesSubtotal, loyaltyEarned as loyaltyRule, num 
 import { getLoyaltyRule, getVatRate, getRedeemRule } from '@/lib/settings';
 import { quoteCoupon, consumeCoupon, redeemPoints, CouponError } from '@/lib/discounts/coupons';
 import { dispatchNotification } from '@/lib/notifications';
-
-const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+import { nextDocumentNumber } from '@/lib/documents';
 
 export async function POST(req: Request) {
   try {
@@ -196,7 +195,7 @@ export async function POST(req: Request) {
     let receipt: Awaited<ReturnType<typeof buildEtaReceipt>> | null = null;
     let lastErr: unknown = null;
     for (let attempt = 0; attempt < 3; attempt++) {
-      const saleNumber = genSaleNumber();
+      const saleNumber = await prisma.$transaction((tx) => nextDocumentNumber(tx, 'POS'));
       try {
         const currentReceipt = await buildEtaReceipt({
           branchId: ctx.branch.id,

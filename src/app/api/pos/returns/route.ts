@@ -14,8 +14,7 @@ import { buildEtaReceipt } from '@/lib/eta';
 import { decrementStock, InsufficientStockError } from '@/lib/inventory/service';
 import { captureError } from '@/lib/monitor';
 import { makeInvoiceSnapshot } from '@/lib/invoices/snapshot';
-
-const genSaleNumber = () => `POS-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+import { nextDocumentNumber } from '@/lib/documents';
 
 /**
  * In-store return/exchange wizard (T-RMA §5.1): one call walks
@@ -236,7 +235,7 @@ async function createExchangeSale(
   const totals = computeTotals({ lines: priced, vatRate });
   const method = exchange.paymentMethod === 'CARD' ? 'CARD' : 'CASH';
   for (let attempt = 0; attempt < 3; attempt++) {
-    const saleNumber = genSaleNumber();
+    const saleNumber = await prisma.$transaction((tx) => nextDocumentNumber(tx, 'POS'));
     try {
       const receipt = await buildEtaReceipt({
         branchId: ctx.branch.id, invoiceNumber: saleNumber,

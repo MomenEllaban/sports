@@ -8,6 +8,18 @@ import { CreditCard, Truck, CheckCircle, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/foundation';
 import { apiRequest } from '@/lib/client-api';
 
+/**
+ * Random key for one checkout attempt. `crypto.randomUUID` is preferred; the
+ * fallback keeps the key format the server accepts (8-80 chars of
+ * `[A-Za-z0-9_-]`) on older browsers and insecure origins.
+ */
+function newCheckoutKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export default function CheckoutPage() {
   const tCommon = useTranslations('common');
   const tCheckout = useTranslations('checkout');
@@ -52,6 +64,11 @@ export default function CheckoutPage() {
   const [receiptError, setReceiptError] = useState('');
   const needsReceipt = paymentMethod === 'INSTAPAY' || paymentMethod === 'VODAFONE_CASH';
   const [orderCompleted, setOrderCompleted] = useState<{ orderNumber: string; trackingNumber: string; paymentInstructions?: string; paymentPending?: boolean; paymentError?: string | null } | null>(null);
+
+  // One idempotency key per checkout attempt, reused across retries until the
+  // order succeeds, so a double tap or a retried request cannot create two
+  // orders (and charge the customer twice). A successful submit clears it.
+  const [idempotencyKey, setIdempotencyKey] = useState(() => newCheckoutKey());
 
   // T01: only offer payment methods that are actually available (gateway-gated).
   const [availableMethods, setAvailableMethods] = useState<string[] | null>(null);
@@ -172,6 +189,7 @@ export default function CheckoutPage() {
       }>('/api/orders/create', {
         method: 'POST',
         body: JSON.stringify({
+          idempotencyKey,
           phone,
           name: name || L('عميل كريم', 'Valued customer'),
           address: fulfillmentType === 'PICKUP' ? L('استلام من فرع الإبراهيمية (92 شارع عمر لطفى)', 'Pickup from Ibrahimeyah branch (92 Omar Lotfy St.)') : address,
@@ -194,6 +212,9 @@ export default function CheckoutPage() {
           return;
         }
         clearCart();
+        // The order exists now, so the next checkout attempt is a different
+        // order and must not reuse this key.
+        setIdempotencyKey(newCheckoutKey());
         setOrderCompleted({
           orderNumber: data.orderNumber,
           trackingNumber: data.trackingNumber || '',
