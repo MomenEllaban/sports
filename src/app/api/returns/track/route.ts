@@ -17,9 +17,9 @@ export async function GET(req: Request) {
     const r = await prisma.returnRequest.findFirst({
       where: { returnNumber, customerPhone: phone },
       include: {
-        items: { include: { product: { select: { nameAr: true } } } },
+        items: { include: { product: { select: { nameAr: true, nameEn: true } } } },
         refunds: { select: { amount: true, method: true, status: true } },
-        branch: { select: { name: true } },
+        branch: { select: { name: true, nameEn: true } },
       },
     });
     if (!r) return apiError('NOT_FOUND', 'لا يوجد مرتجع مطابق', 404);
@@ -30,9 +30,10 @@ export async function GET(req: Request) {
         status: r.status,
         type: r.type,
         branch: r.branch.name,
+        branchEn: r.branch.nameEn,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
-        items: r.items.map((i) => ({ nameAr: i.product.nameAr, quantity: i.quantity, reasonCode: i.reasonCode, refundAmount: num(i.refundAmount) })),
+        items: r.items.map((i) => ({ nameAr: i.product.nameAr, nameEn: i.product.nameEn, quantity: i.quantity, reasonCode: i.reasonCode, refundAmount: num(i.refundAmount) })),
         refunds: r.refunds.map((f) => ({ amount: num(f.amount), method: f.method, status: f.status })),
       },
     });

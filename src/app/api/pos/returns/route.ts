@@ -62,7 +62,7 @@ export async function POST(req: Request) {
             id: s.id, saleNumber: s.saleNumber, branchId: s.branchId,
             totalAmount: num(s.totalAmount), createdAt: s.createdAt,
             items: s.items.map((i) => ({
-              saleItemId: i.id, productId: i.productId, nameAr: i.product.nameAr,
+              saleItemId: i.id, productId: i.productId, nameAr: i.product.nameAr, nameEn: i.product.nameEn,
               sku: i.product.sku, images: i.product.images, quantity: i.quantity,
               unitPrice: num(i.unitPrice), size: i.product.size, color: i.product.color,
             })),

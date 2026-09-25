@@ -28,6 +28,7 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const [rows, setRows] = useState(initial);
   const [busy, setBusy] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -64,7 +65,7 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
         await reload();
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل الإنشاء';
+      const msg = err instanceof Error ? err.message : L('فشل الإنشاء', 'Could not create coupon');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -79,7 +80,7 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
       toast(isAr ? 'تم التحديث' : 'Updated', 'success');
       await reload();
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'فشل', 'error');
+      toast(err instanceof Error ? err.message : L('فشل', 'Operation failed'), 'error');
     } finally {
       setBusy('');
     }
@@ -94,7 +95,7 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
       setConfirmDelete(null);
       await reload();
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'فشل', 'error');
+      toast(err instanceof Error ? err.message : L('فشل', 'Operation failed'), 'error');
     } finally {
       setBusy('');
     }
@@ -112,30 +113,30 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
       {showNew && (
         <form onSubmit={create} className="glass-panel p-5 rounded-3xl border border-slate-800 grid sm:grid-cols-3 gap-3 text-xs">
           <div>
-            <label htmlFor="cp-code" className="block font-bold text-slate-300 mb-1">الكود *</label>
+            <label htmlFor="cp-code" className="block font-bold text-slate-300 mb-1">{L('الكود *', 'Code *')}</label>
             <input id="cp-code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="SAVE10" dir="ltr" className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700 font-mono font-bold" />
           </div>
           <div>
-            <label htmlFor="cp-kind" className="block font-bold text-slate-300 mb-1">النوع</label>
+            <label htmlFor="cp-kind" className="block font-bold text-slate-300 mb-1">{L('النوع', 'Type')}</label>
             <select id="cp-kind" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
-              <option value="PERCENT">نسبة %</option>
-              <option value="FIXED">مبلغ ثابت</option>
+              <option value="PERCENT">{L('نسبة %', 'Percentage %')}</option>
+              <option value="FIXED">{L('مبلغ ثابت', 'Fixed amount')}</option>
             </select>
           </div>
           <div>
-            <label htmlFor="cp-value" className="block font-bold text-slate-300 mb-1">القيمة *</label>
+            <label htmlFor="cp-value" className="block font-bold text-slate-300 mb-1">{L('القيمة *', 'Value *')}</label>
             <input id="cp-value" type="number" min="0" step="0.01" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           <div>
-            <label htmlFor="cp-cap" className="block font-bold text-slate-300 mb-1">سقف الخصم (0 = بلا)</label>
+            <label htmlFor="cp-cap" className="block font-bold text-slate-300 mb-1">{L('سقف الخصم (0 = بلا)', 'Discount cap (0 = none)')}</label>
             <input id="cp-cap" type="number" min="0" step="0.01" value={form.capAmount} onChange={(e) => setForm({ ...form, capAmount: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           <div>
-            <label htmlFor="cp-min" className="block font-bold text-slate-300 mb-1">حد أدنى للفاتورة</label>
+            <label htmlFor="cp-min" className="block font-bold text-slate-300 mb-1">{L('حد أدنى للفاتورة', 'Minimum order')}</label>
             <input id="cp-min" type="number" min="0" step="0.01" value={form.minTotal} onChange={(e) => setForm({ ...form, minTotal: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           <div>
-            <label htmlFor="cp-limit" className="block font-bold text-slate-300 mb-1">حد الاستخدام (فارغ = بلا)</label>
+            <label htmlFor="cp-limit" className="block font-bold text-slate-300 mb-1">{L('حد الاستخدام (فارغ = بلا)', 'Usage limit (blank = none)')}</label>
             <input id="cp-limit" type="number" min="1" step="1" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           {formError && <p role="alert" className="sm:col-span-3 text-rose-400 font-bold">{formError}</p>}
@@ -153,10 +154,10 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
         emptyTitle={isAr ? 'لا توجد كوبونات بعد' : 'No coupons yet'}
         emptyHint={isAr ? 'أنشئ أول كوبون خصم لحملاتك من الزر أعلاه.' : 'Create your first promo code above.'}
         columns={[
-          { key: 'code', header: 'الكود', render: (r) => <span className="font-mono font-black text-amber-400" dir="ltr">{r.code}</span> },
-          { key: 'value', header: 'القيمة', render: (r) => <span className="font-bold">{r.kind === 'PERCENT' ? `${r.value}%` : `${r.value} ج.م`}{r.capAmount > 0 ? ` (سقف ${r.capAmount})` : ''}</span> },
-          { key: 'use', header: 'الاستخدام', render: (r) => <span className="text-slate-300">{r.usedCount}{r.usageLimit ? `/${r.usageLimit}` : ''}</span> },
-          { key: 'status', header: 'الحالة', render: (r) => (
+          { key: 'code', header: L('الكود', 'Code'), render: (r) => <span className="font-mono font-black text-amber-400" dir="ltr">{r.code}</span> },
+          { key: 'value', header: L('القيمة', 'Value'), render: (r) => <span className="font-bold">{r.kind === 'PERCENT' ? `${r.value}%` : `${r.value} ${L('ج.م', 'EGP')}`}{r.capAmount > 0 ? ` (${L('سقف', 'cap')} ${r.capAmount})` : ''}</span> },
+          { key: 'use', header: L('الاستخدام', 'Usage'), render: (r) => <span className="text-slate-300">{r.usedCount}{r.usageLimit ? `/${r.usageLimit}` : ''}</span> },
+          { key: 'status', header: L('الحالة', 'Status'), render: (r) => (
             <span className={`px-2 py-0.5 rounded-lg font-bold ${r.isActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
               {r.isActive ? (isAr ? 'مفعل' : 'Active') : (isAr ? 'موقوف' : 'Off')}
             </span>

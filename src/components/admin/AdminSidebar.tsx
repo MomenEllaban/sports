@@ -5,7 +5,7 @@ import { usePathname, Link } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
-import { Monitor, PanelLeftClose, PanelLeftOpen, User, X } from 'lucide-react';
+import { Monitor, PanelLeftClose, PanelLeftOpen, User, X, ChevronRight, ChevronDown } from 'lucide-react';
 import {
   ADMIN_ROLES,
   getVisibleAdminGroups,
@@ -17,7 +17,6 @@ import {
 import { AdminIcon } from './AdminIcon';
 import NavPending from '@/components/layout/NavPending';
 
-const GROUP_STORAGE_KEY = 'admin:sidebar-groups';
 const COLLAPSED_STORAGE_KEY = 'admin:sidebar-collapsed';
 
 function Tooltip({ children, label }: { children: React.ReactNode; label: string }) {
@@ -54,37 +53,27 @@ export default function AdminSidebar({
 
   useEffect(() => {
     let savedCollapsed = false;
-    let savedGroups: Record<string, boolean> = {};
     try {
       savedCollapsed = localStorage.getItem(COLLAPSED_STORAGE_KEY) === '1';
-      const raw = localStorage.getItem(GROUP_STORAGE_KEY);
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') savedGroups = parsed as Record<string, boolean>;
-      }
     } catch {
       // Private browsing and storage-disabled browsers use defaults.
     }
+    // Group open/closed state is intentionally NOT persisted: on every load the
+    // sidebar starts with only the first category expanded so the rail stays
+    // short and predictable instead of restoring a large previous tree.
+    const visibleGroups = getVisibleAdminGroups(role);
     setCollapsed(savedCollapsed);
-    setGroupOpen(savedGroups);
-  }, []);
+    setGroupOpen(Object.fromEntries(visibleGroups.map((group, index) => [group.key, index === 0])));
+  }, [role]);
 
+  // Keep the category that owns the current route expanded after navigation.
   useEffect(() => {
     const currentPath = normalizeAdminPath(pathname);
     const currentGroup = getVisibleAdminGroups(role).find((group) =>
       group.items.some((item) => pathMatches(currentPath, item.href)),
     );
     if (currentGroup) {
-      setGroupOpen((previous) => {
-        if (previous[currentGroup.key]) return previous;
-        const next = { ...previous, [currentGroup.key]: true };
-        try {
-          localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // Ignore storage failures.
-        }
-        return next;
-      });
+      setGroupOpen((previous) => (previous[currentGroup.key] ? previous : { ...previous, [currentGroup.key]: true }));
     }
   }, [pathname, role]);
 
@@ -111,15 +100,7 @@ export default function AdminSidebar({
         // Ignore storage failures.
       }
     }
-    setGroupOpen((previous) => {
-      const next = { ...previous, [key]: !(previous[key] ?? true) };
-      try {
-        localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Ignore storage failures.
-      }
-      return next;
-    });
+    setGroupOpen((previous) => ({ ...previous, [key]: !(previous[key] ?? false) }));
   };
 
   const userName = session?.user?.name || (isAr ? 'مستخدم النظام' : 'System user');
@@ -129,7 +110,7 @@ export default function AdminSidebar({
 
   return (
     <>
-      {mobileOpen && <button type="button" aria-label="إغلاق القائمة" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/70 lg:hidden" />}
+      {mobileOpen && <button type="button" aria-label={isAr ? 'إغلاق القائمة' : 'Close menu'} onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/70 lg:hidden" />}
       <aside
         className={`${visibleWidth} ${mobileOpen ? 'flex' : 'hidden lg:flex'} fixed inset-y-0 start-0 z-50 h-dvh min-h-0 flex-col overflow-hidden border-e border-slate-800 bg-slate-900 transition-[width] duration-200 ease-out lg:static lg:z-auto lg:shrink-0`}
         aria-label={isAr ? 'قائمة التنقل الرئيسية' : 'Primary navigation'}
@@ -137,17 +118,17 @@ export default function AdminSidebar({
         <div className="flex min-h-0 flex-1 flex-col p-3">
           <div className={`mb-4 flex shrink-0 items-center gap-2 border-b border-slate-800 pb-3 ${showLabels ? 'justify-between' : 'justify-center'}`}>
             <Link href="/admin" onClick={onClose} className={`flex min-w-0 items-center gap-3 ${showLabels ? 'flex-1' : 'justify-center'}`}>
-              <Image src="/logo.avif" alt="أبطال الرياضة" width={960} height={822} priority quality={80} sizes="48px" className="h-10 w-auto shrink-0 rounded-lg object-contain" />
+              <Image src="/logo.avif" alt={isAr ? 'أبطال الرياضة' : 'Sports Champions'} width={960} height={822} priority quality={80} sizes="48px" className="h-10 w-auto shrink-0 rounded-lg object-contain" />
               {showLabels && (
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-extrabold text-slate-100">ابطال الرياضة</h2>
-                  <p className="truncate text-[10px] font-semibold text-amber-400">ERP الإسكندرية</p>
+                  <h2 className="truncate text-sm font-extrabold text-slate-100">{isAr ? 'ابطال الرياضة' : 'Sports Champions'}</h2>
+                  <p className="truncate text-[10px] font-semibold text-amber-400">{isAr ? 'ERP الإسكندرية' : 'Alexandria ERP'}</p>
                 </div>
               )}
             </Link>
             <div className="flex shrink-0 items-center gap-1">
               {mobileOpen && (
-                <button type="button" onClick={onClose} className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-300 hover:bg-slate-700" aria-label="إغلاق القائمة">
+                <button type="button" onClick={onClose} className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-300 hover:bg-slate-700" aria-label={isAr ? 'إغلاق القائمة' : 'Close menu'}>
                   <X className="h-4 w-4" aria-hidden="true" />
                 </button>
               )}
@@ -194,9 +175,9 @@ export default function AdminSidebar({
             )}
 
             <nav className="min-h-0 space-y-2" aria-label={isAr ? 'أقسام الإدارة' : 'Admin sections'}>
-              {groups.map((group) => {
+              {groups.map((group, groupIndex) => {
                 const groupActive = group.items.some((item) => pathMatches(pathname, item.href));
-                const isOpen = groupOpen[group.key] ?? true;
+                const isOpen = groupOpen[group.key] ?? groupIndex === 0;
                 const groupLabel = isAr ? group.labelAr : group.labelEn;
                 return (
                   <section key={group.key} className="space-y-1">
@@ -209,7 +190,16 @@ export default function AdminSidebar({
                     >
                       <AdminIcon name={group.icon} className="h-4.5 w-4.5 shrink-0" />
                       {showLabels && <span className="min-w-0 flex-1 truncate text-xs font-black">{groupLabel}</span>}
-                      {showLabels && <span className={`text-[10px] transition-transform ${isOpen ? 'rotate-90' : ''} rtl-flip`} aria-hidden="true">›</span>}
+                      {/* The expand/collapse affordance stays visible in both dark and
+                          light themes, and also in the icon-only rail. */}
+                      <span
+                        className={`sidebar-group-chevron grid size-5 shrink-0 place-items-center rounded-md ${showLabels ? '' : 'ms-0.5'}`}
+                        data-state={isOpen ? 'open' : 'closed'}
+                      >
+                        {isOpen
+                          ? <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                          : <ChevronRight className="h-4 w-4 rtl-flip" aria-hidden="true" />}
+                      </span>
                     </button>
                     {isOpen && (
                       <div id={`admin-group-${group.key}`} className="space-y-1 ps-2">
@@ -257,7 +247,7 @@ function SidebarLink({ item, pathname, collapsed, isAr, onNavigate }: { item: Ad
       {!collapsed && <span className="min-w-0 flex-1 truncate text-xs font-bold">{label}</span>}
       {!collapsed && item.status && item.status !== 'live' && (
         <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] ${item.status === 'partial' ? 'status-info' : 'status-warning'}`}>
-          {item.status === 'partial' ? 'جزئي' : 'قريبًا'}
+          {item.status === 'partial' ? (isAr ? 'جزئي' : 'Partial') : (isAr ? 'قريبًا' : 'Soon')}
         </span>
       )}
       {!collapsed && <NavPending className={active ? 'text-white' : 'text-blue-400'} />}

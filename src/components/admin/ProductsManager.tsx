@@ -25,7 +25,7 @@ interface ProductRow {
   images: string[];
   category: { id: string; nameAr: string; nameEn: string };
   brand: { id: string; nameAr: string; nameEn: string } | null;
-  inventories: Array<{ stockQuantity: number; branch: { name: string } }>;
+  inventories: Array<{ stockQuantity: number; branch: { name: string; nameEn?: string } }>;
 }
 
 const EMPTY_PRODUCT = {
@@ -83,6 +83,7 @@ export default function ProductsManager({
   const pathname = usePathname() || '';
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => tabFromPath(pathname));
@@ -123,7 +124,7 @@ export default function ProductsManager({
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
   const stockOf = (p: ProductRow, frag: string) =>
-    p.inventories.find((i) => i.branch.name.includes(frag))?.stockQuantity ?? 0;
+    p.inventories.find((i) => `${i.branch.name} ${i.branch.nameEn || ''}`.toLowerCase().includes(frag.toLowerCase()))?.stockQuantity ?? 0;
 
   const filtered = serverSide ? products : products.filter(
     (p) => p.nameAr.includes(search) || p.nameEn.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode || '').includes(search),
@@ -327,7 +328,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إضافة المنتج';
+      const msg = err instanceof Error ? err.message : L('فشل في إضافة المنتج', 'Could not add the product');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -356,7 +357,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في تحديث المنتج';
+      const msg = err instanceof Error ? err.message : L('فشل في تحديث المنتج', 'Could not update the product');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -374,7 +375,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في حذف المنتج';
+      const msg = err instanceof Error ? err.message : L('فشل في حذف المنتج', 'Could not delete the product');
       setDeleteProductError(msg);
       toast(msg, 'error');
     } finally {
@@ -393,7 +394,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إضافة التصنيف';
+      const msg = err instanceof Error ? err.message : L('فشل في إضافة التصنيف', 'Could not add the category');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -412,7 +413,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إضافة الماركة';
+      const msg = err instanceof Error ? err.message : L('فشل في إضافة الماركة', 'Could not add the brand');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -428,7 +429,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل الحذف';
+      const msg = err instanceof Error ? err.message : L('فشل الحذف', 'Could not delete');
       setRowError(msg);
       toast(msg, 'error');
     }
@@ -442,7 +443,7 @@ export default function ProductsManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل الحذف';
+      const msg = err instanceof Error ? err.message : L('فشل الحذف', 'Could not delete');
       setRowError(msg);
       toast(msg, 'error');
     }
@@ -460,7 +461,7 @@ export default function ProductsManager({
           <label className={labelCls}>{isAr ? 'كود المنتج (SKU) *' : 'Product SKU *'}</label>
           <input
             required
-            placeholder="مثال: NIKE-SHOE-001"
+            placeholder={isAr ? 'مثال: NIKE-SHOE-001' : 'Example: NIKE-SHOE-001'}
             value={productForm.sku}
             onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
             className={inputCls}
@@ -487,7 +488,7 @@ export default function ProductsManager({
           <label className={labelCls}>{isAr ? 'الاسم بالعربي *' : 'Name in Arabic *'}</label>
           <input
             required
-            placeholder="مثال: حذاء رياضي نايك"
+            placeholder={isAr ? 'مثال: حذاء رياضي نايك' : 'Example: Nike running shoe'}
             value={productForm.nameAr}
             onChange={(e) => setProductForm({ ...productForm, nameAr: e.target.value })}
             className={inputCls}
@@ -847,12 +848,12 @@ export default function ProductsManager({
                     <td className="p-3 font-black text-emerald-400">{prod.price.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>
                     <td className="p-3 font-bold text-blue-400">
                       <Link href="/admin/inventory" title={isAr ? 'عرض في المخزون' : 'View in inventory'} className="hover:underline">
-                        {stockOf(prod, 'الإبراهيمية')}
+                        {stockOf(prod, isAr ? 'الإبراهيمية' : 'Ibrahimeyah')}
                       </Link>
                     </td>
                     <td className="p-3 font-bold text-purple-400">
                       <Link href="/admin/inventory" title={isAr ? 'عرض في المخزون' : 'View in inventory'} className="hover:underline">
-                        {stockOf(prod, 'سموحة')}
+                        {stockOf(prod, isAr ? 'سموحة' : 'Smouha')}
                       </Link>
                     </td>
                     <td className="p-3">

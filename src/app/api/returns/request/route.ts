@@ -75,32 +75,48 @@ export async function GET(req: Request) {
     if (!orderNumber || !phone) return apiError('VALIDATION_ERROR', 'order + phone required', 400);
     const order = await prisma.order.findFirst({
       where: { orderNumber, OR: [{ guestPhone: phone }, { customer: { phone } }] },
-      include: { items: { include: { product: { select: { id: true, nameAr: true, sku: true, images: true, categoryId: true } } } } },
+      include: { items: { include: { product: { select: { id: true, nameAr: true, nameEn: true, sku: true, images: true, categoryId: true } } } } },
     });
     if (!order) return apiError('UNAUTHORIZED', 'not matched', 401);
     const policy = await getReturnsPolicy();
     const ageDays = (Date.now() - order.createdAt.getTime()) / 86_400_000;
     const blocked = new Set(policy.nonReturnableCategories);
     const reasons: string[] = [];
-    if (!policy.enabled) reasons.push('المرتجعات معطلة حالياً');
-    if (!['DELIVERED', 'SHIPPED'].includes(order.orderStatus)) reasons.push('المرتجع متاح بعد التسليم فقط');
-    if (ageDays > policy.windowDays) reasons.push(`انتهت المدة (${policy.windowDays} يوم)`);
+    const reasonsEn: string[] = [];
+    if (!policy.enabled) {
+      reasons.push('المرتجعات معطلة حالياً');
+      reasonsEn.push('Returns are currently disabled');
+    }
+    if (!['DELIVERED', 'SHIPPED'].includes(order.orderStatus)) {
+      reasons.push('المرتجع متاح بعد التسليم فقط');
+      reasonsEn.push('Returns are only available after delivery');
+    }
+    if (ageDays > policy.windowDays) {
+      reasons.push(`انتهت المدة (${policy.windowDays} يوم)`);
+      reasonsEn.push(`The ${policy.windowDays}-day window has expired`);
+    }
     const items = order.items.map((i) => ({
       orderItemId: i.id,
       productId: i.productId,
       nameAr: i.product.nameAr,
+      nameEn: i.product.nameEn,
       sku: i.product.sku,
       images: i.product.images,
       quantity: i.quantity,
       unitPrice: num(i.unitPrice),
       blocked: blocked.has(i.product.categoryId),
       blockedReason: blocked.has(i.product.categoryId) ? 'الصنف غير قابل للاسترجاع' : null,
+      blockedReasonEn: blocked.has(i.product.categoryId) ? 'This item is non-returnable' : null,
     }));
-    if (items.length > 0 && items.every((i) => i.blocked)) reasons.push('كل أصناف الطلب غير قابلة للاسترجاع');
+    if (items.length > 0 && items.every((i) => i.blocked)) {
+      reasons.push('كل أصناف الطلب غير قابلة للاسترجاع');
+      reasonsEn.push('All items in this order are non-returnable');
+    }
     return NextResponse.json({
       success: true,
       eligible: reasons.length === 0,
       reasons,
+      reasonsEn,
       orderNumber: order.orderNumber,
       items,
       policyDays: policy.windowDays,

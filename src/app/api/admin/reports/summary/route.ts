@@ -105,8 +105,8 @@ export async function GET(req: Request) {
       cur.revenue -= num(it.refundAmount);
       byBranch.set(it.return.branchId, cur);
     }
-    const branches = await prisma.branch.findMany({ select: { id: true, name: true } });
-    const branchProfit = branches.map((b) => ({ id: b.id, name: b.name, ...(byBranch.get(b.id) || { revenue: 0, orders: 0, sales: 0 }) }));
+    const branches = await prisma.branch.findMany({ select: { id: true, name: true, nameEn: true } });
+    const branchProfit = branches.map((b) => ({ id: b.id, name: b.name, nameEn: b.nameEn, ...(byBranch.get(b.id) || { revenue: 0, orders: 0, sales: 0 }) }));
 
     // Cashier performance.
     const byCashier = new Map<string, { revenue: number; sales: number; discount: number }>();

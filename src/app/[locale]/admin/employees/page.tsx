@@ -1,4 +1,5 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 import EmployeesManager from '@/components/admin/EmployeesManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminEmployeesPage() {
   await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+  const isAr = (await getLocale()) === 'ar';
   const [employees, branches] = await Promise.all([
     prisma.employee.findMany({
       orderBy: { createdAt: 'desc' },
@@ -19,9 +21,9 @@ export default async function AdminEmployeesPage() {
   return (
     <>
           <div>
-            <h1 className="text-2xl font-black text-slate-100">إدارة الموظفين والكادر الوظيفي</h1>
+            <h1 className="text-2xl font-black text-slate-100">{isAr ? 'إدارة الموظفين والكادر الوظيفي' : 'Employees & staff management'}</h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              إضافة وتعديل بيانات الموظفين لكل فرع — الراتب والمسمى الوظيفي ونسبة العمولة
+              {isAr ? 'إضافة وتعديل بيانات الموظفين لكل فرع — الراتب والمسمى الوظيفي ونسبة العمولة' : 'Add and edit employee records per branch — salary, job title, and commission rate'}
             </p>
           </div>
 

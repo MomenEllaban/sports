@@ -8,7 +8,7 @@ import { apiRequest } from '@/lib/client-api';
 
 interface Summary {
   productProfit: Array<{ id: string; nameAr: string; qty: number; revenue: number; cost: number; profit: number }>;
-  branchProfit: Array<{ id: string; name: string; revenue: number; orders: number; sales: number }>;
+  branchProfit: Array<{ id: string; name: string; nameEn?: string | null; revenue: number; orders: number; sales: number }>;
   cashierPerf: Array<{ id: string; name: string; revenue: number; sales: number; discount: number }>;
   deadStock: Array<{ productId: string; nameAr: string; branch: string; qty: number; value: number }>;
   deadDays: number;
@@ -26,9 +26,10 @@ function csv(name: string, headers: string[], rows: Array<Array<string | number>
   URL.revokeObjectURL(url);
 }
 
-export default function ReportsClient({ branches }: { branches: Array<{ id: string; name: string }> }) {
+export default function ReportsClient({ branches }: { branches: Array<{ id: string; name: string; nameEn?: string }> }) {
   const locale = useLocale();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const [from, setFrom] = useState(() => new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10));
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [branch, setBranch] = useState('');
@@ -45,7 +46,7 @@ export default function ReportsClient({ branches }: { branches: Array<{ id: stri
       const data = await apiRequest<Summary>(`/api/admin/reports/summary?${p}`, { errorKey: 'admin:reports:summary' });
       setData(data);
     } catch {
-      setError('تعذر الاتصال');
+      setError(L('تعذر الاتصال', 'Connection failed'));
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export default function ReportsClient({ branches }: { branches: Array<{ id: stri
           <label htmlFor="rep-branch" className="block font-bold text-slate-400 mb-1">{isAr ? 'الفرع' : 'Branch'}</label>
           <select id="rep-branch" value={branch} onChange={(e) => setBranch(e.target.value)} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
             <option value="">{isAr ? 'كل الفروع' : 'All Branches'}</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            {branches.map((b) => <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn || b.name}</option>)}
           </select>
         </div>
         <div className="col-span-2 md:col-span-2 flex items-end">
@@ -108,7 +109,7 @@ export default function ReportsClient({ branches }: { branches: Array<{ id: stri
             <div className="grid sm:grid-cols-2 gap-3">
               {data.branchProfit.map((b) => (
                 <div key={b.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs space-y-1">
-                  <div className="font-black text-slate-100">{b.name}</div>
+                  <div className="font-black text-slate-100">{isAr ? b.name : b.nameEn || b.name}</div>
                   <div className="flex justify-between text-slate-400"><span>{isAr ? 'الإيراد:' : 'Revenue:'}</span><span className="font-bold text-emerald-400">{b.revenue.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</span></div>
                   <div className="flex justify-between text-slate-400"><span>{isAr ? 'طلبات/فواتير:' : 'Orders/Sales:'}</span><span>{b.orders}/{b.sales}</span></div>
                 </div>

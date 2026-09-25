@@ -1,4 +1,5 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 import PurchasingManager from '@/components/admin/PurchasingManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminPurchasingPage() {
   const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+  const isAr = (await getLocale()) === 'ar';
   const actor = session as unknown as { user?: { role?: string; branchIds?: string[] } };
   const [suppliers, branches, products, purchaseOrders] = await Promise.all([
     prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
@@ -26,11 +28,11 @@ export default async function AdminPurchasingPage() {
   return (
     <>
       <div>
-        <h1 className="text-2xl font-black text-slate-100">أوامر التوريد والمشتريات</h1>
-        <p className="text-xs text-slate-400 mt-0.5">إنشاء ومتابعة أوامر شراء البضائع والمستلزمات الرياضية</p>
+        <h1 className="text-2xl font-black text-slate-100">{isAr ? 'أوامر التوريد والمشتريات' : 'Purchase orders & procurement'}</h1>
+        <p className="text-xs text-slate-400 mt-0.5">{isAr ? 'إنشاء ومتابعة أوامر شراء البضائع والمستلزمات الرياضية' : 'Create and track purchase orders for goods and sports equipment'}</p>
       </div>
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">أوامر الشراء والتوريد (Purchase Orders)</h2>
+        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">{isAr ? 'أوامر الشراء والتوريد (Purchase Orders)' : 'Purchase orders'}</h2>
         <PurchasingManager
           suppliers={suppliers}
           branches={branches}

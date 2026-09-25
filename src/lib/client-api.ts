@@ -54,6 +54,35 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function isEnglishClient(): boolean {
+  return typeof document !== 'undefined' && document.documentElement.lang === 'en';
+}
+
+function localizeApiMessage(message: string, code: string, status: number): string {
+  if (!isEnglishClient() || !/[\u0600-\u06ff]/u.test(message)) return message;
+  switch (code) {
+    case 'UNAUTHORIZED':
+    case 'AUTH_REQUIRED':
+      return 'Your session expired or you are not authorized. Please sign in and try again.';
+    case 'FORBIDDEN':
+      return 'You do not have permission to perform this action.';
+    case 'NOT_FOUND':
+      return 'The requested record was not found.';
+    case 'VALIDATION_ERROR':
+      return 'Please check the highlighted information and try again.';
+    case 'CONFLICT':
+      return 'This record was changed by another user. Refresh and try again.';
+    case 'RATE_LIMITED':
+      return 'Too many requests. Please wait a moment and try again.';
+    case 'INTERNAL_ERROR':
+      return status >= 500 ? 'Something went wrong on the server. Please try again.' : 'The request could not be completed.';
+    case 'NETWORK_ERROR':
+      return 'Could not connect to the server. Please try again.';
+    default:
+      return status >= 500 ? 'Something went wrong on the server. Please try again.' : 'The request could not be completed.';
+  }
+}
+
 function errorInfo(payload: unknown, fallback: string) {
   const data = isRecord(payload) ? payload as ErrorPayload : undefined;
   const nested = data?.error;
@@ -148,7 +177,7 @@ export async function apiRequest<T = unknown>(input: RequestInfo | URL, options:
     if (!response.ok) {
       const info = errorInfo(payload, `Request failed (${response.status})`);
       const expected = response.status === 401 || response.status === 403;
-      const error = new ClientApiError(info.message, {
+      const error = new ClientApiError(localizeApiMessage(info.message, info.code, response.status), {
         status: response.status,
         code: info.code,
         requestId: info.requestId,
@@ -172,7 +201,7 @@ export async function apiRequest<T = unknown>(input: RequestInfo | URL, options:
     }
     if (isRecord(payload) && payload.success === false) {
       const info = errorInfo(payload, 'Request failed');
-      throw new ClientApiError(info.message, {
+      throw new ClientApiError(localizeApiMessage(info.message, info.code, response.status), {
         status: response.status,
         code: info.code,
         requestId: info.requestId,
@@ -182,10 +211,11 @@ export async function apiRequest<T = unknown>(input: RequestInfo | URL, options:
     return payload as T;
   } catch (error) {
     if (error instanceof ClientApiError) throw error;
+    const isEnglishDocument = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     const networkError = new ClientApiError(
       error instanceof DOMException && error.name === 'AbortError'
-        ? 'انتهت مهلة الاتصال. حاول مرة أخرى.'
-        : 'تعذر الاتصال بالسيرفر. حاول مرة أخرى.',
+        ? (isEnglishDocument ? 'The connection timed out. Please try again.' : 'انتهت مهلة الاتصال. حاول مرة أخرى.')
+        : (isEnglishDocument ? 'Could not connect to the server. Please try again.' : 'تعذر الاتصال بالسيرفر. حاول مرة أخرى.'),
       { status: 0, code: 'NETWORK_ERROR', retryable: true },
     );
     if (!suppressErrorEvents) {

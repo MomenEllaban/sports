@@ -13,6 +13,7 @@ interface CodRow {
   orderNumber: string;
   branchId: string;
   branchName: string;
+  branchNameEn?: string;
   customerName: string | null;
   guestPhone: string;
   trackingNumber: string | null;
@@ -109,7 +110,7 @@ export default function CodSettlementManager({ initialOrders }: { initialOrders:
                     <div className="text-[10px] text-slate-500">{o.customerName || '—'} • <span dir="ltr">{o.guestPhone}</span></div>
                   </td>
                   <td className="p-3 text-slate-300">
-                    <div className="font-bold">{o.branchName}</div>
+                    <div className="font-bold">{isAr ? o.branchName : o.branchNameEn || o.branchName}</div>
                     <div className="text-[10px] text-slate-500">{o.trackingNumber || '—'}</div>
                   </td>
                   <td className="p-3 font-black text-slate-100">{o.collectedAmount.toLocaleString()}</td>
@@ -153,7 +154,7 @@ export default function CodSettlementManager({ initialOrders }: { initialOrders:
           </tbody>
         </table>
         {initialOrders.length === 0 && (
-          <div className="p-8 text-center text-xs text-slate-500">لا توجد طلبات دفع عند الاستلام بعد.</div>
+          <div className="p-8 text-center text-xs text-slate-500">{isAr ? 'لا توجد طلبات دفع عند الاستلام بعد.' : 'No COD orders yet.'}</div>
         )}
       </div>
     </div>

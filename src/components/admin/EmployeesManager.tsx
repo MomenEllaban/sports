@@ -45,6 +45,7 @@ export default function EmployeesManager({
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [showAdd, setShowAdd] = useState(false);
@@ -104,7 +105,7 @@ export default function EmployeesManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل';
+      const msg = err instanceof Error ? err.message : L('فشل', 'Operation failed');
       setRowError(msg);
       toast(msg, 'error');
     }
@@ -124,7 +125,7 @@ export default function EmployeesManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إضافة الموظف';
+      const msg = err instanceof Error ? err.message : L('فشل في إضافة الموظف', 'Could not add the employee');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -147,7 +148,7 @@ export default function EmployeesManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في تحديث بيانات الموظف';
+      const msg = err instanceof Error ? err.message : L('فشل في تحديث بيانات الموظف', 'Could not update the employee');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -165,7 +166,7 @@ export default function EmployeesManager({
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في حذف الموظف';
+      const msg = err instanceof Error ? err.message : L('فشل في حذف الموظف', 'Could not delete the employee');
       setDeleteError(msg);
       toast(msg, 'error');
     } finally {

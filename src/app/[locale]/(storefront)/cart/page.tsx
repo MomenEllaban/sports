@@ -3,7 +3,7 @@
 import React from 'react';
 import { useCartStore } from '@/store/cartStore';
 import { ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
 import { Trash2, Plus, Minus, ArrowRight, ShieldCheck, Truck, ShoppingBag } from 'lucide-react';
@@ -11,6 +11,8 @@ import { Trash2, Plus, Minus, ArrowRight, ShieldCheck, Truck, ShoppingBag } from
 export default function CartPage() {
   const tCommon = useTranslations('common');
   const tCart = useTranslations('cart');
+  const isAr = useLocale() === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
 
   const {
     items,
@@ -60,7 +62,7 @@ export default function CartPage() {
               href="/catalog"
               className="inline-flex px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg"
             >
-              تصفح المنتجات الآن
+              {L('تصفح المنتجات الآن', 'Browse products now')}
             </Link>
           </div>
         ) : (
@@ -75,7 +77,7 @@ export default function CartPage() {
                   <div className="relative w-20 h-20 rounded-xl bg-slate-900 overflow-hidden shrink-0">
                     <Image
                       src={item.image}
-                      alt={item.nameAr}
+                      alt={isAr ? item.nameAr : item.nameEn}
                       fill
                       sizes="80px"
                       className="object-cover"
@@ -84,7 +86,7 @@ export default function CartPage() {
 
                   <div className="flex-1 space-y-1">
                     <h3 className="font-bold text-sm text-slate-100 line-clamp-1">
-                      {item.nameAr}
+                      {isAr ? item.nameAr : item.nameEn}
                     </h3>
                     <p className="text-[11px] text-slate-400">SKU: {item.sku}</p>
                     <div className="text-xs font-bold text-blue-400">
@@ -132,14 +134,14 @@ export default function CartPage() {
             <div className="lg:col-span-4 space-y-6">
               <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
                 <h3 className="font-extrabold text-base text-slate-100 border-b border-slate-800 pb-3">
-                  ملخص الحساب والتوصيل
+                  {L('ملخص الحساب والتوصيل', 'Order summary & delivery')}
                 </h3>
 
                 {/* Delivery Zone Selector */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <Truck className="w-4 h-4 text-blue-400" />
-                    منطقة التوصيل بالإسكندرية والمحافظات:
+                    {L('منطقة التوصيل بالإسكندرية والمحافظات', 'Delivery area in Alexandria and governorates')}:
                   </label>
                   <select
                     value={selectedZone}
@@ -148,7 +150,7 @@ export default function CartPage() {
                   >
                     {ALEXANDRIA_DELIVERY_ZONES.map((zone) => (
                       <option key={zone.id} value={zone.id}>
-                        {zone.nameAr} ({zone.fee} ج.م - {zone.estimatedHours})
+                        {isAr ? zone.nameAr : zone.nameEn} ({zone.fee} {L('ج.م', 'EGP')} - {zone.estimatedHours})
                       </option>
                     ))}
                   </select>
@@ -165,14 +167,14 @@ export default function CartPage() {
                     <span className="font-semibold text-slate-200">{vat.toLocaleString()} {tCommon('currency')}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span>رسوم الشحن والتوصيل:</span>
+                    <span>{L('رسوم الشحن والتوصيل', 'Shipping & delivery fee')}:</span>
                     <span className="font-semibold text-amber-400">{deliveryFee} {tCommon('currency')}</span>
                   </div>
                 </div>
 
                 {/* Grand Total */}
                 <div className="flex justify-between items-baseline">
-                  <span className="font-bold text-sm text-slate-300">الإجمالي النهائي:</span>
+                  <span className="font-bold text-sm text-slate-300">{L('الإجمالي النهائي', 'Final total')}:</span>
                   <div className="text-start">
                     <span className="text-2xl font-black text-slate-100">{total.toLocaleString()}</span>
                     <span className="text-xs font-bold text-amber-400 ml-1">{tCommon('currency')}</span>
@@ -190,7 +192,7 @@ export default function CartPage() {
 
                 <div className="flex items-center gap-2 text-[11px] text-slate-400 justify-center">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>دفع آمن بالبطاقة، فوري، أو نقداً عند الاستلام</span>
+                  <span>{L('دفع آمن بالبطاقة، فوري، أو نقداً عند الاستلام', 'Secure card, Fawry, or cash-on-delivery payment')}</span>
                 </div>
               </div>
             </div>

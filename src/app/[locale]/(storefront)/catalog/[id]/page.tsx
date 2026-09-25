@@ -87,8 +87,8 @@ export default async function ProductDetailsPage({
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black">{price.toLocaleString()}</span>
-            <span className="text-xs font-bold text-amber-400">ج.م</span>
-            <span className="text-[11px] text-slate-500">شامل ضريبة 14%</span>
+            <span className="text-xs font-bold text-amber-400">{isAr ? 'ج.م' : 'EGP'}</span>
+            <span className="text-[11px] text-slate-500">{isAr ? 'شامل ضريبة 14%' : 'Includes 14% VAT'}</span>
           </div>
         </div>
 
@@ -143,19 +143,19 @@ export default async function ProductDetailsPage({
                 {inv.stockQuantity > 0 ? (
                   <span className="text-emerald-400 font-bold flex items-center gap-1 text-xs">
                     <CheckCircle2 className="w-4 h-4" />
-                    متوفر ({inv.stockQuantity} قطعة)
+                    {isAr ? `متوفر (${inv.stockQuantity} قطعة)` : `Available (${inv.stockQuantity} units)`}
                   </span>
                 ) : (
                   <span className="text-rose-400 font-bold flex items-center gap-1 text-xs">
                     <AlertTriangle className="w-4 h-4" />
-                    غير متوفر
+                    {isAr ? 'غير متوفر' : 'Unavailable'}
                   </span>
                 )}
               </div>
             ))}
           </div>
           {product.inventories.length === 0 && (
-            <p className="text-xs text-slate-500">لا توجد بيانات مخزون لهذا الصنف.</p>
+            <p className="text-xs text-slate-500">{isAr ? 'لا توجد بيانات مخزون لهذا الصنف.' : 'No stock data is available for this item.'}</p>
           )}
         </section>
 

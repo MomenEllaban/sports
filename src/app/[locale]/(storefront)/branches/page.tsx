@@ -43,8 +43,8 @@ export default async function BranchesPage({
             <Reveal className="col-span-full">
               <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center space-y-3 animate-fade-in">
                 <MapPin className="w-10 h-10 text-amber-400 mx-auto" />
-                <h2 className="font-extrabold text-lg">فرع الإبراهيمية الرئيسي</h2>
-                <p className="text-xs text-slate-400">92 شارع عمر لطفى، الإبراهيمية بحري، سيدي جابر، باب شرقي، الإسكندرية</p>
+                <h2 className="font-extrabold text-lg">{isAr ? 'فرع الإبراهيمية الرئيسي' : 'Main Ibrahimeyah branch'}</h2>
+                <p className="text-xs text-slate-400">{isAr ? '92 شارع عمر لطفى، الإبراهيمية بحري، سيدي جابر، باب شرقي، الإسكندرية' : '92 Omar Lotfy St, Ibrahimeyah Bahri, Sidi Gaber, Bab Sharqi, Alexandria'}</p>
                 <div className="flex items-center justify-center gap-3 pt-1">
                   <a href="tel:035926908" className="text-xs text-slate-300 hover:text-white font-bold tabular-nums" dir="ltr">03 5926908</a>
                   <span className="text-slate-600">|</span>
@@ -58,7 +58,7 @@ export default async function BranchesPage({
                     <span dir="ltr" className="tabular-nums">0122 422 6876</span>
                   </a>
                 </div>
-                <p className="text-[11px] text-slate-500">السبت – الأربعاء 10ص – 10م | الخميس والجمعة 10ص – 11م</p>
+                <p className="text-[11px] text-slate-500">{isAr ? 'السبت – الأربعاء 10ص – 10م | الخميس والجمعة 10ص – 11م' : 'Sat–Wed 10am–10pm | Thu–Fri 10am–11pm'}</p>
                 <a
                   href="https://www.google.com/maps/search/?api=1&query=92+Omar+Lotfy+St+Ibrahimeyah+Alexandria"
                   target="_blank"

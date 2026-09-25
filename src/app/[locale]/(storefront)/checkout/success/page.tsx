@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { apiRequest } from '@/lib/client-api';
@@ -12,6 +13,8 @@ import { apiRequest } from '@/lib/client-api';
  */
 export default function CheckoutSuccessPage() {
   const params = useSearchParams();
+  const isAr = useLocale() === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const orderNumber = params.get('order') || '';
   const [state, setState] = useState<'loading' | 'paid' | 'pending' | 'missing'>('loading');
 
@@ -31,28 +34,28 @@ export default function CheckoutSuccessPage() {
   return (
     <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center space-y-6 w-full">
       <div className="glass-panel p-8 rounded-3xl border border-slate-800 space-y-4">
-        {state === 'loading' && <p className="text-sm text-slate-400">جاري التحقق من الدفع...</p>}
+        {state === 'loading' && <p className="text-sm text-slate-400">{L('جاري التحقق من الدفع...', 'Verifying payment...')}</p>}
         {state === 'paid' && (
           <>
             <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto" />
-            <h1 className="text-3xl font-black text-slate-100">تم الدفع بنجاح!</h1>
-            <p className="text-sm text-slate-400">طلبك <span className="font-mono font-bold text-amber-400" dir="ltr">{orderNumber}</span> مدفوع وجارٍ تجهيزه.</p>
+            <h1 className="text-3xl font-black text-slate-100">{L('تم الدفع بنجاح!', 'Payment successful!')}</h1>
+            <p className="text-sm text-slate-400">{L('طلبك', 'Your order')} <span className="font-mono font-bold text-amber-400" dir="ltr">{orderNumber}</span> {L('مدفوع وجارٍ تجهيزه.', 'is paid and being prepared.')}</p>
           </>
         )}
         {state === 'pending' && (
           <>
             <XCircle className="w-16 h-16 text-amber-400 mx-auto" />
-            <h1 className="text-2xl font-black text-slate-100">الدفع لم يكتمل بعد</h1>
-            <p className="text-sm text-slate-400">لو خصم منك المبلغ سيُحدَّث طلبك تلقائياً خلال دقائق، أو تواصل معنا برقم الطلب.</p>
+            <h1 className="text-2xl font-black text-slate-100">{L('الدفع لم يكتمل بعد', 'Payment is not complete yet')}</h1>
+            <p className="text-sm text-slate-400">{L('لو خصم منك المبلغ سيُحدَّث طلبك تلقائياً خلال دقائق، أو تواصل معنا برقم الطلب.', 'If you were charged, your order will update automatically within a few minutes. Otherwise, contact us with the order number.')}</p>
           </>
         )}
-        {state === 'missing' && <p className="text-sm text-rose-400">رقم الطلب غير موجود.</p>}
+        {state === 'missing' && <p className="text-sm text-rose-400">{L('رقم الطلب غير موجود.', 'Order number not found.')}</p>}
         <div className="pt-2 flex justify-center gap-3">
           <Link href={orderNumber ? `/tracking?order=${encodeURIComponent(orderNumber)}` : '/tracking'} className="min-h-[44px] px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs flex items-center">
-            تتبع الطلب
+            {L('تتبع الطلب', 'Track order')}
           </Link>
           <Link href="/" className="min-h-[44px] px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-xs flex items-center">
-            الرئيسية
+            {L('الرئيسية', 'Home')}
           </Link>
         </div>
       </div>

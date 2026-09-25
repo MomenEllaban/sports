@@ -32,6 +32,8 @@ export default function PosTerminalPage() {
   const { data: session } = useSession();
   const locale = useLocale();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const currencyLabel = L('ج.م', 'EGP');
   const cashierName = session?.user?.name || (session?.user?.email ? session.user.email.split('@')[0] : '');
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [categoryFilters, setCategoryFilters] = useState<Array<{ id: string; nameAr: string; nameEn: string }>>([]);
@@ -155,16 +157,16 @@ export default function PosTerminalPage() {
         errorKey: 'pos:shift:open',
       });
       if (data.shift) {
-        toast('تم فتح الوردية — ابدأ أول بيعة', 'success');
+        toast(L('تم فتح الوردية — ابدأ أول بيعة', 'Shift opened — start the first sale'), 'success');
         setOpenFloat('');
         setOpenNote('');
         await fetchShiftStatus();
         await fetchPosProducts(chosenBranch);
       } else {
-        setOpenError(data.error || 'تعذر فتح الوردية');
+        setOpenError(data.error || L('تعذر فتح الوردية', 'Could not open the shift'));
       }
     } catch {
-      setOpenError('تعذر الاتصال بالسيرفر');
+      setOpenError(L('تعذر الاتصال بالسيرفر', 'Could not connect to the server'));
     } finally {
       setOpenBusy(false);
     }
@@ -179,7 +181,7 @@ export default function PosTerminalPage() {
       setClosePreview({ expected: data.expected, openingFloat: data.openingFloat, maxShortage: data.maxShortage });
       setShowClose(true);
     } catch {
-      toast('تعذر الاتصال بالسيرفر', 'error');
+      toast(L('تعذر الاتصال بالسيرفر', 'Could not connect to the server'), 'error');
     }
   };
 
@@ -194,11 +196,11 @@ export default function PosTerminalPage() {
         errorKey: `pos:shift:close:${shift.id}`,
       });
       setCloseResult({ expected: data.expected, actual: data.actual, difference: data.difference });
-      toast(`أُغلقت الوردية — الفرق ${data.difference}`, 'success');
+      toast(L(`أُغلقت الوردية — الفرق ${data.difference}`, `Shift closed — difference ${data.difference}`), 'success');
       clearTicket();
       await fetchShiftStatus();
     } catch {
-      setCloseError('تعذر الاتصال بالسيرفر');
+      setCloseError(L('تعذر الاتصال بالسيرفر', 'Could not connect to the server'));
     } finally {
       setCloseBusy(false);
     }
@@ -264,10 +266,10 @@ export default function PosTerminalPage() {
           }
         }
       } else {
-        setLoadError(data.error || 'تعذر تحميل المنتجات من السيرفر.');
+        setLoadError(data.error || L('تعذر تحميل المنتجات من السيرفر.', 'Could not load products from the server.'));
       }
     } catch {
-      setLoadError('تعذر الاتصال بالسيرفر. تحقق من الإنترنت وحاول مجدداً.');
+      setLoadError(L('تعذر الاتصال بالسيرفر. تحقق من الإنترنت وحاول مجدداً.', 'Could not connect to the server. Check your connection and try again.'));
     } finally {
       setLoading(false);
     }
@@ -295,7 +297,7 @@ export default function PosTerminalPage() {
     } else {
       setPinError(false);
       setDiscountInput('');
-      toast(`تم تسجيل خصم ${val.toLocaleString()} ج.م — يُعتمد عند التأكيد`, 'info');
+      toast(L(`تم تسجيل خصم ${val.toLocaleString()} ج.م — يُعتمد عند التأكيد`, `Discount of ${val.toLocaleString()} EGP staged — confirmed at checkout`), 'info');
     }
   };
 
@@ -312,10 +314,10 @@ export default function PosTerminalPage() {
         setCustomerError('');
       } else {
         setCustomer(null);
-        setCustomerError('العميل غير مسجل — يمكنك الضغط على عميل جديد سريع');
+        setCustomerError(L('العميل غير مسجل — يمكنك الضغط على عميل جديد سريع', 'Customer not found — use Quick Customer to add them'));
       }
     } catch {
-      setCustomerError('تعذر البحث');
+      setCustomerError(L('تعذر البحث', 'Search failed'));
     } finally {
       setCustomerSearching(false);
     }
@@ -344,10 +346,10 @@ export default function PosTerminalPage() {
         setNewCustomerPhone('');
         setCustomerError('');
       } else {
-        setCustomerError(data.error || 'فشل إضافة العميل');
+        setCustomerError(data.error || L('فشل إضافة العميل', 'Could not add the customer'));
       }
     } catch {
-      setCustomerError('فشل الاتصال لإضافة العميل');
+      setCustomerError(L('فشل الاتصال لإضافة العميل', 'Could not connect to add the customer'));
     } finally {
       setNewCustomerLoading(false);
     }
@@ -362,7 +364,7 @@ export default function PosTerminalPage() {
 
     // Cash validation: tendered must cover total
     if (payMethod === 'CASH' && tenderedInput !== '' && tendered < total) {
-      setSaleError(`المبلغ المستلم (${tendered.toLocaleString()}) أقل من الإجمالي (${total.toLocaleString()})`);
+      setSaleError(L(`المبلغ المستلم (${tendered.toLocaleString()}) أقل من الإجمالي (${total.toLocaleString()})`, `Tendered (${tendered.toLocaleString()}) is less than the total (${total.toLocaleString()})`));
       return;
     }
 
@@ -400,17 +402,18 @@ export default function PosTerminalPage() {
         errorKey: 'pos:sale:create',
       });
       if (data.paymentPending) {
-          const pendingMsg = 'تم تسجيل الفاتورة، لكن الدفع الإلكتروني يحتاج تسوية/تأكيد من الإدارة قبل اعتباره مدفوعاً.';
+          const pendingMsg = L('تم تسجيل الفاتورة، لكن الدفع الإلكتروني يحتاج تسوية/تأكيد من الإدارة قبل اعتباره مدفوعاً.', 'The invoice was recorded, but the electronic payment still needs reconciliation/confirmation by management before it is marked paid.');
           setSaleError(pendingMsg);
           toast(pendingMsg, 'error');
         }
         setPosReceipt({
           saleNumber: data.saleNumber,
-          branchName: activeBranch?.name || 'الفرع الرئيسي',
-          cashierName: cashierName || 'الكاشير',
+          branchName: activeBranch ? (isAr ? activeBranch.name : activeBranch.nameEn) : L('الفرع الرئيسي', 'Main branch'),
+          cashierName: cashierName || L('الكاشير', 'Cashier'),
           createdAt: new Date().toISOString(),
           items: ticketItems.map((i) => ({
             nameAr: i.nameAr,
+            nameEn: i.nameEn,
             quantity: i.quantity,
             unitPrice: i.unitPrice,
           })),
@@ -420,14 +423,14 @@ export default function PosTerminalPage() {
           total: data.totalAmount ?? getTotalAmount(),
           paymentMethod:
             payMethod === 'CASH'
-              ? 'كاش (نقداً)'
+              ? L('كاش (نقداً)', 'Cash')
               : payMethod === 'CARD'
-              ? 'بطاقة / فيزا'
+              ? L('بطاقة / فيزا', 'Card / Visa')
               : payMethod === 'INSTAPAY'
-              ? 'انستاباي'
+              ? L('انستاباي', 'InstaPay')
               : payMethod === 'FAWRY'
-              ? 'فوري كود'
-              : 'محفظة إلكترونية',
+              ? L('فوري كود', 'Fawry')
+              : L('محفظة إلكترونية', 'Mobile wallet'),
           tendered: payMethod === 'CASH' && tenderedInput ? Number(tenderedInput) : undefined,
           change: payMethod === 'CASH' && tenderedInput ? paidChange : undefined,
           customerName: customer?.name || undefined,
@@ -461,7 +464,7 @@ export default function PosTerminalPage() {
         timestamp: new Date().toISOString(),
       });
       clearTicket();
-      const queuedMsg = 'لا يوجد اتصال: حُفظت الفاتورة محلياً وستُزامن تلقائياً لاحقاً.';
+      const queuedMsg = L('لا يوجد اتصال: حُفظت الفاتورة محلياً وستُزامن تلقائياً لاحقاً.', 'No connection: the invoice was saved locally and will sync automatically later.');
       setSaleError(queuedMsg);
       toast(queuedMsg, 'error');
     } finally {
@@ -497,24 +500,24 @@ export default function PosTerminalPage() {
     clearOfflineQueue();
     remaining.forEach((s) => queueOfflineSale(s));
     if (remaining.length > 0) {
-      const msg = `تعذر مزامنة ${remaining.length} فاتورة. سيُعاد المحاولة لاحقاً.`;
+      const msg = L(`تعذر مزامنة ${remaining.length} فاتورة. سيُعاد المحاولة لاحقاً.`, `Could not sync ${remaining.length} invoices. They will be retried later.`);
       setSaleError(msg);
       toast(msg, 'error');
     } else if (queuedCount > 0) {
-      toast('تم مزامنة كل الفواتير المعلقة بنجاح', 'success');
+      toast(L('تم مزامنة كل الفواتير المعلقة بنجاح', 'All queued invoices synced successfully'), 'success');
     }
     setSyncing(false);
     fetchPosProducts();
   };
 
   return (
-    <div className="h-dvh max-h-dvh min-h-0 w-full max-w-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans dir-rtl">
+    <div className="h-dvh max-h-dvh min-h-0 w-full max-w-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans" dir={isAr ? 'rtl' : 'ltr'}>
       {/* POS Top Header Bar */}
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Image
             src="/logo.avif"
-            alt="أبطال الرياضة"
+            alt={L('أبطال الرياضة', 'Sports Champions')}
             width={960}
             height={822}
             quality={85}
@@ -524,7 +527,7 @@ export default function PosTerminalPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-sm text-slate-100 leading-tight">
-                كاشير - {activeBranch ? activeBranch.name : branchOptions.length > 0 ? 'اختر الفرع' : '...'}
+                {L('كاشير', 'Cashier')} - {activeBranch ? (isAr ? activeBranch.name : activeBranch.nameEn) : branchOptions.length > 0 ? L('اختر الفرع', 'Select branch') : '...'}
               </h1>
               <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-black text-[10px] border border-amber-500/30">
                 POS
@@ -538,16 +541,16 @@ export default function PosTerminalPage() {
                   setBranchIdState(id);
                   if (id) void fetchPosProducts(id);
                 }}
-                aria-label="اختيار الفرع"
+                aria-label={L('اختيار الفرع', 'Select branch')}
                 className="mt-1 text-[11px] font-bold bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-amber-300 focus:outline-none focus:border-amber-500"
               >
-                <option value="" disabled>اختر الفرع</option>
+                <option value="" disabled>{L('اختر الفرع', 'Select branch')}</option>
                 {branchOptions.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
+                  <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn}</option>
                 ))}
               </select>
             ) : (
-              <p className="text-[10px] text-slate-400">92 شارع عمر لطفى - الإسكندرية</p>
+              <p className="text-[10px] text-slate-400">{L('92 شارع عمر لطفى - الإسكندرية', '92 Omar Lotfy St. — Alexandria')}</p>
             )}
           </div>
         </div>
@@ -559,27 +562,27 @@ export default function PosTerminalPage() {
             onClick={() => setShowReturnWizard(true)}
             className="min-h-[44px] px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-1"
           >
-            مرتجع / استبدال
+            {L('مرتجع / استبدال', 'Return / Exchange')}
           </button>
           {shift && (
             <>
               <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
-                وردية مفتوحة • {shift.branchName}
+                {L('وردية مفتوحة', 'Open shift')} • {isAr ? shift.branchName : (activeBranch?.nameEn || shift.branchName)}
               </span>
               <button
                 onClick={openCloseWizard}
                 className="min-h-[44px] px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-bold text-slate-200"
               >
-                إغلاق الوردية
+                {L('إغلاق الوردية', 'Close shift')}
               </button>
             </>
           )}
           <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-bold flex items-center gap-1">
-            <Check className="w-3.5 h-3.5 text-amber-400" /> مصلحة الضرائب ETA (وضع تجريبي)
+            <Check className="w-3.5 h-3.5 text-amber-400" /> {L('مصلحة الضرائب ETA (وضع تجريبي)', 'ETA (trial mode)')}
           </span>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 text-slate-300">
             <User className="w-4 h-4 text-blue-400" />
-            <span>{cashierName ? `كاشير: ${cashierName}` : 'كاشير'}</span>
+            <span>{cashierName ? `${L('كاشير', 'Cashier')}: ${cashierName}` : L('كاشير', 'Cashier')}</span>
           </div>
         </div>
       </header>
@@ -588,14 +591,14 @@ export default function PosTerminalPage() {
       {!shiftLoading && !shift ? (
         <div className="app-scrollbar flex-1 overflow-y-auto p-4 flex items-start justify-center">
           <form onSubmit={handleOpenShift} className="w-full max-w-md glass-panel p-6 rounded-3xl border border-amber-500/40 space-y-4 mt-6">
-            <Stepper steps={['عد النقدية بالدرج', 'تأكيد فتح الوردية']} active={0} />
-            <h2 className="font-black text-base text-slate-100">افتح وردية لبدء البيع</h2>
+            <Stepper steps={[L('عد النقدية بالدرج', 'Count cash in drawer'), L('تأكيد فتح الوردية', 'Confirm shift opening')]} active={0} />
+            <h2 className="font-black text-base text-slate-100">{L('افتح وردية لبدء البيع', 'Open a shift to start selling')}</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              أول مرة؟ عد الكاش الموجود بالدرج واكتبه هنا. كل فواتيرك ستُنسب لهذه الوردية، وعند الإغلاق ستقارن المتوقع بالمعدود.
+              {L('أول مرة؟ عد الكاش الموجود بالدرج واكتبه هنا. كل فواتيرك ستُنسب لهذه الوردية، وعند الإغلاق ستقارن المتوقع بالمعدود.', 'First time? Count the cash in the drawer and enter it here. All sales will be linked to this shift, and the expected amount will be compared at closing.')}
             </p>
             {branchOptions.length > 0 && (
               <div>
-                <label htmlFor="open-branch" className="block text-xs font-bold text-slate-300 mb-1">الفرع *</label>
+                <label htmlFor="open-branch" className="block text-xs font-bold text-slate-300 mb-1">{L('الفرع *', 'Branch *')}</label>
                 <select
                   id="open-branch"
                   value={posBranchId}
@@ -608,17 +611,17 @@ export default function PosTerminalPage() {
                   }}
                   className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 font-bold focus:outline-none focus:border-amber-500 text-xs"
                 >
-                  <option value="">-- اختر الفرع لبدء الوردية --</option>
+                  <option value="">{L('-- اختر الفرع لبدء الوردية --', '-- Select a branch to start the shift --')}</option>
                   {branchOptions.map((b) => (
                     <option key={b.id} value={b.id}>
-                      {b.name}
+                      {isAr ? b.name : b.nameEn}
                     </option>
                   ))}
                 </select>
               </div>
             )}
             <div>
-              <label htmlFor="open-float" className="block text-xs font-bold text-slate-300 mb-1">رصيد الافتتاح (ج.م) *</label>
+              <label htmlFor="open-float" className="block text-xs font-bold text-slate-300 mb-1">{L('رصيد الافتتاح (ج.م) *', 'Opening float (EGP) *')}</label>
               <input
                 id="open-float"
                 type="number"
@@ -627,18 +630,18 @@ export default function PosTerminalPage() {
                 required
                 value={openFloat}
                 onChange={(e) => setOpenFloat(e.target.value)}
-                placeholder="مثال: 500"
+                placeholder={L('مثال: 500', 'Example: 500')}
                 className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 font-bold focus:outline-none focus:border-amber-500"
               />
             </div>
             <div>
-              <label htmlFor="open-note" className="block text-xs font-bold text-slate-300 mb-1">ملاحظة (اختياري)</label>
+              <label htmlFor="open-note" className="block text-xs font-bold text-slate-300 mb-1">{L('ملاحظة (اختياري)', 'Note (optional)')}</label>
               <input
                 id="open-note"
                 type="text"
                 value={openNote}
                 onChange={(e) => setOpenNote(e.target.value)}
-                placeholder="مثال: استلام من الكاشير السابق"
+                placeholder={L('مثال: استلام من الكاشير السابق', 'Example: handover from the previous cashier')}
                 className="w-full min-h-[44px] p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -649,7 +652,7 @@ export default function PosTerminalPage() {
               disabled={openBusy}
               className="w-full"
             >
-              {openBusy ? 'جاري الفتح...' : 'فتح الوردية وبدء البيع'}
+              {openBusy ? L('جاري الفتح...', 'Opening...') : L('فتح الوردية وبدء البيع', 'Open shift & start selling')}
             </Button>
           </form>
         </div>
@@ -658,21 +661,21 @@ export default function PosTerminalPage() {
         {/* Left Side: Product Selector & Barcode Scanner */}
         <div className="lg:col-span-7 min-w-0 lg:border-e border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
           {/* Steps indicator */}
-          <div className="flex items-center gap-2 text-[11px] font-bold" aria-label="خطوات البيع">
+          <div className="flex items-center gap-2 text-[11px] font-bold" aria-label={L('خطوات البيع', 'Sale steps')}>
             <span className={`px-3 py-1.5 rounded-full border ${customer ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
-              1. العميل {customer ? '✓' : '(اختياري)'}
+              1. {L('العميل', 'Customer')} {customer ? '✓' : L('(اختياري)', '(optional)')}
             </span>
             <span className={`px-3 py-1.5 rounded-full border ${ticketItems.length > 0 ? 'bg-blue-600/20 text-blue-300 border-blue-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
-              2. الأصناف ({ticketItems.reduce((s, i) => s + i.quantity, 0)})
+              2. {L('الأصناف', 'Items')} ({ticketItems.reduce((s, i) => s + i.quantity, 0)})
             </span>
             <span className={`px-3 py-1.5 rounded-full border ${ticketItems.length > 0 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
-              3. الدفع والتأكيد
+              3. {L('الدفع والتأكيد', 'Payment & confirmation')}
             </span>
           </div>
           {/* Barcode Search Input */}
           <div className="relative">
             <label htmlFor="pos-search" className="block text-[11px] font-bold text-slate-400 mb-1">
-              بحث المنتجات (باركود / اسم / SKU)
+              {L('بحث المنتجات (باركود / اسم / SKU)', 'Search products (barcode / name / SKU)')}
             </label>
             <input
               id="pos-search"
@@ -703,13 +706,13 @@ export default function PosTerminalPage() {
                       });
                       setSearchTerm('');
                     } else {
-                      toast(`الصنف ${exact.nameAr} نفد من المخزون`, 'error');
+                      toast(L(`الصنف ${exact.nameAr} نفد من المخزون`, `${exact.nameEn} is out of stock`), 'error');
                     }
                   }
                 }
               }}
-              placeholder="امسح البار كود أو ابحث باسم المنتج / SKU..."
-              aria-label="بحث المنتجات بالباركود أو الاسم"
+              placeholder={L('امسح البار كود أو ابحث باسم المنتج / SKU...', 'Scan a barcode or search by product name / SKU...')}
+              aria-label={L('بحث المنتجات بالباركود أو الاسم', 'Search products by barcode or name')}
               className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-sm font-semibold text-slate-100 focus:outline-none focus:border-amber-500 shadow-inner placeholder:text-slate-500"
               autoFocus
             />
@@ -731,17 +734,17 @@ export default function PosTerminalPage() {
           {/* Products Quick Touch Grid */}
           <div className="app-scrollbar flex-1 overflow-y-auto pr-1 min-h-[50vh] lg:min-h-0">
             {loading ? (
-              <div className="text-center text-xs text-slate-500 py-12">جاري تحميل المنتجات...</div>
+              <div className="text-center text-xs text-slate-500 py-12">{L('جاري تحميل المنتجات...', 'Loading products...')}</div>
             ) : loadError ? (
               <div className="text-center text-xs py-12 space-y-3">
                 <p className="text-rose-400 font-bold">{loadError}</p>
                 <button onClick={() => fetchPosProducts(posBranchId || undefined)} className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold">
-                  إعادة المحاولة
+                  {L('إعادة المحاولة', 'Retry')}
                 </button>
               </div>
             ) : !activeBranch && branchOptions.length > 0 ? (
               <div className="text-center text-xs py-12 space-y-4">
-                <p className="text-amber-400 font-bold">اختر الفرع لعرض المنتجات والمخزون</p>
+                <p className="text-amber-400 font-bold">{L('اختر الفرع لعرض المنتجات والمخزون', 'Select a branch to view products and stock')}</p>
                 <select
                   value={posBranchId}
                   onChange={(e) => {
@@ -749,12 +752,12 @@ export default function PosTerminalPage() {
                     setBranchIdState(id);
                     if (id) void fetchPosProducts(id);
                   }}
-                  aria-label="اختيار الفرع"
+                  aria-label={L('اختيار الفرع', 'Select branch')}
                   className="mx-auto block text-sm font-bold bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-amber-300 focus:outline-none focus:border-amber-500"
                 >
-                  <option value="" disabled>اختر الفرع</option>
+                  <option value="" disabled>{L('اختر الفرع', 'Select branch')}</option>
                   {branchOptions.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn}</option>
                   ))}
                 </select>
               </div>
@@ -786,22 +789,22 @@ export default function PosTerminalPage() {
                         <div className="flex justify-between items-center">
                           <div className="text-[10px] text-amber-400 font-bold">SKU: {prod.sku}</div>
                           {outOfStock ? (
-                            <span className="text-[9px] font-black bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded">نفد</span>
+                            <span className="text-[9px] font-black bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded">{L('نفد', 'Out')}</span>
                           ) : reachedCap ? (
-                            <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">الحد الأقصى</span>
+                            <span className="text-[9px] font-black bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">{L('الحد الأقصى', 'Max')}</span>
                           ) : null}
                         </div>
                         <h3 className="font-bold text-xs text-slate-100 line-clamp-2 leading-snug">
-                          {prod.nameAr}
+                          {isAr ? prod.nameAr : prod.nameEn}
                         </h3>
                       </div>
 
                       <div className="flex items-baseline justify-between border-t border-slate-800/80 pt-2">
                         <span className={`text-xs ${stock <= 5 && !outOfStock ? 'text-rose-400 font-bold' : 'text-slate-400'}`}>
-                          مخزن: {stock}{inTicket > 0 ? ` (${inTicket} بالفاتورة)` : ''}
+                          {L('مخزن', 'Stock')}: {stock}{inTicket > 0 ? ` (${inTicket} ${L('في الفاتورة', 'in ticket')})` : ''}
                         </span>
                         <span className="font-black text-sm text-blue-400">
-                          {prod.price.toLocaleString()} ج.م
+                          {prod.price.toLocaleString()} {currencyLabel}
                         </span>
                       </div>
                     </button>
@@ -818,13 +821,13 @@ export default function PosTerminalPage() {
             <div className="flex justify-between items-center border-b border-slate-800 pb-2">
               <h2 className="font-black text-sm text-slate-100 flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-amber-400" />
-                تذكرة البيع الحالية ({ticketItems.length} صنف)
+                {L('تذكرة البيع الحالية', 'Current sale')} ({ticketItems.length} {L('صنف', 'items')})
               </h2>
               <button
                 onClick={clearTicket}
                 className="text-[11px] text-rose-400 hover:underline font-bold"
               >
-                إلغاء التذكرة
+                {L('إلغاء التذكرة', 'Clear ticket')}
               </button>
             </div>
 
@@ -832,7 +835,7 @@ export default function PosTerminalPage() {
             <div className="app-scrollbar flex-1 overflow-y-auto space-y-2 pr-1">
               {ticketItems.length === 0 ? (
                 <div className="text-center text-slate-500 text-xs py-16">
-                  لا توجد منتجات في التذكرة حالياً. اختر من القائمة.
+                  {L('لا توجد منتجات في التذكرة حالياً. اختر من القائمة.', 'No products in the ticket yet. Choose one from the list.')}
                 </div>
               ) : (
                 ticketItems.map((item) => (
@@ -841,9 +844,9 @@ export default function PosTerminalPage() {
                     className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex justify-between items-center text-xs hover:border-slate-700 transition-all shadow-sm"
                   >
                     <div className="space-y-1 flex-1 pr-2">
-                      <div className="font-bold text-slate-100 line-clamp-1 text-xs">{item.nameAr}</div>
+                      <div className="font-bold text-slate-100 line-clamp-1 text-xs">{isAr ? item.nameAr : item.nameEn}</div>
                       <div className="text-[11px] text-slate-400">
-                        {item.unitPrice.toLocaleString()} ج.م للقطعة
+                        {item.unitPrice.toLocaleString()} {currencyLabel} {L('للقطعة', 'each')}
                       </div>
                     </div>
 
@@ -853,8 +856,8 @@ export default function PosTerminalPage() {
                           type="button"
                           onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
                           className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-base active:scale-95 transition-all"
-                          title="إنقاص الكمية"
-                          aria-label="إنقاص الكمية"
+                          title={L('إنقاص الكمية', 'Decrease quantity')}
+                          aria-label={L('إنقاص الكمية', 'Decrease quantity')}
                         >
                           -
                         </button>
@@ -863,23 +866,23 @@ export default function PosTerminalPage() {
                           type="button"
                           onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
                           className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center text-base active:scale-95 transition-all"
-                          title="زيادة الكمية"
-                          aria-label="زيادة الكمية"
+                          title={L('زيادة الكمية', 'Increase quantity')}
+                          aria-label={L('زيادة الكمية', 'Increase quantity')}
                         >
                           +
                         </button>
                       </div>
 
                       <span className="font-black text-amber-400 min-w-[65px] text-end text-xs tabular-nums">
-                        {(item.unitPrice * item.quantity).toLocaleString()} ج.م
+                        {(item.unitPrice * item.quantity).toLocaleString()} {currencyLabel}
                       </span>
 
                       <button
                         type="button"
                         onClick={() => removeItemFromTicket(item.id)}
                         className="min-h-[44px] min-w-[44px] p-3 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex items-center justify-center"
-                        title="حذف من السلة"
-                        aria-label="حذف من السلة"
+                        title={L('حذف من السلة', 'Remove from ticket')}
+                        aria-label={L('حذف من السلة', 'Remove from ticket')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -895,13 +898,13 @@ export default function PosTerminalPage() {
             {/* Offline sync alert if queued */}
             {offlineQueue.length > 0 && (
               <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold flex justify-between items-center">
-                <span>فواتير أوفلاين معلقة: {offlineQueue.length}</span>
+                <span>{L('فواتير أوفلاين معلقة', 'Queued offline invoices')}: {offlineQueue.length}</span>
                 <button
                   onClick={handleSyncOffline}
                   disabled={syncing}
                   className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 font-bold text-xs"
                 >
-                  {syncing ? 'مزامنة...' : 'مزامنة الآن'}
+                  {syncing ? L('مزامنة...', 'Syncing...') : L('مزامنة الآن', 'Sync now')}
                 </button>
               </div>
             )}
@@ -916,13 +919,13 @@ export default function PosTerminalPage() {
             <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800/80">
               <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
                 <User className="w-3.5 h-3.5 text-blue-400" />
-                العميل:
+                {L('العميل', 'Customer')}:
               </span>
               {customer ? (
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-blue-300">{customer.name || customer.phone}</span>
                   <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                    {customer.loyaltyPoints} نقطة
+                    {customer.loyaltyPoints} {L('نقطة', 'points')}
                   </span>
                   <button onClick={clearCustomer} className="text-slate-500 hover:text-rose-400 p-0.5">
                     <X className="w-3.5 h-3.5" />
@@ -934,7 +937,7 @@ export default function PosTerminalPage() {
                   onClick={() => setShowPaymentModal(true)}
                   className="text-blue-400 hover:text-blue-300 font-bold text-[11px] hover:underline"
                 >
-                  + تحديد عميل / نقاط ولاء
+                  + {L('تحديد عميل / نقاط ولاء', 'Add customer / loyalty points')}
                 </button>
               )}
             </div>
@@ -942,22 +945,22 @@ export default function PosTerminalPage() {
             {/* Financial Summary */}
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-slate-400">
-                <span>المجموع الفرعي:</span>
-                <span className="font-medium text-slate-200 tabular-nums">{getSubtotal().toLocaleString()} ج.م</span>
+                <span>{L('المجموع الفرعي', 'Subtotal')}:</span>
+                <span className="font-medium text-slate-200 tabular-nums">{getSubtotal().toLocaleString()} {currencyLabel}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-emerald-400 font-bold">
-                  <span>الخصم المطبق:</span>
-                  <span className="tabular-nums">-{discountAmount.toLocaleString()} ج.م</span>
+                  <span>{L('الخصم المطبق', 'Discount applied')}:</span>
+                  <span className="tabular-nums">-{discountAmount.toLocaleString()} {currencyLabel}</span>
                 </div>
               )}
               <div className="flex justify-between text-slate-400">
-                <span>ضريبة القيمة المضافة (14%):</span>
-                <span className="font-medium text-slate-200 tabular-nums">{getVatAmount().toLocaleString()} ج.م</span>
+                <span>{L('ضريبة القيمة المضافة (14%)', 'VAT (14%)')}:</span>
+                <span className="font-medium text-slate-200 tabular-nums">{getVatAmount().toLocaleString()} {currencyLabel}</span>
               </div>
               <div className="flex justify-between text-base font-black text-slate-100 pt-2 border-t border-slate-800">
-                <span>الإجمالي النهائي:</span>
-                <span className="text-amber-400 text-xl tabular-nums">{getTotalAmount().toLocaleString()} ج.م</span>
+                <span>{L('الإجمالي النهائي', 'Final total')}:</span>
+                <span className="text-amber-400 text-xl tabular-nums">{getTotalAmount().toLocaleString()} {currencyLabel}</span>
               </div>
             </div>
 
@@ -970,9 +973,9 @@ export default function PosTerminalPage() {
               disabled={ticketItems.length === 0}
               className="w-full min-h-[52px] py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-slate-950 font-black text-sm md:text-base shadow-xl shadow-amber-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              <span>متابعة الدفع وإنهاء البيع (F10)</span>
+              <span>{L('متابعة الدفع وإنهاء البيع (F10)', 'Continue to payment & complete sale (F10)')}</span>
               <span className="px-2 py-0.5 rounded-lg bg-slate-950/20 text-slate-950 text-xs font-mono font-bold">
-                {getTotalAmount().toLocaleString()} ج.م
+                {getTotalAmount().toLocaleString()} {currencyLabel}
               </span>
             </button>
           </div>
@@ -982,31 +985,31 @@ export default function PosTerminalPage() {
 
       {/* Close-shift wizard */}      {showClose && closePreview && (
         <DialogFrame
-          title="إغلاق الوردية"
+          title={L('إغلاق الوردية', 'Close shift')}
           onClose={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }}
           panelClassName="max-w-md"
           bodyClassName="space-y-4"
         >
-          <Stepper steps={['عد النقدية بالدرج', 'راجع الفرق', 'تأكيد الإغلاق']} active={closeResult ? 2 : 1} />
+          <Stepper steps={[L('عد النقدية بالدرج', 'Count cash in drawer'), L('راجع الفرق', 'Review difference'), L('تأكيد الإغلاق', 'Confirm closing')]} active={closeResult ? 2 : 1} />
             <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
-              <div className="flex justify-between text-slate-400"><span>رصيد الافتتاح:</span><span className="font-bold text-slate-200">{closePreview.openingFloat.toLocaleString()} ج.م</span></div>
-              <div className="flex justify-between text-slate-400"><span>المتوقع بالدرج:</span><span className="font-black text-blue-300">{closePreview.expected.toLocaleString()} ج.م</span></div>
-              <div className="text-[11px] text-slate-500">المتوقع = الافتتاح + مبيعات الكاش فقط (الفيزا والتحويل لا تدخل الدرج).</div>
+              <div className="flex justify-between text-slate-400"><span>{L('رصيد الافتتاح', 'Opening balance')}:</span><span className="font-bold text-slate-200">{closePreview.openingFloat.toLocaleString()} {currencyLabel}</span></div>
+              <div className="flex justify-between text-slate-400"><span>{L('المتوقع بالدرج', 'Expected in drawer')}:</span><span className="font-black text-blue-300">{closePreview.expected.toLocaleString()} {currencyLabel}</span></div>
+              <div className="text-[11px] text-slate-500">{L('المتوقع = الافتتاح + مبيعات الكاش فقط (الفيزا والتحويل لا تدخل الدرج).', 'Expected = opening float + cash sales only (card and transfer payments do not enter the drawer).')}</div>
             </div>
             {closeResult ? (
               <div className="p-4 rounded-2xl border text-xs text-center font-black" role="status">
                 {closeResult.difference === 0 ? (
-                  <span className="text-emerald-400">الدرج مضبوط تماماً ✓ — الخطوة التالية: اطبع تقرير الوردية من الإدارة</span>
+                  <span className="text-emerald-400">{L('الدرج مضبوط تماماً ✓ — الخطوة التالية: اطبع تقرير الوردية من الإدارة', 'The drawer is balanced ✓ — next step: print the shift report from Admin')}</span>
                 ) : (
                   <span className={closeResult.difference > 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                    الفرق: {closeResult.difference > 0 ? '+' : ''}{closeResult.difference.toLocaleString()} ج.م — {closeResult.difference > 0 ? 'زيادة' : 'عجز'}
+                    {L('الفرق', 'Difference')}: {closeResult.difference > 0 ? '+' : ''}{closeResult.difference.toLocaleString()} {currencyLabel} — {closeResult.difference > 0 ? L('زيادة', 'Surplus') : L('عجز', 'Shortage')}
                   </span>
                 )}
               </div>
             ) : (
               <>
                 <div>
-                  <label htmlFor="actual-cash" className="block text-xs font-bold text-slate-300 mb-1">المبلغ المعدود فعلاً (ج.م) *</label>
+                  <label htmlFor="actual-cash" className="block text-xs font-bold text-slate-300 mb-1">{L('المبلغ المعدود فعلاً (ج.م) *', 'Actual counted cash (EGP) *')}</label>
                   <input
                     id="actual-cash"
                     type="number"
@@ -1020,7 +1023,7 @@ export default function PosTerminalPage() {
                 </div>
                 <div>
                   <label htmlFor="close-note" className="block text-xs font-bold text-slate-300 mb-1">
-                    تفسير الفرق {closePreview && actualCash !== '' && (Number(actualCash) - closePreview.expected) < 0 && Math.abs(Number(actualCash) - closePreview.expected) > closePreview.maxShortage ? '(إجباري — العجز فوق المسموح)' : '(اختياري)'}
+                    {L('تفسير الفرق', 'Difference explanation')} {closePreview && actualCash !== '' && (Number(actualCash) - closePreview.expected) < 0 && Math.abs(Number(actualCash) - closePreview.expected) > closePreview.maxShortage ? L('(إجباري — العجز فوق المسموح)', '(required — shortage exceeds the allowed amount)') : L('(اختياري)', '(optional)')}
                   </label>
                   <input
                     id="close-note"
@@ -1034,10 +1037,10 @@ export default function PosTerminalPage() {
             )}
             {closeError && <p role="alert" className="text-xs font-bold text-rose-400">{closeError}</p>}
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }} disabled={closeBusy} className="min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">رجوع</button>
+              <button onClick={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }} disabled={closeBusy} className="min-h-[44px] rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">{L('رجوع', 'Back')}</button>
               {!closeResult && (
                 <button onClick={handleCloseShift} disabled={closeBusy || actualCash === ''} className="min-h-[44px] rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-slate-950 text-xs font-black">
-                  {closeBusy ? 'جاري الإغلاق...' : 'تأكيد الإغلاق'}
+                  {closeBusy ? L('جاري الإغلاق...', 'Closing...') : L('تأكيد الإغلاق', 'Confirm closing')}
                 </button>
               )}
             </div>
@@ -1054,7 +1057,7 @@ export default function PosTerminalPage() {
       {/* Quick Customer Modal */}
       {showQuickCustomerModal && (
         <DialogFrame
-          title="إضافة عميل سريع"
+          title={L('إضافة عميل سريع', 'Add customer quickly')}
           onClose={() => setShowQuickCustomerModal(false)}
           panelClassName="max-w-sm"
           bodyClassName="space-y-4"
@@ -1062,12 +1065,12 @@ export default function PosTerminalPage() {
           <form onSubmit={handleCreateQuickCustomer} className="space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  اسم العميل *
+                  {L('اسم العميل *', 'Customer name *')}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="مثال: أحمد مصطفى"
+                  placeholder={L('مثال: أحمد مصطفى', 'Example: Ahmed Mostafa')}
                   value={newCustomerName}
                   onChange={(e) => setNewCustomerName(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:border-blue-500 outline-none"
@@ -1076,12 +1079,12 @@ export default function PosTerminalPage() {
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  رقم الموبايل *
+                  {L('رقم الموبايل *', 'Mobile number *')}
                 </label>
                 <input
                   type="tel"
                   required
-                  placeholder="مثال: 01012345678"
+                  placeholder={L('مثال: 01012345678', 'Example: 01012345678')}
                   value={newCustomerPhone}
                   onChange={(e) => setNewCustomerPhone(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:border-blue-500 outline-none"
@@ -1096,14 +1099,14 @@ export default function PosTerminalPage() {
                   disabled={newCustomerLoading}
                   className="flex-1"
                 >
-                  {newCustomerLoading ? 'جاري الحفظ...' : 'حفظ وتثبيت بالفاتورة'}
+                  {newCustomerLoading ? L('جاري الحفظ...', 'Saving...') : L('حفظ وتثبيت بالفاتورة', 'Save & attach to sale')}
                 </Button>
                 <button
                   type="button"
                   onClick={() => setShowQuickCustomerModal(false)}
                   className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
                 >
-                  إلغاء
+                  {L('إلغاء', 'Cancel')}
                 </button>
               </div>
             </form>

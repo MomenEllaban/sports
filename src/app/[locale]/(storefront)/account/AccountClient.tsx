@@ -41,6 +41,12 @@ interface Me {
 export default function AccountClient() {
   const locale = useLocale();
   const isAr = locale === 'ar';
+  const orderStatusLabel = (value: string) => isAr
+    ? ({ PENDING: 'قيد التجهيز', PROCESSING: 'قيد التجهيز', SHIPPED: 'تم الشحن', DELIVERED: 'تم التسليم', CANCELLED: 'ملغي' } as Record<string, string>)[value] || value
+    : ({ PENDING: 'Processing', PROCESSING: 'Processing', SHIPPED: 'Shipped', DELIVERED: 'Delivered', CANCELLED: 'Cancelled' } as Record<string, string>)[value] || value;
+  const paymentStatusLabel = (value: string) => isAr
+    ? ({ PAID: 'مدفوع', PENDING: 'قيد الدفع', FAILED: 'فشل' } as Record<string, string>)[value] || value
+    : ({ PAID: 'Paid', PENDING: 'Payment pending', FAILED: 'Failed' } as Record<string, string>)[value] || value;
   const router = useRouter();
   const { setAuthenticated, mergeGuestWishlist } = useStorefrontSession();
   const [me, setMe] = useState<Me | null>(null);
@@ -255,9 +261,9 @@ export default function AccountClient() {
                 <span className="font-black text-slate-100">{o.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</span>
               </div>
               <div className="flex flex-wrap gap-2 mt-1.5 text-[11px] text-slate-400">
-                <span className="px-2 py-0.5 rounded-lg bg-slate-800 font-bold">{o.orderStatus}</span>
+                <span className="px-2 py-0.5 rounded-lg bg-slate-800 font-bold">{orderStatusLabel(o.orderStatus)}</span>
                 <span className={`px-2 py-0.5 rounded-lg font-bold ${o.paymentStatus === 'PAID' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
-                  {o.paymentStatus}
+                  {paymentStatusLabel(o.paymentStatus)}
                 </span>
                 {o.trackingNumber && <span dir="ltr" className="font-mono">{o.trackingNumber}</span>}
                 <span>{new Date(o.createdAt).toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</span>
@@ -282,7 +288,7 @@ export default function AccountClient() {
             <div key={a.id} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex justify-between items-center gap-2 text-xs">
               <div>
                 <div className="font-bold text-slate-100">{a.title} — {a.street}</div>
-                <div className="text-[11px] text-slate-400">{a.building ? `${a.building}، ` : ''}{a.city}، {a.governorate}</div>
+                <div className="text-[11px] text-slate-400">{a.building ? `${a.building}${isAr ? '، ' : ', '}` : ''}{a.city}{isAr ? '، ' : ', '}{a.governorate}</div>
               </div>
               <button onClick={() => removeAddress(a.id)} aria-label={isAr ? 'حذف العنوان' : 'Delete address'} className="p-2 rounded-lg text-rose-400 hover:bg-rose-500/10">
                 <Trash2 className="w-4 h-4" />

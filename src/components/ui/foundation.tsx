@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image, { type ImageProps } from 'next/image';
 import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from '@/i18n/routing';
+import { Link, usePathname } from '@/i18n/routing';
 import { ChevronLeft, ChevronRight, Globe, Inbox, X } from 'lucide-react';
 
 // ── DirectionalIcon (Group 07): semantic back/forward chevron.
@@ -426,7 +426,7 @@ export function DialogFrame({
   bodyClassName = '',
   footerClassName = '',
   overlayClassName = '',
-  closeLabel = 'إغلاق',
+  closeLabel,
   header,
   headerClassName = '',
   showCloseButton = true,
@@ -447,6 +447,8 @@ export function DialogFrame({
   headerClassName?: string;
   showCloseButton?: boolean;
 }) {
+  const locale = useLocale();
+  const resolvedCloseLabel = closeLabel ?? (locale === 'ar' ? 'إغلاق' : 'Close');
   const panelRef = useRef<HTMLDivElement>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -476,7 +478,7 @@ export function DialogFrame({
             <button
               type="button"
               onClick={onClose}
-              aria-label={closeLabel}
+              aria-label={resolvedCloseLabel}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-slate-800 text-slate-300 hover:bg-slate-700"
             >
               <X className="h-4 w-4" aria-hidden="true" />
@@ -501,6 +503,7 @@ export function DialogFrame({
 export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, onClose, busy }: {
   open: boolean; title: string; impact: string; confirmLabel: string; onConfirm: () => void; onClose: () => void; busy?: boolean;
 }) {
+  const isAr = useLocale() === 'ar';
   return (
     <DialogFrame
       active={open}
@@ -511,7 +514,7 @@ export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, on
       bodyClassName="text-xs leading-relaxed text-slate-400"
       footer={(
         <div className="grid w-full grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={onClose} disabled={busy}>رجوع</Button>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>{isAr ? 'رجوع' : 'Back'}</Button>
           <Button variant="danger" onClick={onConfirm} disabled={busy}>{busy ? '...' : confirmLabel}</Button>
         </div>
       )}
@@ -537,17 +540,21 @@ export function Modal({ title, onClose, children, size = 'md', footer }: {
 export function LocaleSwitcher() {
   const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
   const next = locale === 'ar' ? 'en' : 'ar';
+  // Declarative `Link` instead of `router.replace(pathname, { locale })`: the
+  // imperative form resolved back to the current URL and never navigated.
+  const href = (pathname || '/') as '/';
   return (
-    <button
-      onClick={() => router.replace(pathname, { locale: next })}
+    <Link
+      href={href}
+      locale={next}
+      data-locale-switcher="true"
       aria-label={locale === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
       title={locale === 'ar' ? 'English' : 'عربي'}
       className="min-h-[44px] min-w-[44px] px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-black border border-slate-700 flex items-center justify-center gap-1"
     >
       <Globe className="w-4 h-4" />
       {locale === 'ar' ? 'EN' : 'ع'}
-    </button>
+    </Link>
   );
 }

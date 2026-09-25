@@ -76,6 +76,21 @@
 - [x] ✅ **H-D5 — Console Audit:** لا يوجد سكربت/dependency باسم `useblackbox` أو `index.iife.js` في المستودع؛ خطأ CORS المرصود خارجي من browser extension/أداة Blackbox وليس من كود النظام. تم توثيقه بدل تعطيله.
 - [x] ✅ **H-D6 — POS light mode:** إصلاح تباين الأزرار و tab strip في نافذة `إتمام عملية البيع والدفع`؛ كانت `bg-slate-900/80` داكنة مع نص remapped داكن، وأضيفت قواعد light-mode scoped للـ modal.
 
+### H-E) الترجمة على `/en` وتبديل اللغة
+
+**المشكلة:** `/en` كان يعرض نصوصًا عربية في POS/Storefront/Admin — سببها نصوص JSX وقيم inline hardcoded داخل components بدل `useLocale()`/`getLocale()`.
+
+- [x] ✅ **H-E1 — Storefront:** `home`, `catalog`, `catalog/[id]`, `branches`, `features`, `cart`, `checkout`, `checkout/success`, `tracking`, `account`, `wishlist`, `loading`، ومكونات `Header`, `Footer`, `HeroBanner`, `ProductCard`, `ProductDetailsClient`, `ReviewsSection`, `WishlistButton`, `ReturnPortal`, `StorefrontSessionProvider`. أسماء المنتجات والفروع والفئات تأخذ `nameEn/addressEn` في الإنجليزية.
+- [x] ✅ **H-E2 — POS:** شاشة الكاشير + `PosPaymentModal` + `PosReceiptModal` (بما فيه الإيصال المطبوع `dir/lang` والتواريخ) + `ReturnWizard`، مع `dir` ديناميكي و`ج.م/EGP`.
+- [x] ✅ **H-E3 — Admin:** `dashboard`, `orders`, `returns`, `accounting`, `audit`, `branches`, `cod-settlement`, `coupons`, `customers`, `employees`, `expenses`, `inventory`, `notifications`, `payroll`, `products`, `purchasing`, `reports/*`, `reviews`, `settings`, `setup`, `shifts`, `shipping`, `users`, `users/roles`, `website/store`، ومكونات `OrdersManager`, `ReturnsManager`, `NewReturnClient`, `ReturnDetails`, `ShiftsManager`, `SuppliersManager`, `ProductsManager`, `EmployeesManager`, `CustomersManager`, `CouponsManager`, `LabelsClient`, `SupplierPayments`, `EtaRetryButton`, `InvoiceActions`, `LoginForm`, `AdminEmptyState`, `AdminPlannedPage`.
+- [x] ✅ **H-E4 — Shared errors:** `ErrorEventHandler` و`ErrorEventHandler`/`client-api` يعرضان رسالة إنجليزية على `/en` (session/permission/network)، و`DialogFrame`/`ConfirmDialog` (`إغلاق`/`Close`, `رجوع`/`Back`).
+- [x] ✅ **H-E5 — مبدّل اللغة:** كان `router.replace(pathname, { locale })` يعود إلى نفس العنوان بلا تنقّل، فاستُبدل بـ`Link href={pathname} locale={next}` في `Header` و`LocaleSwitcher` — يعمل الآن ويبني anchor حقيقيًا.
+- [x] ✅ **H-E6 — Returns API:** `/api/returns/request` يرجع `nameEn` + `reasonsEn` + `blockedReasonEn`، و`/api/returns/track` يرجع `nameEn`/`branchEn`، وواجهات المتجر تعرض النسخة المناسبة للغة.
+- [x] ✅ **H-E7 — Regression test:** `tests/e2e/locale.spec.ts` (10 اختبارات) يتحقق أن `/en` يعرض إنجليزيًا خالصًا: `lang="en"` + عدم وجود حروف عربية في النص المرئي (عدا مبدّل اللغة الذي يعرض اسم اللغة هدفًا بشكلها الصحيح) + وجود نص إنجليزي متوقع.
+- [x] ✅ **H-E8 — Admin scan tool:** `npm run check:i18n-admin` (groups `a|b|c`) يفتح جلسة JWT محلية ويفحص 38 مسار `/en` آليًا، ويفصل بين **UI leak** (فشل) و**data leak** (أعمدة لا تملك نسخة إنجليزية في الـschema).
+
+**مصدر عربي متبقٍ على `/en` (بيانات وليس UI):** `Customer.name`, `User.name`, `Employee.name/roleTitle`, `Supplier.name/contactName/address`, `Address.street/city`, `Product.color/size`, `Expense.notes/title`, `Review.text`. هذه الأعمدة بلا `*En` في `prisma/schema.prisma`؛ تحتاج migration لإضافة أعمدة إنجليزية، ومفقودها موثّق في `scripts/verify-admin-en.mjs` ضمن `DB_SOURCED_ROUTES`.
+
 ### اختبارات الجولة
 
 | الأمر | النتيجة |
@@ -87,6 +102,8 @@
 | `npm run test:int` | ✅ 26 ملف / 87 اختبار |
 | `npm run test:dashboard` | ✅ 173/173 |
 | `npm run check:i18n` / `check:invariants` | ✅ PASS / CLEAN |
+| `npm run check:i18n-admin` (a/b/c) | ✅ 0 UI leaks على 38 مسار `/en` |
+| Playwright locale probe | ✅ 10/10 على `/en` (desktop) |
 | Playwright responsive probe | ✅ 4 viewports × 5 public routes، بلا overflow/console errors |
 | Desktop visual/WCAG review | 🟡 يحتاج جلسة browser متصلة؛ لم يتم إجراء فحص axe بصري كامل بعد |
 

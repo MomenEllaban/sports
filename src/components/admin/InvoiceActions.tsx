@@ -31,14 +31,17 @@ function number(value: unknown): string {
   return Number.isFinite(n) ? n.toFixed(2) : '0.00';
 }
 
-function printSnapshot(snapshot: Snapshot, isReprint: boolean, copyNumber?: number) {
+function printSnapshot(snapshot: Snapshot, isReprint: boolean, copyNumber?: number, isAr = true) {
   const win = window.open('', '_blank', 'width=480,height=760');
   if (!win) return false;
-  const rows = (snapshot.lines || []).map((line) => `<tr><td>${esc(line.nameAr || line.nameEn)}<br><small>${esc(line.sku)}</small></td><td>${esc(line.quantity)}</td><td>${number(line.unitPrice)}</td><td>${number(line.totalPrice)}</td></tr>`).join('');
+  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const rows = (snapshot.lines || []).map((line) => `<tr><td>${esc(isAr ? line.nameAr || line.nameEn : line.nameEn || line.nameAr)}<br><small>${esc(line.sku)}</small></td><td>${esc(line.quantity)}</td><td>${number(line.unitPrice)}</td><td>${number(line.totalPrice)}</td></tr>`).join('');
   const marker = isReprint
-    ? `<div class="reprint">نسخة معادة الطباعة ${copyNumber ? `#${copyNumber}` : ''}</div>`
+    ? `<div class="reprint">${L(`نسخة معادة الطباعة`, `Reprinted copy`)} ${copyNumber ? `#${copyNumber}` : ''}</div>`
     : '';
-  win.document.write(`<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة ${esc(snapshot.invoiceNumber)}</title><style>body{font-family:Arial,sans-serif;width:360px;margin:18px;color:#111;font-size:12px}table{width:100%;border-collapse:collapse}th,td{padding:6px 3px;border-bottom:1px solid #ddd;text-align:right}th{font-size:11px}.center{text-align:center}.total{font-size:16px;font-weight:bold}.reprint{background:#fef3c7;border:2px solid #b45309;padding:8px;margin:8px 0;font-weight:bold;text-align:center}@media print{@page{size:80mm auto;margin:0}body{width:100%;margin:0}}</style></head><body><div class="center"><h2>SPORTS CHAMPIONS</h2><p>${esc(snapshot.branch?.name || '')}</p><p>فاتورة ضريبية مبسطة</p><p>رقم: ${esc(snapshot.invoiceNumber)}</p><p>التاريخ: ${esc(snapshot.createdAt || '')}</p>${marker}</div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><p>المجموع: ${number(snapshot.subtotal)}</p><p>الخصم: ${number(snapshot.discount)}</p><p>ضريبة القيمة المضافة: ${number(snapshot.vat)}</p><p>التوصيل: ${number(snapshot.deliveryFee)}</p><p class="total">الإجمالي: ${number(snapshot.total)}</p><p>الدفع: ${esc(snapshot.paymentMethod)}</p><p class="center">${esc(snapshot.etaUuid || '')}</p><script>window.onload=()=>window.print()<\/script></body></html>`);
+  const branchName = isAr ? snapshot.branch?.name || '' : snapshot.branch?.nameEn || snapshot.branch?.name || '';
+  const doc = `<!doctype html><html dir="${isAr ? 'rtl' : 'ltr'}" lang="${isAr ? 'ar' : 'en'}"><head><meta charset="utf-8"><title>${L('فاتورة', 'Invoice')} ${esc(snapshot.invoiceNumber)}</title><style>body{font-family:Arial,sans-serif;width:360px;margin:18px;color:#111;font-size:12px}table{width:100%;border-collapse:collapse}th,td{padding:6px 3px;border-bottom:1px solid #ddd;text-align:start}th{font-size:11px}.center{text-align:center}.total{font-size:16px;font-weight:bold}.reprint{background:#fef3c7;border:2px solid #b45309;padding:8px;margin:8px 0;font-weight:bold;text-align:center}@media print{@page{size:80mm auto;margin:0}body{width:100%;margin:0}}</style></head><body><div class="center"><h2>SPORTS CHAMPIONS</h2><p>${esc(branchName)}</p><p>${L('فاتورة ضريبية مبسطة', 'Simplified tax invoice')}</p><p>${L('رقم', 'No.')}: ${esc(snapshot.invoiceNumber)}</p><p>${L('التاريخ', 'Date')}: ${esc(snapshot.createdAt || '')}</p>${marker}</div><table><thead><tr><th>${L('الصنف', 'Item')}</th><th>${L('الكمية', 'Qty')}</th><th>${L('السعر', 'Price')}</th><th>${L('الإجمالي', 'Total')}</th></tr></thead><tbody>${rows}</tbody></table><p>${L('المجموع', 'Subtotal')}: ${number(snapshot.subtotal)}</p><p>${L('الخصم', 'Discount')}: ${number(snapshot.discount)}</p><p>${L('ضريبة القيمة المضافة', 'VAT')}: ${number(snapshot.vat)}</p><p>${L('التوصيل', 'Delivery')}: ${number(snapshot.deliveryFee)}</p><p class="total">${L('الإجمالي', 'Total')}: ${number(snapshot.total)}</p><p>${L('الدفع', 'Payment')}: ${esc(snapshot.paymentMethod)}</p><p class="center">${esc(snapshot.etaUuid || '')}</p><script>window.onload=()=>window.print()<\/script></body></html>`;
+  win.document.write(doc);
   win.document.close();
   return true;
 }
@@ -61,7 +64,7 @@ export default function InvoiceActions({ invoiceId, compact = false }: { invoice
     try {
       const snapshot = await load();
       if (!snapshot) throw new Error(isAr ? 'لا توجد بيانات فاتورة' : 'Invoice data unavailable');
-      if (!printSnapshot(snapshot, false)) throw new Error(isAr ? 'اسمح بالنوافذ المنبثقة للطباعة' : 'Allow pop-ups to print');
+      if (!printSnapshot(snapshot, false, undefined, isAr)) throw new Error(isAr ? 'اسمح بالنوافذ المنبثقة للطباعة' : 'Allow pop-ups to print');
     } catch (err) {
       const message = err instanceof Error ? err.message : (isAr ? 'تعذر فتح الفاتورة' : 'Unable to open invoice');
       setError(message);
@@ -75,7 +78,7 @@ export default function InvoiceActions({ invoiceId, compact = false }: { invoice
       const result = await apiFetch(`/api/admin/tax-invoices/${invoiceId}`, 'POST', { requestId, locale, reason: isAr ? 'إعادة طباعة من الطلب' : 'Reprint from orders' }) as { copyNumber?: number };
       const snapshot = await load();
       if (!snapshot) throw new Error(isAr ? 'لا توجد بيانات فاتورة' : 'Invoice data unavailable');
-      if (!printSnapshot(snapshot, true, result.copyNumber)) throw new Error(isAr ? 'اسمح بالنوافذ المنبثقة للطباعة' : 'Allow pop-ups to print');
+      if (!printSnapshot(snapshot, true, result.copyNumber, isAr)) throw new Error(isAr ? 'اسمح بالنوافذ المنبثقة للطباعة' : 'Allow pop-ups to print');
     } catch (err) {
       const message = err instanceof Error ? err.message : (isAr ? 'تعذر إعادة الطباعة' : 'Unable to reprint');
       setError(message);

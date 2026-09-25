@@ -35,8 +35,8 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
-        items: { include: { product: { select: { nameAr: true, sku: true } } } },
-        branch: { select: { name: true } },
+        items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } },
+        branch: { select: { name: true, nameEn: true } },
         order: { select: { orderNumber: true, totalAmount: true } },
         sale: { select: { saleNumber: true, totalAmount: true } },
         refunds: { select: { id: true, amount: true, method: true, status: true } },

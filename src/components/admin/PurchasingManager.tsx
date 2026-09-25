@@ -165,7 +165,7 @@ export default function PurchasingManager({
             </div>
             <div className="text-slate-300">{isAr ? 'المورد' : 'Supplier'}: {po.supplier.name}</div>
             <div className="text-slate-400">
-              {po.items.map((i) => `${pName(i.product)} (${i.quantityReceived}/${i.quantityOrdered})`).join('، ')}
+              {po.items.map((i) => `${pName(i.product)} (${i.quantityReceived}/${i.quantityOrdered})`).join(isAr ? '، ' : ', ')}
             </div>
             <div className="flex justify-between items-center pt-1">
               <span className="font-black text-slate-100">{po.totalAmount.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</span>

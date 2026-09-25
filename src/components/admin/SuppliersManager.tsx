@@ -34,6 +34,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [showAdd, setShowAdd] = useState(false);
@@ -77,7 +78,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إضافة المورد';
+      const msg = err instanceof Error ? err.message : L('فشل في إضافة المورد', 'Could not add the supplier');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -96,7 +97,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في تحديث المورد';
+      const msg = err instanceof Error ? err.message : L('فشل في تحديث المورد', 'Could not update the supplier');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -114,7 +115,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في حذف المورد';
+      const msg = err instanceof Error ? err.message : L('فشل في حذف المورد', 'Could not delete the supplier');
       setDeleteError(msg);
       toast(msg, 'error');
     } finally {

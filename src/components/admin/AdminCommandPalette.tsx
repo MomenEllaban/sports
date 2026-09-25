@@ -178,7 +178,7 @@ export default function AdminCommandPalette() {
         </div>
         <div className="flex items-center justify-between border-t border-slate-800 px-4 py-2 text-[10px] text-slate-500">
           <span>{isAr ? 'استخدم ↑ ↓ للتنقل و Enter للفتح' : 'Use ↑ ↓ to navigate and Enter to open'}</span>
-          <span className="font-mono">Esc للإغلاق</span>
+          <span className="font-mono">{isAr ? 'Esc للإغلاق' : 'Esc to close'}</span>
         </div>
       </div>
     </div>

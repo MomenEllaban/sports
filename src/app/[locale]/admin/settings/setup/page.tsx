@@ -4,7 +4,7 @@ import { ClipboardCheck } from 'lucide-react';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { SETTINGS_REGISTRY, SETUP_GROUPS, parseStored, statusOf, hasUsableValue } from '@/lib/settings-registry';
 import { Link } from '@/i18n/routing';
-import { getTranslations } from 'next-intl/server';
+import { getTranslations, getLocale } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 export default async function SetupPage() {
   await requirePageRole('SUPER_ADMIN');
   const t = await getTranslations('setup');
+  const isAr = (await getLocale()) === 'ar';
   const rows = await prisma.setting.findMany();
   const byKey = new Map(rows.map((r) => [r.key, r.value]));
   const items = SETTINGS_REGISTRY.map((def) => {
@@ -36,7 +37,7 @@ export default async function SetupPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="p-10 text-center text-xs text-slate-500">لا بنود مسجلة.</div>
+        <div className="p-10 text-center text-xs text-slate-500">{isAr ? 'لا بنود مسجلة.' : 'No items registered.'}</div>
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
           {SETUP_GROUPS.map((g) => {
@@ -48,7 +49,7 @@ export default async function SetupPage() {
             return (
               <section key={g.id} className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
                 <div className="flex justify-between items-center">
-                  <h2 className="font-extrabold text-sm text-slate-100">{g.ar}</h2>
+                  <h2 className="font-extrabold text-sm text-slate-100">{isAr ? g.ar : g.en}</h2>
                   <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg ${pct === 100 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
                     {done}/{req.length} ({pct}%)
                   </span>
@@ -60,8 +61,8 @@ export default async function SetupPage() {
                   {gi.map(({ def, status }) => (
                     <li key={def.key} className="p-3 rounded-2xl bg-slate-900 border border-slate-800 flex justify-between gap-2 items-start">
                       <div className="min-w-0">
-                        <div className="font-bold text-slate-200">{def.labelAr} {def.required && <span className="text-rose-400">*</span>}</div>
-                        <div className="text-[11px] text-slate-500 leading-relaxed mt-0.5">{def.helpAr}</div>
+                        <div className="font-bold text-slate-200">{isAr ? def.labelAr : def.labelEn} {def.required && <span className="text-rose-400">*</span>}</div>
+                        <div className="text-[11px] text-slate-500 leading-relaxed mt-0.5">{isAr ? def.helpAr : def.helpEn}</div>
                         <div className="text-[10px] text-slate-600 font-mono mt-1" dir="ltr">{def.key}</div>
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">

@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { apiRequest, ClientApiError } from '@/lib/client-api';
+import { useLocale } from 'next-intl';
 
 const WISHLIST_KEY = 'sc:wishlist';
 const WISHLIST_EVENT = 'sc:wishlist-changed';
@@ -78,6 +79,8 @@ export default function StorefrontSessionProvider({
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(true);
   const [wishlistError, setWishlistError] = useState('');
+  const isAr = useLocale() === 'ar';
+  const L = useCallback((ar: string, en: string) => (isAr ? ar : en), [isAr]);
   const wishlistRef = useRef<string[]>([]);
   const remoteRequestRef = useRef<Promise<void> | null>(null);
   const mountedRef = useRef(true);
@@ -135,7 +138,7 @@ export default function StorefrontSessionProvider({
           wishlistRef.current = local;
           setWishlist(local);
         } else {
-          setWishlistError(error instanceof Error ? error.message : 'تعذر تحميل قائمة الأمنيات');
+          setWishlistError(error instanceof Error ? error.message : L('تعذر تحميل قائمة الأمنيات', 'Could not load the wishlist'));
         }
       } finally {
         if (mountedRef.current) setWishlistLoading(false);
@@ -148,7 +151,7 @@ export default function StorefrontSessionProvider({
     } finally {
       if (remoteRequestRef.current === request) remoteRequestRef.current = null;
     }
-  }, [authenticated]);
+  }, [authenticated, L]);
 
   useEffect(() => {
     if (!authenticated) {
@@ -216,10 +219,10 @@ export default function StorefrontSessionProvider({
       }
       wishlistRef.current = current;
       setWishlist(current);
-      setWishlistError(error instanceof Error ? error.message : 'تعذر تحديث قائمة الأمنيات');
+      setWishlistError(error instanceof Error ? error.message : L('تعذر تحديث قائمة الأمنيات', 'Could not update the wishlist'));
       throw error;
     }
-  }, [authenticated]);
+  }, [authenticated, L]);
 
   const mergeGuestWishlist = useCallback(async () => {
     const guestIds = readGuestWishlist();

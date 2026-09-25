@@ -106,17 +106,17 @@ export default async function StorefrontHomePage({
           <div className="flex justify-between items-end mb-8">
             <div>
               <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
-                التصنيفات الرياضية
+                {isAr ? 'التصنيفات الرياضية' : 'Sports categories'}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-100 mt-1">
-                تسوق حسب الرياضة والنشاط
+{isAr ? 'تسوق حسب الرياضة والنشاط' : 'Shop by sport and activity'}
               </h2>
             </div>
             <Link
               href="/catalog"
               className="text-sm font-bold text-amber-400 hover:underline flex items-center gap-1"
             >
-              عرض الكل {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              {isAr ? 'عرض الكل' : 'View all'} {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </Link>
           </div>
 
@@ -146,7 +146,7 @@ export default async function StorefrontHomePage({
           <div className="flex justify-between items-end mb-8">
             <div>
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                المعدات والأدوات الأكثر طلباً
+                {isAr ? 'المعدات والأدوات الأكثر طلباً' : 'Most requested equipment & tools'}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-100 mt-1">
                 {t('featuredProducts')}
@@ -156,7 +156,7 @@ export default async function StorefrontHomePage({
               href="/catalog"
               className="text-sm font-bold text-blue-400 hover:underline flex items-center gap-1"
             >
-              تصفح الكتالوج بالكامل
+              {isAr ? 'تصفح الكتالوج بالكامل' : 'Browse the full catalog'}
             </Link>
           </div>
 
@@ -175,18 +175,18 @@ export default async function StorefrontHomePage({
           <div className="glass-panel p-8 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-blue-950/40 grid md:grid-cols-12 gap-8 items-center hover:border-amber-500/30 transition-colors duration-300">
             <div className="md:col-span-8 space-y-4">
               <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold border border-amber-500/30">
-                الفرع الرئيسي والمخزن بالإسكندرية
+                {isAr ? 'الفرع الرئيسي والمخزن بالإسكندرية' : 'Flagship branch & warehouse in Alexandria'}
               </span>
               <h3 className="text-2xl sm:text-3xl font-black text-slate-100">
-                فرع الإبراهيمية (92 شارع عمر لطفى)
+                {isAr ? 'فرع الإبراهيمية (92 شارع عمر لطفى)' : 'Ibrahimeyah branch (92 Omar Lotfy St.)'}
               </h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                يسعدنا استقبالكم لتجربة المشايات الكهربائية، العجل الرياضي، قياس ملابس وأحذية السباحة والباليه، أو الشراء المباشر واستلام الطلبات الإلكترونية بدون رسوم شحن.
+                {isAr ? 'يسعدنا استقبالكم لتجربة المشايات الكهربائية، العجل الرياضي، قياس ملابس وأحذية السباحة والباليه، أو الشراء المباشر واستلام الطلبات الإلكترونية بدون رسوم شحن.' : 'Visit us to try electric treadmills, sports wheels, swimwear and ballet shoes, or order online and collect your purchases with no shipping fee.'}
               </p>
               <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-300">
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-amber-400" />
-                  <span>الإبراهيمية بحري، سيدي جابر، باب شرقي</span>
+                  <span>{isAr ? 'الإبراهيمية بحري، سيدي جابر، باب شرقي' : 'Ibrahimeyah Bahri, Sidi Gaber, Bab Sharqi'}</span>
                 </div>
                 <a href="tel:035926908" className="flex items-center gap-1.5 hover:text-white transition-colors">
                   <Phone className="w-4 h-4 text-blue-400" />
@@ -197,10 +197,10 @@ export default async function StorefrontHomePage({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25 transition-colors font-bold"
-                  title="تواصل واتساب: 01224226876"
+                  title={isAr ? 'تواصل واتساب: 01224226876' : 'WhatsApp: 01224226876'}
                 >
                   <WhatsAppIcon className="w-4 h-4 text-emerald-400" />
-                  <span className="hidden sm:inline">واتساب:</span>
+                  <span className="hidden sm:inline">{isAr ? 'واتساب:' : 'WhatsApp:'}</span>
                   <span dir="ltr" className="tabular-nums font-black">0122 422 6876</span>
                 </a>
               </div>
@@ -210,7 +210,7 @@ export default async function StorefrontHomePage({
                 href="/branches"
                 className="px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-amber-500/20"
               >
-                معلومات الوصول وتوجيهات الخريطة
+                {isAr ? 'معلومات الوصول وتوجيهات الخريطة' : 'Access information & map directions'}
               </Link>
             </div>
           </div>

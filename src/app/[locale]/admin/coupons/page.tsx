@@ -1,4 +1,5 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { TicketPercent } from 'lucide-react';
@@ -9,15 +10,16 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminCouponsPage() {
   await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+  const isAr = (await getLocale()) === 'ar';
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: 'desc' } });
   return (
     <>
       <div className="border-b border-slate-800 pb-4">
         <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
           <TicketPercent className="w-6 h-6 text-purple-400" />
-          الكوبونات والعروض
+          {isAr ? 'الكوبونات والعروض' : 'Coupons & offers'}
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">أكواد خصم موحدة للمتجر والكاشير مع سقف وحد استخدام</p>
+        <p className="text-xs text-slate-400 mt-0.5">{isAr ? 'أكواد خصم موحدة للمتجر والكاشير مع سقف وحد استخدام' : 'Shared storefront and POS discount codes with caps and usage limits'}</p>
       </div>
       <CouponsManager
         initial={coupons.map((c) => ({

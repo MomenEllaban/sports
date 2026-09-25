@@ -10,6 +10,9 @@ import { apiRequest } from '@/lib/client-api';
 export default function TrackingPage() {
   const locale = useLocale();
   const isAr = locale === 'ar';
+  const orderStatusLabel = (value: string) => isAr
+    ? ({ PENDING: 'قيد التجهيز', PROCESSING: 'قيد التجهيز', SHIPPED: 'تم الشحن', DELIVERED: 'تم التسليم', CANCELLED: 'ملغي' } as Record<string, string>)[value] || value
+    : ({ PENDING: 'Processing', PROCESSING: 'Processing', SHIPPED: 'Shipped', DELIVERED: 'Delivered', CANCELLED: 'Cancelled' } as Record<string, string>)[value] || value;
   const tCommon = useTranslations('common');
   const tTracking = useTranslations('orderTracking');
   const searchParams = useSearchParams();
@@ -90,18 +93,18 @@ export default function TrackingPage() {
             className="min-h-[44px] px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
           >
             <Search className="w-4 h-4" />
-            {loading ? 'جاري البحث...' : tTracking('searchBtn')}
+            {loading ? (isAr ? 'جاري البحث...' : 'Searching...') : tTracking('searchBtn')}
           </button>
           </div>
           <div className="flex gap-3 items-center">
-            <label htmlFor="tracking-phone" className="sr-only">رقم الموبايل (مطلوب عند البحث بالهاتف)</label>
+            <label htmlFor="tracking-phone" className="sr-only">{isAr ? 'رقم الموبايل (مطلوب عند البحث بالهاتف)' : 'Mobile number (required when searching by phone)'}</label>
             <input
               id="tracking-phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="رقم الموبايل — مطلوب فقط عند البحث برقم الهاتف"
-              aria-label="رقم الموبايل (مطلوب عند البحث بالهاتف)"
+              placeholder={isAr ? 'رقم الموبايل — مطلوب فقط عند البحث برقم الهاتف' : 'Mobile number — only needed when searching by phone'}
+              aria-label={isAr ? 'رقم الموبايل (مطلوب عند البحث بالهاتف)' : 'Mobile number (required when searching by phone)'}
               className="flex-1 min-h-[44px] px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-semibold placeholder:text-slate-500"
               dir="ltr"
             />
@@ -125,7 +128,7 @@ export default function TrackingPage() {
 
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs border border-blue-500/30">
-                  {orderResult.orderStatus}
+                  {orderStatusLabel(orderResult.orderStatus)}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-slate-900 text-slate-300 font-bold text-xs border border-slate-800">
                   {isAr ? 'شركة الشحن: ' : 'Carrier: '}{orderResult.shippingProvider}

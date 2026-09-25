@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Lock,
   Mail,
@@ -23,11 +23,14 @@ interface QuickAccount {
   id: string;
   role: 'SUPER_ADMIN' | 'BRANCH_MANAGER' | 'FINANCE' | 'CASHIER' | 'STAFF';
   roleNameAr: string;
+  roleNameEn: string;
   badgeStyle: string;
-  name: string;
+  nameAr: string;
+  nameEn: string;
   email: string;
   password: string;
   scopeAr: string;
+  scopeEn: string;
   targetUrl: string;
   icon: React.ReactNode;
 }
@@ -39,11 +42,14 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     id: 'super-admin',
     role: 'SUPER_ADMIN',
     roleNameAr: 'المدير العام (صلاحيات كاملة 100%)',
+    roleNameEn: 'General Manager (full permissions, 100%)',
     badgeStyle: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-    name: 'المدير العام',
+    nameAr: 'المدير العام',
+    nameEn: 'General Manager',
     email: 'admin@sports-champions.local',
     password: 'Test@123456',
     scopeAr: 'تحكم مطلق في كل الشاشات · المستخدمين · الإعدادات · الضرائب ETA · الحسابات',
+    scopeEn: 'Full control of every screen · Users · Settings · ETA taxes · Accounting',
     targetUrl: '/admin',
     icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
   },
@@ -51,11 +57,14 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     id: 'mgr-ibrahimeyah',
     role: 'BRANCH_MANAGER',
     roleNameAr: 'مدير فرع الإبراهيمية',
+    roleNameEn: 'El Ibrahimia Branch Manager',
     badgeStyle: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    name: 'مدير فرع الإبراهيمية',
+    nameAr: 'مدير فرع الإبراهيمية',
+    nameEn: 'El Ibrahimia Branch Manager',
     email: 'manager.ibrahimeyah@sports-champions.local',
     password: 'Test@123456',
     scopeAr: 'الفرع الرئيسي · المبيعات · المخزون والجرد · الورديات والدرج · المرتجعات',
+    scopeEn: 'Flagship branch · Sales · Inventory and stocktake · Shifts and cash drawer · Returns',
     targetUrl: '/admin',
     icon: <Building2 className="w-4 h-4 text-blue-400" />,
   },
@@ -63,11 +72,14 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     id: 'mgr-smouha',
     role: 'BRANCH_MANAGER',
     roleNameAr: 'مدير فرع سموحة',
+    roleNameEn: 'Smouha Branch Manager',
     badgeStyle: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    name: 'مدير فرع سموحة',
+    nameAr: 'مدير فرع سموحة',
+    nameEn: 'Smouha Branch Manager',
     email: 'manager.smouha@sports-champions.local',
     password: 'Test@123456',
     scopeAr: 'فرع سموحة · أوامر التوريد · تحويلات المخزون · تقارير الفرع',
+    scopeEn: 'Smouha branch · Purchase orders · Stock transfers · Branch reports',
     targetUrl: '/admin',
     icon: <Building2 className="w-4 h-4 text-blue-400" />,
   },
@@ -75,11 +87,14 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     id: 'finance-mgr',
     role: 'FINANCE',
     roleNameAr: 'مدير المالية والحسابات',
+    roleNameEn: 'Finance & Accounting Manager',
     badgeStyle: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    name: 'مدير الحسابات والمالية',
+    nameAr: 'مدير الحسابات والمالية',
+    nameEn: 'Accounting & Finance Manager',
     email: 'finance@sports-champions.local',
     password: 'Test@123456',
     scopeAr: 'الأرباح والخسائر · المرتبات والعمولات · تسوية الكاش COD · ضرائب ETA',
+    scopeEn: 'P&L · Payroll and commissions · COD cash settlement · ETA taxes',
     targetUrl: '/admin/accounting',
     icon: <DollarSign className="w-4 h-4 text-purple-400" />,
   },
@@ -87,11 +102,14 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     id: 'pos-cashier',
     role: 'CASHIER',
     roleNameAr: 'كاشير نقطة البيع (POS)',
+    roleNameEn: 'Point of Sale Cashier (POS)',
     badgeStyle: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-    name: 'كاشير الإبراهيمية',
+    nameAr: 'كاشير الإبراهيمية',
+    nameEn: 'El Ibrahimia Cashier',
     email: 'cashier.ibrahimeyah@sports-champions.local',
     password: 'Test@123456',
     scopeAr: 'فتح/إغلاق الوردية · البيع السريع · فئات الكاش · طباعة الفاتورة 80mm',
+    scopeEn: 'Open/close shifts · Fast selling · Cash denominations · 80mm receipt printing',
     targetUrl: '/pos',
     icon: <Monitor className="w-4 h-4 text-amber-400" />,
   },
@@ -99,11 +117,14 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     id: 'warehouse-staff',
     role: 'STAFF',
     roleNameAr: 'موظف مبيعات ومخزن',
+    roleNameEn: 'Sales & Warehouse Staff',
     badgeStyle: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-    name: 'موظف الإبراهيمية',
+    nameAr: 'موظف الإبراهيمية',
+    nameEn: 'Ibrahimia Staff',
     email: 'staff.ibrahimeyah@sports-champions.local',
     password: 'Test@123456',
     scopeAr: 'جرد المخزون · فحص كميات الأصناف · استلام التوريدات',
+    scopeEn: 'Stocktaking · Item quantity checks · Receiving deliveries',
     targetUrl: '/admin/inventory',
     icon: <Package className="w-4 h-4 text-cyan-400" />,
   },
@@ -111,6 +132,8 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const t = useTranslations('auth');
+  const isAr = useLocale() === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -173,7 +196,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         <div className="text-center space-y-2">
           <Image
             src="/logo.avif"
-            alt="أبطال الرياضة الإبراهيمية"
+            alt={L('أبطال الرياضة الإبراهيمية', 'Sports Champions Alexandria')}
             width={960}
             height={822}
             priority
@@ -245,7 +268,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         {SHOW_DEMO_ACCOUNTS && (
           <div className="pt-2 border-t border-slate-800/80 text-center">
             <p className="text-[11px] text-slate-400">
-              حسابات QA المحلية فقط — لا تُفعّل هذه القائمة في production.
+              {L('حسابات QA المحلية فقط — لا تُفعّل هذه القائمة في production.', 'Local QA accounts only — this list stays disabled in production.')}
             </p>
           </div>
         )}
@@ -260,14 +283,14 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
             </div>
             <div>
               <h2 className="text-sm font-black text-slate-100 flex items-center gap-2">
-                دخول سريع حسب الصلاحيات
+                {L('دخول سريع حسب الصلاحيات', 'Quick sign-in by role')}
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               </h2>
-              <p className="text-[11px] text-slate-400">اختر رتبتك للدخول الفوري وتجربة الشاشات المخصصة</p>
+              <p className="text-[11px] text-slate-400">{L('اختر رتبتك للدخول الفوري وتجربة الشاشات المخصصة', 'Pick a role to sign in instantly and explore the screens built for it')}</p>
             </div>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-            6 حسابات جاهزة
+            {L('6 حسابات جاهزة', '6 accounts ready')}
           </span>
         </div>
 
@@ -284,10 +307,11 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-md border flex items-center gap-1 ${acc.badgeStyle}`}>
                       {acc.icon}
                       {acc.role}
+                      <span className="sr-only">{isAr ? acc.roleNameAr : acc.roleNameEn}</span>
                     </span>
-                    <span className="text-xs font-black text-slate-200">{acc.name}</span>
+                    <span className="text-xs font-black text-slate-200">{isAr ? acc.nameAr : acc.nameEn}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 line-clamp-1">{acc.scopeAr}</p>
+                  <p className="text-[11px] text-slate-400 line-clamp-1">{isAr ? acc.scopeAr : acc.scopeEn}</p>
                   <p className="text-[10px] text-slate-400 font-mono" dir="ltr">{acc.email}</p>
                 </div>
 
@@ -296,10 +320,10 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
                     type="button"
                     onClick={() => handleFillOnly(acc)}
                     disabled={loading}
-                    title="تعبئة البريد وكلمة المرور في النموذج"
+                    title={L('تعبئة البريد وكلمة المرور في النموذج', 'Fill the email and password in the form')}
                     className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-slate-100 font-bold text-[11px] border border-slate-700 transition-all"
                   >
-                    تعبئة
+                    {L('تعبئة', 'Fill')}
                   </button>
 
                   <button
@@ -319,12 +343,12 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
                     {isThisLoading ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>جاري الدخول...</span>
+                        <span>{L('جاري الدخول...', 'Signing in...')}</span>
                       </>
                     ) : (
                       <>
                         <Zap className="w-3.5 h-3.5" />
-                        <span>دخول سريع</span>
+                        <span>{L('دخول سريع', 'Quick sign-in')}</span>
                         <ArrowLeft className="w-3 h-3 group-hover:-translate-x-0.5 transition-transform" />
                       </>
                     )}

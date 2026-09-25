@@ -1,14 +1,16 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 
 /**
  * Instant route-level skeleton for storefront navigations.
  * Rendered inside the persistent storefront layout, so only the content
  * area is replaced while the header/footer stay interactive.
  */
-export default function StorefrontLoading() {
+export default async function StorefrontLoading() {
+  const isAr = (await getLocale()) === 'ar';
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 space-y-10" aria-busy="true" aria-live="polite">
-      <span className="sr-only">جارٍ تحميل الصفحة…</span>
+      <span className="sr-only">{isAr ? 'جارٍ تحميل الصفحة…' : 'Loading page…'}</span>
 
       {/* Page title block */}
       <div className="space-y-3 animate-pulse">

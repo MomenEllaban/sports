@@ -18,6 +18,8 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const currencyLabel = L('ج.م', 'EGP');
   const [rows, setRows] = useState(initial);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ supplierId: suppliers[0]?.id || '', amount: '', method: 'CASH', reference: '', notes: '' });
@@ -49,7 +51,7 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
       setShowNew(false);
       await reload();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل';
+      const msg = err instanceof Error ? err.message : L('فشل', 'Operation failed');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -60,7 +62,7 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <h3 className="font-extrabold text-sm text-slate-100">مدفوعات الموردين</h3>
+        <h3 className="font-extrabold text-sm text-slate-100">{L('مدفوعات الموردين', 'Supplier payments')}</h3>
         <Button onClick={() => setShowNew(!showNew)} variant="success">
           <Plus className="w-4 h-4" />{isAr ? 'دفعة جديدة' : 'New payment'}
         </Button>
@@ -68,26 +70,26 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
       {showNew && (
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-2 text-xs">
           <div>
-            <label htmlFor="sp-supplier" className="block font-bold text-slate-300 mb-1">المورد *</label>
+            <label htmlFor="sp-supplier" className="block font-bold text-slate-300 mb-1">{L('المورد *', 'Supplier *')}</label>
             <select id="sp-supplier" value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
               {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="sp-amount" className="block font-bold text-slate-300 mb-1">المبلغ (ج.م) *</label>
+            <label htmlFor="sp-amount" className="block font-bold text-slate-300 mb-1">{L('المبلغ (ج.م) *', 'Amount (EGP) *')}</label>
             <input id="sp-amount" type="number" min="0" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700 font-bold" />
           </div>
           <div>
-            <label htmlFor="sp-method" className="block font-bold text-slate-300 mb-1">الطريقة</label>
+            <label htmlFor="sp-method" className="block font-bold text-slate-300 mb-1">{L('الطريقة', 'Method')}</label>
             <select id="sp-method" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
-              <option value="CASH">نقدي</option>
-              <option value="BANK">تحويل بنكي</option>
-              <option value="INSTAPAY">انستاباي</option>
+              <option value="CASH">{L('نقدي', 'Cash')}</option>
+              <option value="BANK">{L('تحويل بنكي', 'Bank transfer')}</option>
+              <option value="INSTAPAY">InstaPay</option>
             </select>
           </div>
           <div>
-            <label htmlFor="sp-ref" className="block font-bold text-slate-300 mb-1">مرجع</label>
-            <input id="sp-ref" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="رقم الإيصال..." className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
+            <label htmlFor="sp-ref" className="block font-bold text-slate-300 mb-1">{L('مرجع', 'Reference')}</label>
+            <input id="sp-ref" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={L('رقم الإيصال...', 'Receipt number...')} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           {formError && <p role="alert" className="sm:col-span-2 text-rose-400 font-bold">{formError}</p>}
           <button type="submit" disabled={busy} className="sm:col-span-2 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold">
@@ -102,10 +104,10 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
         onPageChange={setPage}
         emptyTitle={isAr ? 'لا مدفوعات مسجلة' : 'No payments yet'}
         columns={[
-          { key: 'supplier', header: 'المورد', render: (r) => <span className="font-bold">{r.supplier.name}</span> },
-          { key: 'amount', header: 'المبلغ', render: (r) => <span className="font-black text-emerald-400">{r.amount.toLocaleString()} ج.م</span> },
-          { key: 'method', header: 'الطريقة', render: (r) => r.method },
-          { key: 'date', header: 'التاريخ', hideOnMobile: true, render: (r) => <span className="text-slate-400">{new Date(r.createdAt).toLocaleDateString('ar-EG')}</span> },
+          { key: 'supplier', header: L('المورد', 'Supplier'), render: (r) => <span className="font-bold">{r.supplier.name}</span> },
+          { key: 'amount', header: L('المبلغ', 'Amount'), render: (r) => <span className="font-black text-emerald-400">{r.amount.toLocaleString()} {currencyLabel}</span> },
+          { key: 'method', header: L('الطريقة', 'Method'), render: (r) => r.method },
+          { key: 'date', header: L('التاريخ', 'Date'), hideOnMobile: true, render: (r) => <span className="text-slate-400">{new Date(r.createdAt).toLocaleDateString(isAr ? 'ar-EG' : 'en-GB')}</span> },
         ]}
       />
     </div>

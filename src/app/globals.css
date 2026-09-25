@@ -340,6 +340,37 @@
   transform: scaleX(-1);
 }
 
+/* Sidebar category expand/collapse chevron.
+   Tailwind slate tokens are remapped for [data-theme="light"] elsewhere in this
+   file, but the chevron sits on an active/inactive group button whose own colour
+   changes, so it gets explicit per-theme values to stay readable in both modes. */
+.sidebar-group-chevron {
+  color: #cbd5e1;
+  background-color: rgb(51 65 85 / 0.55);
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.sidebar-group-chevron[data-state="open"] {
+  color: #bfdbfe;
+  background-color: rgb(37 99 235 / 0.35);
+}
+.sidebar-group-chevron:hover {
+  color: #f8fafc;
+  background-color: rgb(71 85 105 / 0.75);
+}
+
+[data-theme="light"] .sidebar-group-chevron {
+  color: #334155;
+  background-color: rgb(203 213 225 / 0.85);
+}
+[data-theme="light"] .sidebar-group-chevron[data-state="open"] {
+  color: #1d4ed8;
+  background-color: rgb(191 219 254 / 0.9);
+}
+[data-theme="light"] .sidebar-group-chevron:hover {
+  color: #0f172a;
+  background-color: rgb(148 163 184 / 0.7);
+}
+
 /* Scrollable pill rows — hide the scrollbar without losing scroll */
 .scrollbar-none {
   scrollbar-width: none;

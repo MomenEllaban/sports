@@ -1,4 +1,5 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 import OrdersManager from '@/components/admin/OrdersManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -9,6 +10,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminOrdersPage() {
   const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+  const locale = await getLocale();
+  const isAr = locale === 'ar';
   const [orders, sales, products, branches] = await Promise.all([
     prisma.order.findMany({
       where: branchResourceWhere(session),
@@ -16,7 +19,7 @@ export default async function AdminOrdersPage() {
       include: {
         items: { include: { product: { select: { id: true, nameAr: true, nameEn: true, sku: true } } } },
         customer: { select: { id: true, name: true, phone: true } },
-        branch: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true, nameEn: true } },
         returns: { select: { id: true, returnNumber: true, status: true, refunds: { select: { id: true, status: true, amount: true } } } },
         taxInvoice: { select: { id: true } },
       },
@@ -28,7 +31,7 @@ export default async function AdminOrdersPage() {
       include: {
         items: { include: { product: { select: { id: true, nameAr: true, nameEn: true, sku: true } } } },
         customer: { select: { id: true, name: true, phone: true } },
-        branch: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true, nameEn: true } },
         taxInvoice: { select: { id: true } },
       },
     }),
@@ -89,9 +92,11 @@ export default async function AdminOrdersPage() {
     <>
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-black text-slate-100">إدارة الطلبات والشحنات</h1>
+              <h1 className="text-2xl font-black text-slate-100">{isAr ? 'إدارة الطلبات والشحنات' : 'Orders & Shipping Management'}</h1>
               <p className="text-xs text-slate-400 mt-0.5">
-                جدول الطلبات الموحد (Online / POS / WhatsApp) ومتابعة شركات الشحن (بوسطة/مايلرز)
+                {isAr
+                  ? 'جدول الطلبات الموحد (Online / POS / WhatsApp) ومتابعة شركات الشحن (بوسطة/مايلرز)'
+                  : 'Unified order table (Online / POS / WhatsApp) with courier tracking (Bosta / Mylerz)'}
               </p>
             </div>
           </div>

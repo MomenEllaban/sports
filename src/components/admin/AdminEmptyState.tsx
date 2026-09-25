@@ -21,7 +21,8 @@ export default function AdminEmptyState({
   actionHref,
   actionLabelAr = 'العودة للوحة التحكم',
   actionLabelEn = 'Back to dashboard',
-  status = 'قريبًا',
+  statusAr = 'قريبًا',
+  statusEn = 'Coming soon',
   icon = 'construction',
 }: {
   titleAr: string;
@@ -31,7 +32,8 @@ export default function AdminEmptyState({
   actionHref?: string;
   actionLabelAr?: string;
   actionLabelEn?: string;
-  status?: string;
+  statusAr?: string;
+  statusEn?: string;
   icon?: EmptyIcon;
 }) {
   const locale = useLocale();
@@ -40,12 +42,13 @@ export default function AdminEmptyState({
   const displayTitle = isAr ? titleAr : titleEn;
   const displayDescription = isAr ? descriptionAr : descriptionEn;
   const displayAction = isAr ? actionLabelAr : actionLabelEn;
+  const displayStatus = isAr ? statusAr : statusEn;
   return (
     <section className="glass-panel flex min-h-[22rem] flex-col items-center justify-center rounded-3xl border border-slate-800 p-6 text-center sm:p-10" aria-labelledby="empty-state-title">
       <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
         <Icon className="h-8 w-8" aria-hidden="true" />
       </div>
-      <span className="status-warning mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-bold">{status}</span>
+      <span className="status-warning mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-bold">{displayStatus}</span>
       <h1 id="empty-state-title" className="text-xl font-black text-slate-100 sm:text-2xl">{displayTitle}</h1>
       <p className="mt-2 max-w-xl text-sm leading-7 text-slate-400">{displayDescription}</p>
       {actionHref && (

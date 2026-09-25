@@ -40,12 +40,6 @@ export default function AdminSectionTabs({ section, className = '' }: { section:
             }`}
           >
             {isAr ? tab.labelAr : tab.labelEn}
-            {isAr && tab.labelEn !== tab.labelAr && (
-              <span className="hidden text-[10px] font-normal opacity-60 sm:inline" dir="ltr">{tab.labelEn}</span>
-            )}
-            {!isAr && tab.labelAr !== tab.labelEn && (
-              <span className="hidden text-[10px] font-normal opacity-60 sm:inline" dir="rtl">{tab.labelAr}</span>
-            )}
           </Link>
         );
       })}

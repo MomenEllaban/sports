@@ -1,13 +1,14 @@
 import React from 'react';
 import AdminEmptyState from './AdminEmptyState';
 
-export default function AdminPlannedPage({
+export default async function AdminPlannedPage({
   titleAr,
   titleEn,
   descriptionAr,
   descriptionEn,
   actionHref = '/admin',
-  status = 'قريبًا — بنية المسار جاهزة',
+  statusAr = 'قريبًا — بنية المسار جاهزة',
+  statusEn = 'Coming soon — route scaffold ready',
   icon = 'construction',
 }: {
   titleAr: string;
@@ -15,8 +16,9 @@ export default function AdminPlannedPage({
   descriptionAr: string;
   descriptionEn: string;
   actionHref?: string;
-  status?: string;
+  statusAr?: string;
+  statusEn?: string;
   icon?: 'construction' | 'database' | 'shield';
 }) {
-  return <AdminEmptyState titleAr={titleAr} titleEn={titleEn} descriptionAr={descriptionAr} descriptionEn={descriptionEn} actionHref={actionHref} status={status} icon={icon} />;
+  return <AdminEmptyState titleAr={titleAr} titleEn={titleEn} descriptionAr={descriptionAr} descriptionEn={descriptionEn} actionHref={actionHref} statusAr={statusAr} statusEn={statusEn} icon={icon} />;
 }

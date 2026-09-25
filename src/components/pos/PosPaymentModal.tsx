@@ -16,6 +16,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { Button, DialogFrame } from '@/components/ui/foundation';
+import { useLocale } from 'next-intl';
 
 export interface PosPaymentModalProps {
   isOpen: boolean;
@@ -90,6 +91,9 @@ export default function PosPaymentModal({
   void setLoyaltyInput;
   const [activeTab, setActiveTab] = useState<'PAYMENT' | 'DISCOUNTS'>('PAYMENT');
   const [phoneSearch, setPhoneSearch] = useState('');
+  const isAr = useLocale() === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const currencyLabel = L('ج.م', 'EGP');
 
   if (!isOpen) return null;
 
@@ -114,7 +118,7 @@ export default function PosPaymentModal({
         disabled={processing}
         className="w-full rounded-2xl bg-slate-800 px-5 py-3 text-xs font-bold text-slate-200 hover:bg-slate-700 sm:w-auto"
       >
-        الرجوع لتعديل الأصناف
+        {L('الرجوع لتعديل الأصناف', 'Back to edit items')}
       </button>
 
       <button
@@ -124,11 +128,11 @@ export default function PosPaymentModal({
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-3.5 text-sm font-black text-slate-950 shadow-xl shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
       >
         {processing ? (
-          'جاري تأكيد الفاتورة...'
+          L('جاري تأكيد الفاتورة...', 'Confirming invoice...')
         ) : (
           <>
             <CheckCircle2 className="h-5 w-5" />
-            <span>تأكيد الفاتورة واستخراج الإيصال • {total.toLocaleString()} ج.م</span>
+            <span>{L('تأكيد الفاتورة واستخراج الإيصال', 'Confirm invoice & print receipt')} • {total.toLocaleString()} {currencyLabel}</span>
           </>
         )}
       </button>
@@ -137,7 +141,7 @@ export default function PosPaymentModal({
 
   return (
     <DialogFrame
-      title="إتمام عملية البيع والدفع"
+      title={L('إتمام عملية البيع والدفع', 'Complete sale & payment')}
       onClose={onClose}
       size="xl"
       panelClassName="pos-payment-modal max-w-4xl glass-panel rounded-3xl border-slate-700 bg-slate-950 text-slate-100"
@@ -147,11 +151,11 @@ export default function PosPaymentModal({
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/15 text-amber-400"><Receipt className="h-5 w-5" /></div>
-          <p className="text-xs text-slate-400">اختر طريقة الدفع أو طبق الخصومات للعميل ثم أكد الفاتورة</p>
+          <p className="text-xs text-slate-400">{L('اختر طريقة الدفع أو طبق الخصومات للعميل ثم أكد الفاتورة', 'Choose a payment method or apply customer discounts, then confirm the invoice')}</p>
         </div>
         <div className="text-end">
-          <span className="block text-[10px] text-slate-400">المطلوب سداده</span>
-          <span className="text-xl font-black tabular-nums text-amber-400">{total.toLocaleString()} <span className="text-xs font-normal">ج.م</span></span>
+          <span className="block text-[10px] text-slate-400">{L('المطلوب سداده', 'Amount due')}</span>
+          <span className="text-xl font-black tabular-nums text-amber-400">{total.toLocaleString()} <span className="text-xs font-normal">{currencyLabel}</span></span>
         </div>
       </div>
 
@@ -166,7 +170,7 @@ export default function PosPaymentModal({
             }`}
           >
             <Banknote className="w-4 h-4" />
-            <span>طريقة الدفع والنقدية</span>
+            <span>{L('طريقة الدفع والنقدية', 'Payment & cash')}</span>
           </button>
           <button
             onClick={() => setActiveTab('DISCOUNTS')}
@@ -177,7 +181,7 @@ export default function PosPaymentModal({
             }`}
           >
             <Tag className="w-4 h-4" />
-            <span>العميل والخصومات والكوبونات</span>
+            <span>{L('العميل والخصومات والكوبونات', 'Customer, discounts & coupons')}</span>
             {(customer || discountAmount > 0 || couponInput) && (
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
             )}
@@ -198,15 +202,15 @@ export default function PosPaymentModal({
               {/* Payment Methods Touch Grid */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-2.5">
-                  اختر طريقة التحصيل:
+                  {L('اختر طريقة التحصيل', 'Choose payment method')}:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                   {[
-                    { key: 'CASH', label: 'كاش (نقداً)', icon: <Banknote className="w-5 h-5" />, color: 'emerald' },
-                    { key: 'CARD', label: 'بطاقة / فيزا', icon: <CreditCard className="w-5 h-5" />, color: 'blue' },
-                    { key: 'INSTAPAY', label: 'إنستاباي', icon: <Zap className="w-5 h-5" />, color: 'purple' },
-                    { key: 'FAWRY', label: 'فوري كود', icon: <Award className="w-5 h-5" />, color: 'amber' },
-                    { key: 'VODAFONE_CASH', label: 'محفظة إلكترونية', icon: <Phone className="w-5 h-5" />, color: 'rose' },
+                    { key: 'CASH', label: L('كاش (نقداً)', 'Cash'), icon: <Banknote className="w-5 h-5" />, color: 'emerald' },
+                    { key: 'CARD', label: L('بطاقة / فيزا', 'Card / Visa'), icon: <CreditCard className="w-5 h-5" />, color: 'blue' },
+                    { key: 'INSTAPAY', label: L('إنستاباي', 'InstaPay'), icon: <Zap className="w-5 h-5" />, color: 'purple' },
+                    { key: 'FAWRY', label: L('فوري كود', 'Fawry'), icon: <Award className="w-5 h-5" />, color: 'amber' },
+                    { key: 'VODAFONE_CASH', label: L('محفظة إلكترونية', 'Mobile wallet'), icon: <Phone className="w-5 h-5" />, color: 'rose' },
                   ].map((m) => {
                     const isSelected = payMethod === m.key;
                     return (
@@ -234,7 +238,7 @@ export default function PosPaymentModal({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <label htmlFor="modal-tendered" className="block text-xs font-bold text-slate-300 mb-1">
-                        المبلغ المدفوع من العميل (ج.م):
+                        {L('المبلغ المدفوع من العميل (ج.م)', 'Amount paid by customer (EGP)')}:
                       </label>
                       <input
                         id="modal-tendered"
@@ -251,7 +255,7 @@ export default function PosPaymentModal({
                     </div>
 
                     <div className="flex-1 sm:max-w-xs p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
-                      <span className="text-xs text-slate-400 font-bold">الباقي للعميل:</span>
+                      <span className="text-xs text-slate-400 font-bold">{L('الباقي للعميل', 'Change due')}:</span>
                       <span
                         className={`text-2xl font-black tabular-nums ${
                           tenderedShort
@@ -261,7 +265,7 @@ export default function PosPaymentModal({
                             : 'text-slate-200'
                         }`}
                       >
-                        {tenderedShort ? 'المبلغ غير كافٍ' : `${change.toLocaleString()} ج.م`}
+                        {tenderedShort ? L('المبلغ غير كافٍ', 'Insufficient amount') : `${change.toLocaleString()} ${currencyLabel}`}
                       </span>
                     </div>
                   </div>
@@ -269,7 +273,7 @@ export default function PosPaymentModal({
                   {/* Quick Denominations */}
                   <div>
                     <span className="text-[11px] text-slate-400 font-bold block mb-1.5">
-                      فئات كاش سريعة (اضغط للإضافة السريعة):
+                      {L('فئات كاش سريعة (اضغط للإضافة السريعة)', 'Quick cash denominations (tap to add)')}:
                     </span>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                       <button
@@ -277,7 +281,7 @@ export default function PosPaymentModal({
                         onClick={handleExactCash}
                         className="py-2.5 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-black"
                       >
-                        المبلغ بالضبط
+                        {L('المبلغ بالضبط', 'Exact amount')}
                       </button>
                       {[20, 50, 100, 200, 500].map((denom) => (
                         <button
@@ -286,7 +290,7 @@ export default function PosPaymentModal({
                           onClick={() => handleQuickAddCash(denom)}
                           className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold"
                         >
-                          +{denom} ج.م
+                          +{denom} {currencyLabel}
                         </button>
                       ))}
                     </div>
@@ -299,20 +303,20 @@ export default function PosPaymentModal({
                 <div className="p-4 md:p-5 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-3">
                   <label htmlFor="modal-reference" className="block text-xs font-bold text-slate-300">
                     {payMethod === 'CARD'
-                      ? 'رقم إيصال ماكينة الدفع POS / آخر 4 أرقام من البطاقة:'
-                      : 'رقم مرجع المعاملة أو رقم المحفظة:'}
+                      ? L('رقم إيصال ماكينة الدفع POS / آخر 4 أرقام من البطاقة', 'POS terminal receipt number / last 4 card digits')
+                      : L('رقم مرجع المعاملة أو رقم المحفظة', 'Transaction reference or wallet number')}
                   </label>
                   <input
                     id="modal-reference"
                     type="text"
                     dir="ltr"
-                    placeholder="مثال: REF-92841"
+                    placeholder={L('مثال: REF-92841', 'Example: REF-92841')}
                     value={referenceInput}
                     onChange={(e) => setReferenceInput(e.target.value)}
                     className="w-full p-3 rounded-2xl bg-slate-950 border border-slate-700 text-sm font-bold text-slate-100 focus:outline-none focus:border-blue-500"
                   />
                   <p className="text-[11px] text-slate-500">
-                    يتم تسجيل رقم المرجع في الفاتورة للرجوع إليه عند مطابقة الحسابات وكشف الحساب البنكي.
+                    {L('يتم تسجيل رقم المرجع في الفاتورة للرجوع إليه عند مطابقة الحسابات وكشف الحساب البنكي.', 'The reference is stored on the invoice for account reconciliation and bank review.')}
                   </p>
                 </div>
               )}
@@ -320,16 +324,16 @@ export default function PosPaymentModal({
               {/* Order Quick Summary Strip */}
               <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 flex flex-wrap items-center justify-between text-xs gap-3">
                 <div className="flex items-center gap-4 text-slate-400">
-                  <span>المجموع الفرعي: <strong className="text-slate-200">{subtotal.toLocaleString()} ج.م</strong></span>
+                  <span>{L('المجموع الفرعي', 'Subtotal')}: <strong className="text-slate-200">{subtotal.toLocaleString()} {currencyLabel}</strong></span>
                   {discountAmount > 0 && (
-                    <span>خصم مطبق: <strong className="text-emerald-400">-{discountAmount.toLocaleString()} ج.م</strong></span>
+                    <span>{L('خصم مطبق', 'Discount applied')}: <strong className="text-emerald-400">-{discountAmount.toLocaleString()} {currencyLabel}</strong></span>
                   )}
-                  <span>الضريبة (14%): <strong className="text-slate-200">{vat.toLocaleString()} ج.م</strong></span>
+                  <span>{L('الضريبة (14%)', 'VAT (14%)')}: <strong className="text-slate-200">{vat.toLocaleString()} {currencyLabel}</strong></span>
                 </div>
                 {customer && (
                   <span className="text-blue-400 font-bold flex items-center gap-1">
                     <User className="w-3.5 h-3.5" />
-                    العميل: {customer.name || customer.phone}
+                    {L('العميل', 'Customer')}: {customer.name || customer.phone}
                   </span>
                 )}
               </div>
@@ -342,7 +346,7 @@ export default function PosPaymentModal({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <User className="w-4 h-4 text-blue-400" />
-                    بيانات العميل وبرنامج الولاء:
+                    {L('بيانات العميل وبرنامج الولاء', 'Customer details & loyalty program')}:
                   </span>
                   {customer && (
                     <button
@@ -350,7 +354,7 @@ export default function PosPaymentModal({
                       onClick={onClearCustomer}
                       className="text-xs text-rose-400 hover:text-rose-300 font-bold"
                     >
-                      إلغاء ربط العميل
+                      {L('إلغاء ربط العميل', 'Unlink customer')}
                     </button>
                   )}
                 </div>
@@ -358,15 +362,15 @@ export default function PosPaymentModal({
                 {customer ? (
                   <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-black text-blue-300">{customer.name || 'عميل مسجل'}</div>
+                      <div className="text-sm font-black text-blue-300">{customer.name || L('عميل مسجل', 'Registered customer')}</div>
                       <div className="text-xs text-slate-400 mt-0.5">{customer.phone}</div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-start">
-                        <span className="text-[10px] text-slate-400 block">رصيد الولاء</span>
+                        <span className="text-[10px] text-slate-400 block">{L('رصيد الولاء', 'Loyalty balance')}</span>
                         <span className="text-sm font-black text-amber-400 flex items-center gap-1">
                           <Award className="w-4 h-4" />
-                          {customer.loyaltyPoints} نقطة
+                          {customer.loyaltyPoints} {L('نقطة', 'points')}
                         </span>
                       </div>
                       {customer.loyaltyPoints >= 100 && (
@@ -375,7 +379,7 @@ export default function PosPaymentModal({
                           onClick={() => setLoyaltyInput(String(Math.min(customer.loyaltyPoints, 500)))}
                           className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs"
                         >
-                          استبدال النقاط
+                          {L('استبدال النقاط', 'Redeem points')}
                         </button>
                       )}
                     </div>
@@ -385,7 +389,7 @@ export default function PosPaymentModal({
                     <div className="flex gap-2">
                       <input
                         type="tel"
-                        placeholder="اكتب رقم موبايل العميل للبحث أو التسجيل..."
+                        placeholder={L('اكتب رقم موبايل العميل للبحث أو التسجيل...', 'Enter the customer mobile number to search or register...')}
                         value={phoneSearch}
                         onChange={(e) => setPhoneSearch(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && onSearchCustomer(phoneSearch)}
@@ -398,14 +402,14 @@ export default function PosPaymentModal({
                         onClick={() => onSearchCustomer(phoneSearch)}
                         disabled={customerSearching || !phoneSearch.trim()}
                       >
-                        {customerSearching ? '...' : <><Search className="w-3.5 h-3.5" /> بحث</>}
+                        {customerSearching ? '...' : <><Search className="w-3.5 h-3.5" /> {L('بحث', 'Search')}</>}
                       </Button>
                       <button
                         type="button"
                         onClick={onOpenNewCustomer}
                         className="px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-xl text-xs flex items-center gap-1"
                       >
-                        <Plus className="w-3.5 h-3.5" /> عميل جديد
+                        <Plus className="w-3.5 h-3.5" /> {L('عميل جديد', 'New customer')}
                       </button>
                     </div>
                     {customerError && <p className="text-xs text-amber-400">{customerError}</p>}
@@ -417,13 +421,13 @@ export default function PosPaymentModal({
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
                 <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <Tag className="w-4 h-4 text-purple-400" />
-                  كود الخصم (كوبون ترويجي):
+                  {L('كود الخصم (كوبون ترويجي)', 'Discount code (promo coupon)')}:
                 </span>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     dir="ltr"
-                    placeholder="مثال: CHAMPION10"
+                    placeholder={L('مثال: CHAMPION10', 'Example: CHAMPION10')}
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                     className="flex-1 p-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono font-bold text-slate-100 placeholder:text-slate-600"
@@ -434,12 +438,12 @@ export default function PosPaymentModal({
                       onClick={() => setCouponInput('')}
                       className="px-3 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 text-xs font-bold"
                     >
-                      مسح
+                      {L('مسح', 'Clear')}
                     </button>
                   )}
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  يتم التحقق من الكوبون وحدود الاستخدام والخصم المطبق في نفس المعاملة البنكية عند التأكيد.
+                  {L('يتم التحقق من الكوبون وحدود الاستخدام والخصم المطبق في نفس المعاملة البنكية عند التأكيد.', 'The coupon, usage limits, and discount are verified in the same financial transaction on confirmation.')}
                 </p>
               </div>
 
@@ -447,11 +451,11 @@ export default function PosPaymentModal({
               <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
                 <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                   <Award className="w-4 h-4 text-amber-400" />
-                  خصم استثنائي بموافقة المدير (PIN):
+                  {L('خصم استثنائي بموافقة المدير (PIN)', 'Exceptional discount with manager approval (PIN)')}:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                   <div className="sm:col-span-6">
-                    <label className="block text-[10px] text-slate-400 mb-1">مبلغ الخصم الإضافي (ج.م)</label>
+                    <label className="block text-[10px] text-slate-400 mb-1">{L('مبلغ الخصم الإضافي (ج.م)', 'Additional discount amount (EGP)')}</label>
                     <input
                       type="number"
                       min="0"
@@ -462,7 +466,7 @@ export default function PosPaymentModal({
                     />
                   </div>
                   <div className="sm:col-span-6">
-                    <label className="block text-[10px] text-slate-400 mb-1">رمز PIN للمدير</label>
+                    <label className="block text-[10px] text-slate-400 mb-1">{L('رمز PIN للمدير', 'Manager PIN')}</label>
                     <input
                       type="password"
                       inputMode="numeric"
@@ -473,13 +477,13 @@ export default function PosPaymentModal({
                     />
                   </div>
                 </div>
-                {pinError && <p className="text-xs text-rose-400 font-bold">مبلغ الخصم أو الرمز غير صالح</p>}
+                {pinError && <p className="text-xs text-rose-400 font-bold">{L('مبلغ الخصم أو الرمز غير صالح', 'Invalid discount amount or PIN')}</p>}
                 <button
                   type="button"
                   onClick={onApplyDiscount}
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs"
                 >
-                  تطبيق الخصم
+                  {L('تطبيق الخصم', 'Apply discount')}
                 </button>
               </div>
             </div>

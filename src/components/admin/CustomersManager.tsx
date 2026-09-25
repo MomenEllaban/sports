@@ -34,6 +34,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [search, setSearch] = useState(initialPhone);
@@ -97,7 +98,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إضافة العميل';
+      const msg = err instanceof Error ? err.message : L('فشل في إضافة العميل', 'Could not add the customer');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -119,7 +120,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في تحديث بيانات العميل';
+      const msg = err instanceof Error ? err.message : L('فشل في تحديث بيانات العميل', 'Could not update the customer');
       setFormError(msg);
       toast(msg, 'error');
     } finally {
@@ -137,7 +138,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في حذف العميل';
+      const msg = err instanceof Error ? err.message : L('فشل في حذف العميل', 'Could not delete the customer');
       setDeleteError(msg);
       toast(msg, 'error');
     } finally {

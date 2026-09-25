@@ -118,13 +118,13 @@ async function alreadyReturned(src: { kind: string; doc: { id: string } }, exclu
   return m;
 }
 
-async function notifyCustomer(phone: string | null, messageAr: string, templateParams: string[]) {
+async function notifyCustomer(phone: string | null, messageAr: string, messageEn: string, templateParams: string[]) {
   await dispatchNotification({
     type: 'NEW_ORDER',
     titleAr: 'تحديث طلب المرتجع',
     titleEn: 'Return update',
     messageAr,
-    messageEn: messageAr,
+    messageEn,
     sendWhatsAppPhone: phone || undefined,
   }).catch(() => null);
   if (phone) {
@@ -269,7 +269,7 @@ export async function requestReturn(input: RequestReturnInput) {
         });
       });
       await audit(input.actorId, 'return.request', created.id, { returnNumber, channel: input.channel });
-      await notifyCustomer(created.customerPhone, `تم استلام طلب المرتجع ${returnNumber} وجارٍ المراجعة.`, [returnNumber]);
+      await notifyCustomer(created.customerPhone, `تم استلام طلب المرتجع ${returnNumber} وجارٍ المراجعة.`, `Return request ${returnNumber} received and now under review.`, [returnNumber]);
       return { request: created, replay: false as boolean, frequencyWarning };
     } catch (e) {
       if ((e as { code?: string }).code === 'P2002') {
@@ -295,7 +295,7 @@ export async function approveReturn(id: string, actorId: string | undefined) {
   if (updated.count !== 1) throw new ReturnError(409, 'الطلب ليس بانتظار الاعتماد');
   const r = await prisma.returnRequest.findUniqueOrThrow({ where: { id } });
   await audit(actorId, 'return.approve', id, {});
-  await notifyCustomer(r.customerPhone, `تم اعتماد المرتجع ${r.returnNumber}. الخطوة التالية: تسليم الأصناف لفرع الاستلام.`, [r.returnNumber]);
+  await notifyCustomer(r.customerPhone, `تم اعتماد المرتجع ${r.returnNumber}. الخطوة التالية: تسليم الأصناف لفرع الاستلام.`, `Return ${r.returnNumber} approved. Next step: hand the items to the pickup branch.`, [r.returnNumber]);
   return r;
 }
 
@@ -307,7 +307,7 @@ export async function rejectReturn(id: string, actorId: string | undefined, reas
   if (updated.count !== 1) throw new ReturnError(409, 'لا يمكن الرفض في هذه الحالة');
   const r = await prisma.returnRequest.findUniqueOrThrow({ where: { id } });
   await audit(actorId, 'return.reject', id, { reason });
-  await notifyCustomer(r.customerPhone, `تم رفض طلب المرتجع ${r.returnNumber}: ${reason || ''}`, [r.returnNumber]);
+  await notifyCustomer(r.customerPhone, `تم رفض طلب المرتجع ${r.returnNumber}: ${reason || ''}`, `Return request ${r.returnNumber} rejected: ${reason || 'no reason given'}`, [r.returnNumber]);
   return r;
 }
 
@@ -473,7 +473,7 @@ export async function receiveReturn(
   }, { maxWait: 15000, timeout: 30000 });
 
   await audit(actorId, 'return.receive', id, { fullReturn: result.fullReturn, total: result.quote.total });
-  await notifyCustomer(full.customerPhone, `تم استلام مرتجعك ${full.returnNumber} — جارٍ إصدار الاسترداد (${result.quote.total} ج.م).`, [full.returnNumber]);
+  await notifyCustomer(full.customerPhone, `تم استلام مرتجعك ${full.returnNumber} — جارٍ إصدار الاسترداد (${result.quote.total} ج.م).`, `Your return ${full.returnNumber} was received — the refund is being issued (EGP ${result.quote.total}).`, [full.returnNumber]);
   return result;
 }
 
@@ -620,7 +620,7 @@ async function applyRefundSideEffects(
   }
 
   const msg = `تم الاسترداد ${amount} ج.م للمرتجع ${r.returnNumber} (${gatewayRef || ''}).`;
-  await notifyCustomer(r.customerPhone, msg, [r.returnNumber]);
+  await notifyCustomer(r.customerPhone, msg, `Refund of EGP ${amount} issued for return ${r.returnNumber} (${gatewayRef || 'no reference'}).`, [r.returnNumber]);
   await audit(undefined, 'refund.done', returnId, { amount, gatewayRef });
 }
 

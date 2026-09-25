@@ -105,7 +105,7 @@ export default function Preloader() {
         />
         <Image
           src="/logo.avif"
-          alt="أبطال الرياضة الإبراهيمية"
+          alt={isRtl ? 'أبطال الرياضة الإبراهيمية' : 'Sports Champions Alexandria'}
           width={960}
           height={822}
           priority

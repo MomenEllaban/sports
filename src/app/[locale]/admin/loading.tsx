@@ -1,13 +1,15 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 
 /**
  * Instant skeleton for admin route transitions. The persistent admin shell
  * (sidebar + header) stays put; only this content area is replaced.
  */
-export default function AdminLoading() {
+export default async function AdminLoading() {
+  const isAr = (await getLocale()) === 'ar';
   return (
     <div className="space-y-6" aria-busy="true" aria-live="polite">
-      <span className="sr-only">جارٍ تحميل لوحة التحكم…</span>
+      <span className="sr-only">{isAr ? 'جارٍ تحميل لوحة التحكم…' : 'Loading admin dashboard…'}</span>
 
       {/* Page title */}
       <div className="flex items-center justify-between gap-4 animate-pulse">

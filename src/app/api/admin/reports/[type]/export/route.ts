@@ -30,8 +30,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
       totalPages = result.totalPages;
       page += 1;
     } while (page <= totalPages && page <= 1000);
-    const headers = ['name_ar', 'name_en', 'sku', 'barcode', 'category', 'brand', 'buy_price', 'sell_price', 'quantity', 'revenue', 'cost', 'profit', 'branch'];
-    const csv = '\uFEFF' + [headers.map(cell).join(','), ...rows.map((row) => [row.nameAr, row.nameEn, row.sku, row.barcode, row.category, row.brand, row.buyPrice, row.sellPrice, row.quantity, row.revenue, row.cost, row.profit, row.branchName].map(cell).join(','))].join('\r\n');
+    const headers = ['name_ar', 'name_en', 'sku', 'barcode', 'category_ar', 'category_en', 'brand_ar', 'brand_en', 'buy_price', 'sell_price', 'quantity', 'revenue', 'cost', 'profit', 'branch_ar', 'branch_en'];
+    const csv = '\uFEFF' + [headers.map(cell).join(','), ...rows.map((row) => [row.nameAr, row.nameEn, row.sku, row.barcode, row.category, row.categoryEn, row.brand, row.brandEn, row.buyPrice, row.sellPrice, row.quantity, row.revenue, row.cost, row.profit, row.branchName, row.branchNameEn].map(cell).join(','))].join('\r\n');
     return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${type}-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store' } });
   } catch (error) {
     captureError('api/admin/reports/[type]/export', error);

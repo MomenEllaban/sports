@@ -52,7 +52,7 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
     setAddressEn('');
     setPhone('');
     setCity('Alexandria');
-    setWorkingHours('السبت-الأربعاء 10ص-10م، الخميس-الجمعة 10ص-11م');
+    setWorkingHours(isAr ? 'السبت-الأربعاء 10ص-10م، الخميس-الجمعة 10ص-11م' : 'Sat–Wed 10am–10pm, Thu–Fri 10am–11pm');
     setIsActive(true);
     setError('');
     setShowModal(true);
@@ -99,13 +99,13 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
         body: JSON.stringify(payload),
         errorKey: `admin:branches:${method}:${url}`,
       });
-      if (!data.success) throw new Error('فشلت العملية');
+      if (!data.success) throw new Error(isAr ? 'فشلت العملية' : 'Operation failed');
 
       setShowModal(false);
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = (err as Error).message || 'حدث خطأ أثناء حفظ الفرع';
+      const msg = (err as Error).message || (isAr ? 'حدث خطأ أثناء حفظ الفرع' : 'An error occurred while saving the branch');
       setError(msg);
       toast(msg, 'error');
     } finally {
@@ -116,7 +116,7 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
   const handleDelete = async (b: BranchItem) => {
     const confirmMsg = isAr
       ? `هل أنت متأكد من حذف أو تعطيل فرع "${b.name}"؟`
-      : `Are you sure you want to remove branch "${b.name}"?`;
+      : `Are you sure you want to remove branch "${b.nameEn || b.name}"?`;
     if (!window.confirm(confirmMsg)) return;
 
     setDeleteError('');
@@ -173,7 +173,7 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
             <div className="flex justify-between items-start gap-2">
               <div>
                 <div className="font-black text-sm text-slate-100 flex items-center gap-1.5">
-                  <span>{b.name}</span>
+                  <span>{isAr ? b.name : b.nameEn || b.name}</span>
                   {b.isActive ? (
                     <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                       <CheckCircle2 className="w-2.5 h-2.5" /> {isAr ? 'نشط' : 'Active'}
@@ -184,7 +184,7 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] text-slate-500">{b.nameEn}</div>
+                {isAr && b.nameEn && <div className="text-[10px] text-slate-500" dir="ltr">{b.nameEn}</div>}
               </div>
 
               <div className="flex items-center gap-1">
@@ -211,7 +211,7 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
             <div className="space-y-1 text-slate-400 pt-1 border-t border-slate-800/60">
               <div className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>{b.address}</span>
+                <span>{isAr ? b.address : b.addressEn || b.address}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-blue-400 shrink-0" />

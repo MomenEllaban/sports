@@ -333,7 +333,7 @@ export default async function FeaturesPage({ params }: { params: Promise<{ local
                       {m.icon}
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-400">
-                      وحدة جاهزة ✓
+                      {isAr ? 'وحدة جاهزة ✓' : 'Module ready ✓'}
                     </span>
                   </div>
 

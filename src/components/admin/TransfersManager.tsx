@@ -97,7 +97,7 @@ export default function TransfersManager({
               {bName(tr.fromBranch)} ← {bName(tr.toBranch)}
             </div>
             <div className="text-slate-400">
-              {tr.items.map((i) => `${pName(i.product)} x${i.quantity}`).join('، ')}
+              {tr.items.map((i) => `${pName(i.product)} x${i.quantity}`).join(isAr ? '، ' : ', ')}
             </div>
             {tr.status === 'PENDING' && (
               <div className="flex gap-2 pt-1">

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { Link, usePathname, useRouter } from '@/i18n/routing';
+import { Link, usePathname } from '@/i18n/routing';
 import { ShoppingBag, MapPin, Phone, Globe, ShieldCheck, Monitor, User, Menu, X, Heart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import ThemeToggle from '@/components/admin/ThemeToggle';
@@ -26,17 +26,16 @@ export default function Header() {
   const tNav = useTranslations('nav');
   const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
   const items = useCartStore((s) => s.items);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const isAr = locale === 'ar';
 
   const totalItemsCount = items.reduce((acc, i) => acc + i.quantity, 0);
 
-  const toggleLanguage = () => {
-    const nextLocale = locale === 'ar' ? 'en' : 'ar';
-    router.replace(pathname, { locale: nextLocale });
-  };
+  // A declarative `Link` is used instead of `router.replace()` because the
+  // imperative locale switch resolved to the current URL and never navigated.
+  const nextLocale = isAr ? 'en' : 'ar';
+  const localeHref = (pathname || '/') as '/';
 
   const navLinks = [
     { href: '/', label: tNav('home') },
@@ -91,13 +90,16 @@ export default function Header() {
               <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
               {t('workingHours')}
             </span>
-            <button
-              onClick={toggleLanguage}
+            <Link
+              href={localeHref}
+              locale={nextLocale}
+              data-locale-switcher="true"
+              aria-label={isAr ? t('english') : t('arabic')}
               className="flex items-center gap-1 text-xs px-3 min-h-[44px] rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition-colors border border-slate-700 whitespace-nowrap"
             >
               <Globe className="w-3 h-3 text-blue-400" />
-              {locale === 'ar' ? t('english') : t('arabic')}
-            </button>
+              {isAr ? t('english') : t('arabic')}
+            </Link>
           </div>
         </div>
       </div>

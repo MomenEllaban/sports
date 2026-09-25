@@ -31,6 +31,7 @@ interface UserItem {
 interface BranchOption {
   id: string;
   name: string;
+  nameEn?: string | null;
 }
 
 const ROLE_LABELS: Record<Role, { ar: string; en: string; color: string }> = {
@@ -52,6 +53,7 @@ export default function UsersManager({
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,14 +148,14 @@ export default function UsersManager({
         body: JSON.stringify(payload),
         errorKey: `admin:users:${method}:${url}`,
       });
-      if (!data.success) throw new Error('فشلت العملية');
+      if (!data.success) throw new Error(L('فشلت العملية', 'Operation failed'));
 
       setShowModal(false);
       setManagerPin('');
       toast(okMsg, 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = (err as Error).message || 'حدث خطأ أثناء حفظ بيانات المستخدم';
+      const msg = (err as Error).message || L('حدث خطأ أثناء حفظ بيانات المستخدم', 'An error occurred while saving the user');
       setError(msg);
       toast(msg, 'error');
     } finally {
@@ -186,7 +188,7 @@ export default function UsersManager({
     }
   };
 
-  const branchMap = new Map(branches.map((b) => [b.id, b.name]));
+  const branchMap = new Map(branches.map((b) => [b.id, isAr ? b.name : b.nameEn || b.name]));
 
   const filteredUsers = users.filter((u) => {
     const matchSearch =
@@ -305,7 +307,7 @@ export default function UsersManager({
                               key={bid}
                               className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]"
                             >
-                              {branchMap.get(bid) || 'فرع غير معروف'}
+                              {branchMap.get(bid) || (isAr ? 'فرع غير معروف' : 'Unknown branch')}
                             </span>
                           ))}
                         </div>
@@ -499,7 +501,7 @@ export default function UsersManager({
                           onChange={() => toggleBranchSelection(b.id)}
                           className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-slate-900 border-slate-700"
                         />
-                        <span>{b.name}</span>
+                        <span>{isAr ? b.name : b.nameEn || b.name}</span>
                       </label>
                     );
                   })}

@@ -47,7 +47,7 @@ interface OrderRow {
   createdAt: string;
   items: OrderItem[];
   customer: { id: string; name: string | null; phone: string } | null;
-  branch: { id: string; name: string } | null;
+  branch: { id: string; name: string; nameEn?: string } | null;
 }
 
 interface ProductOpt { id: string; nameAr: string; nameEn: string; price: number }
@@ -285,7 +285,7 @@ export default function OrdersManager({
       toast(t('operationSuccess'), 'success');
       router.refresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'فشل في إنشاء الطلب';
+      const msg = err instanceof Error ? err.message : (isAr ? 'فشل في إنشاء الطلب' : 'Failed to create the order');
       setNewOrderError(msg);
       toast(msg, 'error');
     } finally {
@@ -644,8 +644,8 @@ export default function OrdersManager({
               <div>
                 <label className={labelCls}>{isAr ? 'مصدر الطلب' : 'Order Source'}</label>
                 <select value={newOrderForm.orderSource} onChange={(e) => setNewOrderForm({ ...newOrderForm, orderSource: e.target.value })} className={inputCls}>
-                  <option value="WHATSAPP">واتساب</option>
-                  <option value="ONLINE">أونلاين</option>
+                  <option value="WHATSAPP">{isAr ? 'واتساب' : 'WhatsApp'}</option>
+                  <option value="ONLINE">{isAr ? 'أونلاين' : 'Online'}</option>
                   <option value="POS">POS</option>
                 </select>
               </div>
@@ -676,7 +676,7 @@ export default function OrdersManager({
             <div>
               <label className={labelCls}>{isAr ? 'طريقة الدفع' : 'Payment Method'}</label>
               <select value={newOrderForm.paymentMethod} onChange={(e) => setNewOrderForm({ ...newOrderForm, paymentMethod: e.target.value })} className={inputCls}>
-                {PAYMENT_METHODS.map((pm) => <option key={pm} value={pm}>{pm}</option>)}
+                {PAYMENT_METHODS.map((pm) => <option key={pm} value={pm}>{t(`pay_${pm}`)}</option>)}
               </select>
             </div>
 

@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { getLocale } from 'next-intl/server';
 import { PageHeader } from '@/components/ui/foundation';
 import { requirePageRole } from '@/lib/auth/require-page';
 import ActionQueuesSection from '@/components/admin/dashboard/ActionQueuesSection';
@@ -21,15 +22,16 @@ export const dynamic = 'force-dynamic';
  */
 export default async function AdminDashboardPage() {
   await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE');
+  const isAr = (await getLocale()) === 'ar';
 
   return (
     <>
       <PageHeader
-        title="لوحة التحكم والملخص العام"
-        description="متابعة فورية للمبيعات والمخزون والورديات عبر كافة الفروع"
+        title={isAr ? 'لوحة التحكم والملخص العام' : 'Dashboard & Overview'}
+        description={isAr ? 'متابعة فورية للمبيعات والمخزون والورديات عبر كافة الفروع' : 'Real-time sales, inventory, and shift monitoring across all branches'}
         actions={
           <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
-            آخر تحديث عند الفتح
+            {isAr ? 'آخر تحديث عند الفتح' : 'Updated on open'}
           </span>
         }
       />

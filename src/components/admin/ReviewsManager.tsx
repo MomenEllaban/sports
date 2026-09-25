@@ -16,7 +16,7 @@ interface ReviewRow {
   phone: string | null;
   approved: boolean;
   createdAt: string;
-  product: { nameAr: string; sku: string };
+  product: { nameAr: string; nameEn?: string; sku: string };
 }
 
 export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
@@ -24,6 +24,7 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const [rows, setRows] = useState(initial);
   const [busy, setBusy] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<ReviewRow | null>(null);
@@ -48,7 +49,7 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
       toast(isAr ? (approved ? 'تم الاعتماد' : 'تم إخفاء التقييم') : 'Done', 'success');
       await reload();
     } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : 'فشل', 'error');
+      toast(err instanceof Error ? err.message : L('فشل', 'Operation failed'), 'error');
     } finally {
       setBusy('');
     }
@@ -63,7 +64,7 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
       setConfirmDelete(null);
       await reload();
     } catch {
-      toast('فشل', 'error');
+      toast(L('فشل', 'Operation failed'), 'error');
     } finally {
       setBusy('');
     }
@@ -84,11 +85,11 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
         emptyTitle={isAr ? 'لا توجد تقييمات بعد' : 'No reviews yet'}
         emptyHint={isAr ? 'تقييمات العملاء من صفحات المنتجات ستظهر هنا للاعتماد.' : 'Customer reviews will appear here for approval.'}
         columns={[
-          { key: 'product', header: 'المنتج', render: (r) => <span className="font-bold">{r.product.nameAr} <span className="text-slate-500 font-mono text-[10px]">{r.product.sku}</span></span> },
-          { key: 'rating', header: 'التقييم', render: (r) => <span className="flex items-center gap-1 font-black text-amber-400"><Star className="w-3.5 h-3.5 fill-amber-400" />{r.rating}</span> },
-          { key: 'text', header: 'النص', hideOnMobile: true, render: (r) => <span className="text-slate-300 line-clamp-2 max-w-xs block">{r.text || '—'}</span> },
+          { key: 'product', header: L('المنتج', 'Product'), render: (r) => <span className="font-bold">{isAr ? r.product.nameAr : r.product.nameEn || r.product.nameAr} <span className="text-slate-500 font-mono text-[10px]">{r.product.sku}</span></span> },
+          { key: 'rating', header: L('التقييم', 'Rating'), render: (r) => <span className="flex items-center gap-1 font-black text-amber-400"><Star className="w-3.5 h-3.5 fill-amber-400" />{r.rating}</span> },
+          { key: 'text', header: L('النص', 'Text'), hideOnMobile: true, render: (r) => <span className="text-slate-300 line-clamp-2 max-w-xs block">{r.text || '—'}</span> },
           {
-            key: 'status', header: 'الحالة', render: (r) => (
+            key: 'status', header: L('الحالة', 'Status'), render: (r) => (
               <span className={`px-2 py-0.5 rounded-lg font-bold text-[10px] ${r.approved ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
                 {r.approved ? (isAr ? 'معتمد' : 'Approved') : (isAr ? 'معلق' : 'Pending')}
               </span>

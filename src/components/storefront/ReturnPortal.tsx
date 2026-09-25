@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import {
   RotateCcw,
@@ -21,18 +21,21 @@ type EItem = {
   orderItemId: string;
   productId: string;
   nameAr: string;
+  nameEn?: string;
   sku: string;
   images: string[];
   quantity: number;
   unitPrice: number;
   blocked: boolean;
   blockedReason: string | null;
+  blockedReasonEn?: string | null;
 };
 
 type Eligibility = {
   success: boolean;
   eligible: boolean;
   reasons: string[];
+  reasonsEn?: string[];
   orderNumber: string;
   items: EItem[];
   policyDays: number;
@@ -45,9 +48,10 @@ type TrackResult = {
     status: string;
     type: string;
     branch: string;
+    branchEn?: string;
     createdAt: string;
     updatedAt: string;
-    items: Array<{ nameAr: string; quantity: number; reasonCode: string; refundAmount: number }>;
+    items: Array<{ nameAr: string; nameEn?: string; quantity: number; reasonCode: string; refundAmount: number }>;
     refunds: Array<{ amount: number; method: string; status: string }>;
   };
   error?: string;
@@ -68,7 +72,7 @@ type Selected = { quantity: number; reasonCode: string; images: string[] };
 
 export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string; phone: string }) {
   const isAr = useLocale() === 'ar';
-  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const L = useCallback((ar: string, en: string) => (isAr ? ar : en), [isAr]);
 
   const [elig, setElig] = useState<Eligibility | null>(null);
   const [loadingElig, setLoadingElig] = useState(true);
@@ -96,10 +100,10 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
           }
         }
       })
-      .catch(() => !cancelled && setElig({ success: false, eligible: false, reasons: ['تعذر الاتصال'], orderNumber, items: [], policyDays: 0 }))
+      .catch(() => !cancelled && setElig({ success: false, eligible: false, reasons: ['تعذر الاتصال'], reasonsEn: ['Connection failed'], orderNumber, items: [], policyDays: 0 }))
       .finally(() => !cancelled && setLoadingElig(false));
     return () => { cancelled = true; };
-  }, [orderNumber, phone]);
+  }, [orderNumber, phone, L]);
 
   const notBlocked = (elig?.items ?? []).filter((i) => !i.blocked);
   const isDefectiveOnly = Object.values(selected).some((s) => s.reasonCode === 'DEFECTIVE');
@@ -178,7 +182,7 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
         <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
         <div>
           <p className="font-bold text-rose-300">{L('المرتجعات غير متاحة لهذا الطلب', 'Returns are not available for this order')}</p>
-          {(elig?.reasons ?? []).map((r, i) => (
+          {(isAr ? (elig?.reasons ?? []) : (elig?.reasonsEn ?? elig?.reasons ?? [])).map((r, i) => (
             <p key={i} className="mt-0.5 text-slate-400">• {r}</p>
           ))}
         </div>
@@ -198,7 +202,7 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
         <p className="text-slate-400">
           {L(
             `الحالة: ${result.status} — نراجع الطلب ونرد خلال حتى ${result.slaHours} ساعة.`,
-            `Status: ${result.status} — we review requests and respond within up to ${result.slaHours} hours.`
+            `Status: ${STATUS_LABELS.en[result.status] || result.status} — we review requests and respond within up to ${result.slaHours} hours.`
           )}
         </p>
         <p className="text-slate-400">{L('تابع الحالة من قسم "متابعة مرتجع" بالأسفل.', 'Follow up from the “Track a return” section below.')}</p>
@@ -252,24 +256,24 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
                   <div key={it.orderItemId} className={`p-3 rounded-xl border ${it.blocked ? 'border-slate-800 opacity-60' : 'border-slate-700'}`}>
                     {it.blocked ? (
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-400">{it.nameAr}</span>
-                        <span className="text-[10px] text-rose-400">{it.blockedReason}</span>
+                        <span className="text-xs font-bold text-slate-400">{isAr ? it.nameAr : it.nameEn || it.nameAr}</span>
+                        <span className="text-[10px] text-rose-400">{isAr ? it.blockedReason : it.blockedReasonEn || it.blockedReason}</span>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-slate-200">{it.nameAr}</span>
+                          <span className="text-xs font-bold text-slate-200">{isAr ? it.nameAr : it.nameEn || it.nameAr}</span>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setSelected({ ...selected, [it.orderItemId]: { ...sel, quantity: Math.max(1, sel.quantity - 1) } })}
                               className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-base"
-                              aria-label={`إنقاص كمية ${it.nameAr}`}
+                              aria-label={`${L('إنقاص كمية', 'Decrease quantity of')} ${isAr ? it.nameAr : it.nameEn || it.nameAr}`}
                             >−</button>
                             <span className="w-6 text-center text-xs font-black tabular-nums text-amber-400">{sel.quantity}</span>
                             <button
                               onClick={() => setSelected({ ...selected, [it.orderItemId]: { ...sel, quantity: Math.min(it.quantity, sel.quantity + 1) } })}
                               className="w-11 h-11 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-base"
-                              aria-label={`زيادة كمية ${it.nameAr}`}
+                              aria-label={`${L('زيادة كمية', 'Increase quantity of')} ${isAr ? it.nameAr : it.nameEn || it.nameAr}`}
                             >+</button>
                           </div>
                         </div>
@@ -357,7 +361,7 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
                     return (
                       <div key={id} className="flex items-center justify-between p-2 rounded-xl bg-slate-900 text-xs">
                         <div>
-                          <p className="font-bold text-slate-200">{it?.nameAr}</p>
+                          <p className="font-bold text-slate-200">{it ? (isAr ? it.nameAr : it.nameEn || it.nameAr) : ''}</p>
                           <p className="text-[10px] text-slate-500">{s.quantity} × ({reason ? reason[isAr ? 'ar' : 'en'] : s.reasonCode})</p>
                         </div>
                         <span className="font-black text-amber-400 tabular-nums">{(s.quantity * it!.unitPrice).toLocaleString()}</span>
@@ -460,6 +464,27 @@ export function ReturnTrackerPanel() {
   );
 }
 
+const STATUS_LABELS: Record<'ar' | 'en', Record<string, string>> = {
+  ar: {
+    REQUESTED: 'طلب',
+    APPROVED: 'معتمد',
+    RECEIVED: 'مستلم',
+    REFUND_PENDING: 'بانتظار الاسترداد',
+    COMPLETED: 'مكتمل',
+    REJECTED: 'مرفوض',
+    CANCELLED: 'ملغي',
+  },
+  en: {
+    REQUESTED: 'Requested',
+    APPROVED: 'Approved',
+    RECEIVED: 'Received',
+    REFUND_PENDING: 'Refund pending',
+    COMPLETED: 'Completed',
+    REJECTED: 'Rejected',
+    CANCELLED: 'Cancelled',
+  },
+};
+
 function ReturnTimeline({ r }: { r: NonNullable<TrackResult['return']> }) {
   const isAr = useLocale() === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
@@ -472,7 +497,9 @@ function ReturnTimeline({ r }: { r: NonNullable<TrackResult['return']> }) {
     <div className="space-y-3 text-xs">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="font-black text-amber-400" dir="ltr">{r.returnNumber}</span>
-          <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 font-bold text-slate-300">{currentStatus}</span>
+          <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 font-bold text-slate-300">
+            {STATUS_LABELS[isAr ? 'ar' : 'en'][currentStatus] || currentStatus}
+          </span>
         </div>
 
           <div className="space-y-2">
@@ -488,7 +515,7 @@ function ReturnTimeline({ r }: { r: NonNullable<TrackResult['return']> }) {
                     <p className={`font-bold ${done ? 'text-emerald-300' : isNow ? 'text-blue-300' : 'text-slate-500'}`}>{L(s.ar, s.en)}</p>
                     {s.icon === 'ref' && r.refunds?.[0] && (
                       <p className="text-[10px] text-slate-500">
-                        {L('الاسترداد:', 'Refund:')} {r.refunds[0].amount.toLocaleString()} — {r.refunds.map((f) => f.status).join(', ')}
+                        {L('الاسترداد:', 'Refund:')} {r.refunds[0].amount.toLocaleString()} {L('ج.م', 'EGP')} — {r.refunds.map((f) => (isAr ? f.status : (STATUS_LABELS.en[f.status] || f.status))).join(', ')}
                       </p>
                     )}
                   </div>

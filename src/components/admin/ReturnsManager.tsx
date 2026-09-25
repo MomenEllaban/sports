@@ -15,34 +15,36 @@ export interface ReturnRow {
   channel: string;
   source: string;
   createdAt: string;
-  branch: { name: string };
+  branch: { name: string; nameEn?: string };
   order: { orderNumber: string } | null;
   sale: { saleNumber: string } | null;
-  items: Array<{ quantity: number; reasonCode: string; product: { nameAr: string } }>;
+  items: Array<{ quantity: number; reasonCode: string; product: { nameAr: string; nameEn?: string } }>;
   refunds: Array<{ status: string; amount: number }>;
 }
 
 const STATUSES = ['REQUESTED', 'APPROVED', 'RECEIVED', 'REFUND_PENDING', 'COMPLETED', 'REJECTED', 'CANCELLED'];
 const NEEDS_ACTION = new Set(['REQUESTED', 'RECEIVED', 'REFUND_PENDING']);
 
-const statusAr: Record<string, string> = {
-  REQUESTED: 'بانتظار الاعتماد',
-  APPROVED: 'معتمد',
-  RECEIVED: 'مستلم',
-  REFUND_PENDING: 'بانتظار الاسترداد',
-  COMPLETED: 'مكتمل',
-  REJECTED: 'مرفوض',
-  CANCELLED: 'ملغي',
+const statusLabels: Record<string, { ar: string; en: string }> = {
+  REQUESTED: { ar: 'بانتظار الاعتماد', en: 'Awaiting approval' },
+  APPROVED: { ar: 'معتمد', en: 'Approved' },
+  RECEIVED: { ar: 'مستلم', en: 'Received' },
+  REFUND_PENDING: { ar: 'بانتظار الاسترداد', en: 'Refund pending' },
+  COMPLETED: { ar: 'مكتمل', en: 'Completed' },
+  REJECTED: { ar: 'مرفوض', en: 'Rejected' },
+  CANCELLED: { ar: 'ملغي', en: 'Cancelled' },
 };
 
 export default function ReturnsManager({ initial, branches, counts }: {
   initial: ReturnRow[];
-  branches: Array<{ id: string; name: string }>;
+  branches: Array<{ id: string; name: string; nameEn?: string }>;
   counts: Record<string, number>;
 }) {
   const locale = useLocale();
   const router = useRouter();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const statusLabel = (value: string) => statusLabels[value]?.[isAr ? 'ar' : 'en'] || value;
   const [rows, setRows] = useState(initial);
   const [status, setStatus] = useState('');
   const [channel, setChannel] = useState('');
@@ -75,14 +77,14 @@ export default function ReturnsManager({ initial, branches, counts }: {
   return (
     <div className="space-y-4">
       {/* Status chips */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="حالات المرتجعات">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label={L('حالات المرتجعات', 'Return statuses')}>
         <button
           role="tab"
           aria-selected={status === ''}
           onClick={() => { setStatus(''); }}
           className={`min-h-[44px] px-3 rounded-xl border text-[11px] font-bold ${status === '' ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'}`}
         >
-          الكل ({Object.values(counts).reduce((s, n) => s + n, 0)})
+          {L('الكل', 'All')} ({Object.values(counts).reduce((s, n) => s + n, 0)})
         </button>
         {STATUSES.map((s) => (
           <button
@@ -92,27 +94,27 @@ export default function ReturnsManager({ initial, branches, counts }: {
             onClick={() => setStatus(status === s ? '' : s)}
             className={`min-h-[44px] px-3 rounded-xl border text-[11px] font-bold ${status === s ? 'bg-blue-600 border-blue-400 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'} ${NEEDS_ACTION.has(s) ? 'ring-1 ring-amber-500/50' : ''}`}
           >
-            {statusAr[s]} ({counts[s] || 0})
+            {statusLabel(s)} ({counts[s] || 0})
           </button>
         ))}
       </div>
 
       {/* Filters */}
       <form onSubmit={(e) => { e.preventDefault(); load(); }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث برقم RTN/طلب/هاتف..." aria-label="بحث" className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" dir="ltr" />
-        <select value={channel} onChange={(e) => setChannel(e.target.value)} aria-label="القناة" className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
-          <option value="">كل القنوات</option>
-          {['POS', 'ONLINE', 'WHATSAPP', 'ADMIN', 'AUTO_COURIER'].map((c) => <option key={c} value={c}>{c}</option>)}
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L('بحث برقم RTN/طلب/هاتف...', 'Search by RTN/order/phone...')} aria-label={L('بحث', 'Search')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" dir="ltr" />
+        <select value={channel} onChange={(e) => setChannel(e.target.value)} aria-label={L('القناة', 'Channel')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
+          <option value="">{L('كل القنوات', 'All channels')}</option>
+          {['POS', 'ONLINE', 'WHATSAPP', 'ADMIN', 'AUTO_COURIER'].map((c) => <option key={c} value={c}>{c === 'POS' ? 'POS' : c === 'ONLINE' ? L('أونلاين', 'Online') : c === 'WHATSAPP' ? 'WhatsApp' : c === 'ADMIN' ? L('إدارة', 'Admin') : L('توصيل تلقائي', 'Auto courier')}</option>)}
         </select>
-        <select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label="الفرع" className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
-          <option value="">كل الفروع</option>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        <select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label={L('الفرع', 'Branch')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700">
+          <option value="">{L('كل الفروع', 'All branches')}</option>
+          {branches.map((b) => <option key={b.id} value={b.id}>{isAr ? b.name : b.nameEn || b.name}</option>)}
         </select>
         <button type="submit" disabled={loading} className="min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold col-span-2 md:col-span-1">
-          {loading ? '...' : 'بحث'}
+          {loading ? '...' : L('بحث', 'Search')}
         </button>
         <Link href="/admin/returns/new" className="min-h-[44px] px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-1 col-span-2 md:col-span-1">
-          <Plus className="w-4 h-4" /> مرتجع جديد
+          <Plus className="w-4 h-4" /> {L('مرتجع جديد', 'New return')}
         </Link>
       </form>
 
@@ -129,7 +131,7 @@ export default function ReturnsManager({ initial, branches, counts }: {
           page={page}
           pageSize={PAGE_SIZE}
           onPageChange={setPage}
-          emptyTitle="لا توجد مرتجعات"
+          emptyTitle={L('لا توجد مرتجعات', 'No returns')}
           columns={[
             {
               key: 'returnNumber', header: 'RTN', render: (r) => (
@@ -137,21 +139,21 @@ export default function ReturnsManager({ initial, branches, counts }: {
               ),
             },
             {
-              key: 'doc', header: 'المستند', hideOnMobile: true, render: (r) => (
+              key: 'doc', header: L('المستند', 'Document'), hideOnMobile: true, render: (r) => (
                 <span className="font-mono text-slate-300" dir="ltr">{r.order?.orderNumber || r.sale?.saleNumber || '—'}</span>
               ),
             },
             {
-              key: 'status', header: 'الحالة', render: (r) => (
+              key: 'status', header: L('الحالة', 'Status'), render: (r) => (
                 <span className={`px-2 py-0.5 rounded-lg font-bold text-[10px] ${NEEDS_ACTION.has(r.status) ? 'bg-amber-500/15 text-amber-300' : r.status === 'COMPLETED' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
-                  {statusAr[r.status] || r.status}
+                  {statusLabel(r.status)}
                 </span>
               ),
             },
-            { key: 'channel', header: 'القناة', hideOnMobile: true, render: (r) => r.channel },
-            { key: 'branch', header: 'الفرع', render: (r) => r.branch.name },
+            { key: 'channel', header: L('القناة', 'Channel'), hideOnMobile: true, render: (r) => r.channel },
+            { key: 'branch', header: L('الفرع', 'Branch'), render: (r) => isAr ? r.branch.name : r.branch.nameEn || r.branch.name },
             {
-              key: 'refund', header: 'الاسترداد', render: (r) => (
+              key: 'refund', header: L('الاسترداد', 'Refund'), render: (r) => (
                 r.refunds.length > 0
                   ? <span className={`font-bold text-[11px] ${r.refunds[0].status === 'DONE' ? 'text-emerald-400' : r.refunds[0].status === 'FAILED' || r.refunds[0].status === 'MANUAL_REQUIRED' ? 'text-rose-400' : 'text-amber-300'}`}>
                     {r.refunds[0].status} • {Number(r.refunds[0].amount).toLocaleString()}

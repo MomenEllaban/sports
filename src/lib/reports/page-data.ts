@@ -10,7 +10,7 @@ export async function getReportPage(type: ReportType, searchParams: Promise<Reco
   const query = { ...parsed, branchId: allowed ? (parsed.branchId && allowed.includes(parsed.branchId) ? parsed.branchId : allowed[0] || '__no_branch__') : parsed.branchId };
   const [result, branches] = await Promise.all([
     getReport(type, query),
-    prisma.branch.findMany({ where: { isActive: true, ...branchWhere(session) }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    prisma.branch.findMany({ where: { isActive: true, ...branchWhere(session) }, select: { id: true, name: true, nameEn: true }, orderBy: { name: 'asc' } }),
   ]);
   return {
     result,

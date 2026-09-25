@@ -1112,5 +1112,60 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 - `npm run check:i18n` ✅ (207 keys each)
 - `npm run check:invariants` ✅ CLEAN
 - Playwright local probe ✅ (390/768/1024/1366 × 5 public routes، صفر horizontal overflow وصفر console/5xx response).
+- Playwright locale probe ✅ (`tests/e2e/locale.spec.ts`، 10/10 على `/en`).
+- Admin English scan ✅ (`npm run check:i18n-admin` groups a/b/c، صفر UI leak على 38 مسار).
 
-**المتبقي قبل production:** جلسة browser متصلة untuk screenshots/WCAG/axe sign-off، ومراجعة production caveats الموجودة في القسم 10.4 (branch isolation، online idempotency/reservation، refund watchdog، ETA، DB stock constraints).
+---
+
+## 12. الترجمة على `/en` — التشخيص والعلاج
+
+### 12.1 السبب الجذري
+
+مسار `/en` كان يعمل تقنيًا (middleware + `next-intl` + `html lang="en" dir="ltr"` سليمة)، لكن طبقة العرض كانت تستخدم **نصوصًا عربية مكتوبة inline داخل JSX** بدل `useLocale()` / `getLocale()`. النتيجة: الترويسة والجداول والـdialogs تعرض عربي حتى على `/en`.
+
+### 12.2 ما تم تغييره
+
+| الطبقة | التغيير |
+|---|---|
+| Storefront | كل صفحات المتجر ومكوناته تستخدم `isAr`/`L()`؛ أسماء المنتجات والفروع والفئات تأخذ `nameEn/addressEn` |
+| POS | شاشة الكاشير + `PosPaymentModal` + `PosReceiptModal` (بما فيه الإيصال المطبوع `dir/lang` والتواريخ) + `ReturnWizard`، مع `dir` ديناميكي و`ج.م/EGP` |
+| Admin | 25+ صفحة و20+ مكوّنًا؛ `StatusBadge/PayLabel/SourceLabel` تعتمد `messages/*.json` وسليمة، والباقي أُصلح |
+| Shared errors | `ErrorEventHandler` + `lib/client-api.ts` + `DialogFrame/ConfirmDialog` |
+| Returns API | `nameEn`, `reasonsEn`, `blockedReasonEn`, `branchEn` |
+| Language switcher | `router.replace(pathname,{locale})` كان no-op → استُبدل بـ`Link locale={next}` |
+
+**نمط الترجمة المعتمد:** `const isAr = locale === 'ar'` ثم `const L = (ar, en) => (isAr ? ar : en)` داخل client components، و`getLocale()` من `next-intl/server` داخل server pages. ملفّا `messages/ar.json` و`messages/en.json` يبقيان كما هما (parity 207 key) ولا يزالان مصدرًا لمفاتيح `common/*`, `auth/*`, `nav/*`, `admin.status_*`, `admin.pay_*`, `admin.src_*`.
+
+### 12.3 أدوات التحقق
+
+- `tests/e2e/locale.spec.ts` — 10 اختبارات: كل مسار `/en` يجب أن يكون `lang="en"`، خاليًا من الحروف العربية في النص المرئي، وأن يحتوي نصًا إنجليزيًا متوقعًا. الاستثناء الوحيد الموثّق هو مبدّل اللغة (`data-locale-switcher`) لأنه يعرض اسم اللغة الهدف بشكلها الصحيح (endonym).
+- `scripts/verify-admin-en.mjs` + `npm run check:i18n-admin` (groups `a|b|c`) — يفتح جلسة JWT محلية (قراءة فقط، لا يكتب في الـDB) ويفحص 38 مسار `/en`، ويفصل بين:
+  - `LEAK` — نص UI لم يُترجم (فشل).
+  - `data` — قيمة قاعدة بيانات بلا نسخة إنجليزية (لا يُفشل، مع طباعة العمود المسؤول).
+  - `clean` — لا عربية.
+
+### 12.4 عربي متبقٍ على `/en` — وهو بيانات لا UI
+
+الأعمدة التالية لا تملك `*En` في `prisma/schema.prisma`، لذلك تعرض العربية على `/en`:
+
+| العمود | يظهر في |
+|---|---|
+| `Customer.name`, `Order.guestName` | dashboard, orders, customers, cod-settlement |
+| `User.name` | users, shifts |
+| `Employee.name`, `Employee.roleTitle` | employees, payroll, shifts |
+| `Supplier.name/contactName/address` | purchasing, purchasing/suppliers, reports/reorder |
+| `Address.street/city` | customers |
+| `Product.color`, `Product.size` | products, reports/reorder |
+| `Expense.notes/title` | expenses, accounting |
+| `Review.text` | reviews |
+
+**المطلوب لإغلاقها:** migration تضيف `nameEn`/`addressEn` لتلك الجداول + backfill + bilingual rendering. موثّق في `DB_SOURCED_ROUTES` داخل `scripts/verify-admin-en.mjs` حتى لا يتحول إلى تسريب صامت.
+
+### 12.5 عطل حقيقي اكتُشف أثناء الفحص
+
+مبدّل اللغة في `Header` و`LocaleSwitcher` كان يستخدم `router.replace(pathname, { locale: next })`، وهو **لا ينتقل فعليًا** (الـclick يعمل والـReact handler مثبّت، لكن العنوان لا يتغير). الاستبدال بـ`<Link href={pathname} locale={next}>`:
+- ينتج `href` حقيقيًا يعمل حتى قبل hydration،
+- يحافظ على تنقّل Next soft،
+- مُغطّى باختبار e2e (`the language switcher moves between locales and back`).
+
+**المتبقي قبل production:** جلسة browser متصلة للـ screenshots/WCAG/axe sign-off، ومراجعة production caveats الموجودة في القسم 10.4 (branch isolation، online idempotency/reservation، refund watchdog، ETA، DB stock constraints)، ومigration أعمدة `*En` المذكورة في 12.4.

@@ -1,4 +1,5 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 import UsersManager from '@/components/admin/UsersManager';
 import { prisma } from '@/lib/db';
 import { ShieldCheck } from 'lucide-react';
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminUsersPage() {
   await requirePageRole('SUPER_ADMIN');
+  const isAr = (await getLocale()) === 'ar';
   const [users, branches] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
@@ -24,7 +26,7 @@ export default async function AdminUsersPage() {
     }),
     prisma.branch.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, nameEn: true },
       orderBy: { name: 'asc' },
     }),
   ]);
@@ -36,14 +38,14 @@ export default async function AdminUsersPage() {
             <div>
               <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2.5">
                 <ShieldCheck className="w-7 h-7 text-blue-500" />
-                المستخدمين وإدارة الصلاحيات
+                {isAr ? 'المستخدمين وإدارة الصلاحيات' : 'Users & permissions'}
               </h1>
               <p className="text-xs text-slate-400 mt-1">
-                إدارة حسابات موظفي الفروع، الكاشير، المحاسبين، والمديرين وتوزيع الأدوار
+                {isAr ? 'إدارة حسابات موظفي الفروع، الكاشير، المحاسبين، والمديرين وتوزيع الأدوار' : 'Manage branch staff, cashiers, accountants, managers, and role assignments'}
               </p>
             </div>
             <span className="px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs">
-              إجمالي الحسابات: {users.length}
+              {isAr ? 'إجمالي الحسابات' : 'Total accounts'}: {users.length}
             </span>
           </div>
 

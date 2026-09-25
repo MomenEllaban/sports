@@ -11,7 +11,12 @@ export default defineConfig({
     url: 'http://localhost:3102/ar',
     reuseExistingServer: !process.env.CI,
     timeout: 180000,
-    env: { PORT: '3102' },
+    // `getSiteUrl()` refuses to run without this, and static path generation
+    // then fails, which makes every route 500. Keep e2e self-contained.
+    env: {
+      PORT: '3102',
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3102',
+    },
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },

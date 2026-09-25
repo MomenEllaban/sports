@@ -24,6 +24,7 @@ export interface ShiftRow {
   cashierEmail: string;
   branchId: string;
   branchName: string;
+  branchNameEn?: string;
   status: 'OPEN' | 'CLOSED';
   openedAt: string;
   closedAt: string | null;
@@ -41,11 +42,13 @@ export default function ShiftsManager({
   branches,
 }: {
   initialShifts: ShiftRow[];
-  branches: Array<{ id: string; name: string }>;
+  branches: Array<{ id: string; name: string; nameEn?: string }>;
 }) {
   const locale = useLocale();
   const router = useRouter();
   const isAr = locale === 'ar';
+  const L = (ar: string, en: string) => (isAr ? ar : en);
+  const currencyLabel = L('ج.م', 'EGP');
 
   const [shifts, setShifts] = useState<ShiftRow[]>(initialShifts);
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
@@ -99,11 +102,11 @@ export default function ShiftsManager({
         method: 'POST',
         body: JSON.stringify({
           actualCash: Number(actualCashInput),
-          closeNote: adminCloseNote.trim() || 'إغلاق وتسوية من لوحة الإدارة',
+          closeNote: adminCloseNote.trim() || L('إغلاق وتسوية من لوحة الإدارة', 'Closed and reconciled from Admin'),
         }),
         errorKey: `admin:shifts:close:${closeTarget.id}`,
       });
-      if (!data.success) throw new Error('تعذر إغلاق الوردية');
+      if (!data.success) throw new Error(L('تعذر إغلاق الوردية', 'Could not close the shift'));
 
       // Update local shift
       setShifts((prev) =>
@@ -116,7 +119,7 @@ export default function ShiftsManager({
                 actualCash: data.actual ?? 0,
                 difference: data.difference ?? 0,
                 expectedCash: data.expected ?? 0,
-                closeNote: adminCloseNote.trim() || 'إغلاق إداري',
+                closeNote: adminCloseNote.trim() || L('إغلاق إداري', 'Administrative close'),
               }
             : s
         )
@@ -126,7 +129,7 @@ export default function ShiftsManager({
       setAdminCloseNote('');
       router.refresh();
     } catch {
-      setCloseError('حدث خطأ أثناء الاتصال بالسيرفر');
+      setCloseError(L('حدث خطأ أثناء الاتصال بالسيرفر', 'An error occurred while connecting to the server'));
     } finally {
       setIsSubmittingClose(false);
     }
@@ -137,17 +140,17 @@ export default function ShiftsManager({
     if (!printWindow) return;
 
     const shiftId = escapeHtml(shift.id);
-    const branchName = escapeHtml(shift.branchName);
+    const branchName = escapeHtml(isAr ? shift.branchName : shift.branchNameEn || shift.branchName);
     const cashierName = escapeHtml(shift.cashierName);
     const openNote = escapeHtml(shift.openNote);
     const closeNote = escapeHtml(shift.closeNote);
 
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
+      <html dir="${isAr ? 'rtl' : 'ltr'}" lang="${isAr ? 'ar' : 'en'}">
         <head>
           <meta charset="utf-8">
-          <title>تقرير تقفيل الدرج Z-Report - ${shiftId}</title>
+          <title>${L('تقرير تقفيل الدرج Z-Report', 'Z-Report cash drawer report')} - ${shiftId}</title>
           <style>
             body { font-family: monospace, sans-serif; font-size: 12px; margin: 15px; color: #000; line-height: 1.4; }
             .text-center { text-align: center; }
@@ -161,30 +164,30 @@ export default function ShiftsManager({
         <body>
           <div class="text-center">
             <div class="header-title">SPORTS CHAMPIONS</div>
-            <div>تقرير تقفيل الوردية (Z-REPORT)</div>
+            <div>${L('تقرير تقفيل الوردية (Z-REPORT)', 'Shift close report (Z-REPORT)')}</div>
             <div class="divider"></div>
           </div>
-          <div class="row"><span>الفرع:</span><span class="bold">${branchName}</span></div>
-          <div class="row"><span>الكاشير:</span><span class="bold">${cashierName}</span></div>
-          <div class="row"><span>معرف الوردية:</span><span>${shiftId.slice(-8)}</span></div>
-          <div class="row"><span>تاريخ الفتح:</span><span>${new Date(shift.openedAt).toLocaleString('ar-EG')}</span></div>
-          <div class="row"><span>تاريخ الإغلاق:</span><span>${shift.closedAt ? new Date(shift.closedAt).toLocaleString('ar-EG') : 'مفتوحة الآن'}</span></div>
+          <div class="row"><span>${L('الفرع', 'Branch')}:</span><span class="bold">${branchName}</span></div>
+          <div class="row"><span>${L('الكاشير', 'Cashier')}:</span><span class="bold">${cashierName}</span></div>
+          <div class="row"><span>${L('معرف الوردية', 'Shift ID')}:</span><span>${shiftId.slice(-8)}</span></div>
+          <div class="row"><span>${L('تاريخ الفتح', 'Opened at')}:</span><span>${new Date(shift.openedAt).toLocaleString(isAr ? 'ar-EG' : 'en-GB')}</span></div>
+          <div class="row"><span>${L('تاريخ الإغلاق', 'Closed at')}:</span><span>${shift.closedAt ? new Date(shift.closedAt).toLocaleString(isAr ? 'ar-EG' : 'en-GB') : L('مفتوحة الآن', 'Open now')}</span></div>
           <div class="divider"></div>
-          <div class="row"><span>رصيد الافتتاح:</span><span>${shift.openingFloat.toFixed(2)} ج.م</span></div>
-          <div class="row"><span>عدد الفواتير:</span><span>${shift.salesCount}</span></div>
-          <div class="row"><span>المتوقع بالدرج:</span><span class="bold">${shift.expectedCash.toFixed(2)} ج.م</span></div>
-          <div class="row"><span>المعدود الفعلي:</span><span class="bold">${shift.actualCash.toFixed(2)} ج.م</span></div>
+          <div class="row"><span>${L('رصيد الافتتاح', 'Opening balance')}:</span><span>${shift.openingFloat.toFixed(2)} ${currencyLabel}</span></div>
+          <div class="row"><span>${L('عدد الفواتير', 'Invoice count')}:</span><span>${shift.salesCount}</span></div>
+          <div class="row"><span>${L('المتوقع بالدرج', 'Expected in drawer')}:</span><span class="bold">${shift.expectedCash.toFixed(2)} ${currencyLabel}</span></div>
+          <div class="row"><span>${L('المعدود الفعلي', 'Counted cash')}:</span><span class="bold">${shift.actualCash.toFixed(2)} ${currencyLabel}</span></div>
           <div class="divider"></div>
           <div class="row bold" style="font-size: 13px;">
-            <span>الفرق (عجز / زيادة):</span>
-            <span>${shift.difference > 0 ? '+' : ''}${shift.difference.toFixed(2)} ج.م</span>
+            <span>${L('الفرق (عجز / زيادة)', 'Difference (shortage / surplus)')}:</span>
+            <span>${shift.difference > 0 ? '+' : ''}${shift.difference.toFixed(2)} ${currencyLabel}</span>
           </div>
-          ${openNote ? `<div class="divider"></div><div><b>ملاحظة الفتح:</b> ${openNote}</div>` : ''}
-          ${closeNote ? `<div class="divider"></div><div><b>ملاحظة الإغلاق:</b> ${closeNote}</div>` : ''}
+          ${openNote ? `<div class="divider"></div><div><b>${L('ملاحظة الفتح', 'Opening note')}:</b> ${openNote}</div>` : ''}
+          ${closeNote ? `<div class="divider"></div><div><b>${L('ملاحظة الإغلاق', 'Closing note')}:</b> ${closeNote}</div>` : ''}
           <div class="divider"></div>
           <div class="text-center" style="margin-top: 15px;">
-            <div>توقيع الكاشير: ........................</div>
-            <div style="margin-top: 8px;">اعتماد المدير: ........................</div>
+            <div>${L('توقيع الكاشير', 'Cashier signature')}: ........................</div>
+            <div style="margin-top: 8px;">${L('اعتماد المدير', 'Manager approval')}: ........................</div>
           </div>
           <script>window.onload = function() { window.print(); }<\/script>
         </body>
@@ -227,7 +230,7 @@ export default function ShiftsManager({
             <DollarSign className="w-4 h-4 text-amber-400" />
           </div>
           <div className="text-2xl font-black text-amber-400 mt-2">
-            {totalExpectedInOpen.toLocaleString('ar-EG')} <span className="text-xs font-normal text-slate-400">ج.م</span>
+            {totalExpectedInOpen.toLocaleString(isAr ? 'ar-EG' : 'en-US')} <span className="text-xs font-normal text-slate-400">{currencyLabel}</span>
           </div>
           <div className="text-[11px] text-slate-400 mt-1">{isAr ? 'رصيد الافتتاح + مبيعات الكاش' : 'Floats + Cash sales'}</div>
         </div>
@@ -239,7 +242,7 @@ export default function ShiftsManager({
           </div>
           <div className={`text-2xl font-black mt-2 ${totalDifference < 0 ? 'text-rose-400' : totalDifference > 0 ? 'text-emerald-400' : 'text-slate-100'}`}>
             {totalDifference > 0 ? '+' : ''}
-            {totalDifference.toLocaleString('ar-EG')} <span className="text-xs font-normal text-slate-400">ج.م</span>
+            {totalDifference.toLocaleString(isAr ? 'ar-EG' : 'en-US')} <span className="text-xs font-normal text-slate-400">{currencyLabel}</span>
           </div>
           <div className="text-[11px] text-slate-400 mt-1">{totalDifference < 0 ? (isAr ? 'إجمالي عجز نقدي' : 'Cash shortage') : (isAr ? 'مطابق أو فائض' : 'Balanced or surplus')}</div>
         </div>
@@ -287,7 +290,7 @@ export default function ShiftsManager({
             <option value="ALL">{isAr ? 'كافة الفروع' : 'All Branches'}</option>
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name}
+                {isAr ? b.name : b.nameEn || b.name}
               </option>
             ))}
           </select>
@@ -316,7 +319,7 @@ export default function ShiftsManager({
           {
             key: 'branch',
             header: isAr ? 'الفرع' : 'Branch',
-            render: (r) => <span className="text-slate-300 font-medium">{r.branchName}</span>,
+            render: (r) => <span className="text-slate-300 font-medium">{isAr ? r.branchName : r.branchNameEn || r.branchName}</span>,
           },
           {
             key: 'status',
@@ -342,29 +345,29 @@ export default function ShiftsManager({
           {
             key: 'openingFloat',
             header: isAr ? 'رصيد الافتتاح' : 'Opening Float',
-            render: (r) => <span className="text-slate-300">{r.openingFloat.toLocaleString()} ج.م</span>,
+            render: (r) => <span className="text-slate-300">{r.openingFloat.toLocaleString()} {currencyLabel}</span>,
           },
           {
             key: 'expected',
             header: isAr ? 'المتوقع' : 'Expected',
-            render: (r) => <span className="font-bold text-amber-300">{r.expectedCash.toLocaleString()} ج.م</span>,
+            render: (r) => <span className="font-bold text-amber-300">{r.expectedCash.toLocaleString()} {currencyLabel}</span>,
           },
           {
             key: 'actual',
             header: isAr ? 'المعدود' : 'Counted',
             render: (r) => (
-              <span className="text-slate-200">{r.status === 'OPEN' ? '—' : `${r.actualCash.toLocaleString()} ج.م`}</span>
+              <span className="text-slate-200">{r.status === 'OPEN' ? '—' : `${r.actualCash.toLocaleString()} ${currencyLabel}`}</span>
             ),
           },
           {
             key: 'diff',
             header: isAr ? 'الفرق' : 'Variance',
             render: (r) => {
-              if (r.status === 'OPEN') return <span className="text-slate-500 text-xs">قيد التشغيل</span>;
+              if (r.status === 'OPEN') return <span className="text-slate-500 text-xs">{L('قيد التشغيل', 'In progress')}</span>;
               return (
                 <span className={`font-black ${r.difference < 0 ? 'text-rose-400' : r.difference > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
                   {r.difference > 0 ? '+' : ''}
-                  {r.difference.toLocaleString()} ج.م
+                  {r.difference.toLocaleString()} {currencyLabel}
                 </span>
               );
             },
@@ -424,7 +427,7 @@ export default function ShiftsManager({
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'الفرع' : 'Branch'}</span>
-                <span className="font-bold text-slate-100">{selectedShift.branchName}</span>
+                <span className="font-bold text-slate-100">{isAr ? selectedShift.branchName : selectedShift.branchNameEn || selectedShift.branchName}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'وقت الفتح' : 'Opened'}</span>
@@ -433,12 +436,12 @@ export default function ShiftsManager({
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'وقت الإغلاق' : 'Closed'}</span>
                 <span className="text-slate-200">
-                  {selectedShift.closedAt ? new Date(selectedShift.closedAt).toLocaleString(isAr ? 'ar-EG' : 'en-US') : 'مفتوحة حتى الآن'}
+                  {selectedShift.closedAt ? new Date(selectedShift.closedAt).toLocaleString(isAr ? 'ar-EG' : 'en-US') : L('مفتوحة حتى الآن', 'Still open')}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'رصيد الافتتاح' : 'Opening Float'}</span>
-                <span className="font-bold text-slate-100">{selectedShift.openingFloat.toLocaleString()} ج.م</span>
+                <span className="font-bold text-slate-100">{selectedShift.openingFloat.toLocaleString()} {currencyLabel}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'عدد الفواتير' : 'Invoices'}</span>
@@ -446,12 +449,12 @@ export default function ShiftsManager({
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'المتوقع بالدرج' : 'Expected Cash'}</span>
-                <span className="font-bold text-amber-400">{selectedShift.expectedCash.toLocaleString()} ج.م</span>
+                <span className="font-bold text-amber-400">{selectedShift.expectedCash.toLocaleString()} {currencyLabel}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'المعدود الفعلي' : 'Actual Cash'}</span>
                 <span className="font-bold text-slate-100">
-                  {selectedShift.status === 'OPEN' ? '—' : `${selectedShift.actualCash.toLocaleString()} ج.م`}
+                  {selectedShift.status === 'OPEN' ? '—' : `${selectedShift.actualCash.toLocaleString()} ${currencyLabel}`}
                 </span>
               </div>
             </div>
@@ -461,7 +464,7 @@ export default function ShiftsManager({
                 selectedShift.difference < 0 ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
               }`}>
                 <span>{isAr ? 'فرق النقدية المسجل:' : 'Recorded Variance:'}</span>
-                <span className="font-black text-sm">{selectedShift.difference > 0 ? '+' : ''}{selectedShift.difference} ج.م</span>
+                <span className="font-black text-sm">{selectedShift.difference > 0 ? '+' : ''}{selectedShift.difference} {currencyLabel}</span>
               </div>
             )}
 
@@ -511,7 +514,7 @@ export default function ShiftsManager({
           <p className="text-xs leading-relaxed text-slate-300">
               {isAr
                 ? `سيتم إغلاق وردية الكاشير (${closeTarget.cashierName}) في فرع (${closeTarget.branchName}) وتسوية الدرج إدارياً.`
-                : `Closing shift for (${closeTarget.cashierName}) at (${closeTarget.branchName}).`}
+                : `Closing shift for (${closeTarget.cashierName}) at (${closeTarget.branchNameEn || closeTarget.branchName}) and reconciling the cash drawer administratively.`}
             </p>
 
             <form onSubmit={handleAdminCloseShift} className="space-y-3">

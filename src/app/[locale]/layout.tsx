@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -20,6 +21,51 @@ const cairo = Cairo({
 // Anti-FOUC: apply the saved theme before first paint so light mode
 // doesn't flash dark. Runs directly in <head> before the body renders.
 const themeInitScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();`;
+
+// Document metadata must follow the active locale, otherwise /en pages ship
+// Arabic <title>/description/OG tags to search engines and link previews.
+const SITE = {
+  ar: {
+    name: 'ابطال الرياضة الإبراهيمية',
+    defaultTitle: 'ابطال الرياضة الإبراهيمية | Sports Champions Alexandria',
+    template: '%s | ابطال الرياضة',
+    description:
+      'المقر الرئيسي للملابس والمعدات الرياضية بالإسكندرية (سباحة، جيم، كارديو، باليه). 92 شارع عمر لطفى، الإبراهيمية.',
+    shortDescription: 'ملابس ومعدات رياضية — الإسكندرية.',
+    openGraphLocale: 'ar_EG',
+    alternateLocale: ['en_US'],
+  },
+  en: {
+    name: 'Sports Champions Alexandria',
+    defaultTitle: 'Sports Champions Alexandria',
+    template: '%s | Sports Champions',
+    description:
+      'Flagship store for sports apparel and equipment in Alexandria (swimming, gym, cardio, ballet). 92 Omar Lotfy Street, El Ibrahimia.',
+    shortDescription: 'Sports apparel & equipment — Alexandria.',
+    openGraphLocale: 'en_US',
+    alternateLocale: ['ar_EG'],
+  },
+} as const;
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  const copy = SITE[locale === 'en' ? 'en' : 'ar'];
+  return {
+    title: { default: copy.defaultTitle, template: copy.template },
+    description: copy.description,
+    alternates: { languages: { ar: '/ar', en: '/en' } },
+    openGraph: {
+      type: 'website',
+      locale: copy.openGraphLocale,
+      alternateLocale: [...copy.alternateLocale],
+      siteName: copy.name,
+      title: copy.defaultTitle,
+      description: copy.shortDescription,
+      images: [{ url: '/logo.avif', alt: `${copy.name} logo` }],
+    },
+    twitter: { card: 'summary_large_image', title: copy.name, description: copy.shortDescription },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     if (!orderNumber) return apiError('VALIDATION_ERROR', 'orderNumber required', 400);
     const order = await prisma.order.findFirst({
       where: { orderNumber: { equals: orderNumber, mode: 'insensitive' } },
-      include: { items: { include: { product: { select: { id: true, nameAr: true } } } } },
+      include: { items: { include: { product: { select: { id: true, nameAr: true, nameEn: true } } } } },
     });
     if (!order) return apiError('NOT_FOUND', 'الطلب غير موجود', 404);
     return NextResponse.json({
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
         id: order.id,
         number: order.orderNumber,
         items: order.items.map((i) => ({
-          refId: i.id, productId: i.productId, nameAr: i.product.nameAr,
+          refId: i.id, productId: i.productId, nameAr: i.product.nameAr, nameEn: i.product.nameEn,
           quantity: i.quantity, unitPrice: num(i.unitPrice),
         })),
       },

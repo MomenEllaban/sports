@@ -1,10 +1,13 @@
 import React from 'react';
+import { getLocale } from 'next-intl/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 
 const DAY = 86_400_000;
 
 export default async function RevenueChartSection() {
+  const locale = await getLocale();
+  const isAr = locale === 'ar';
   const weekAgo = new Date(Date.now() - 6 * DAY);
   weekAgo.setHours(0, 0, 0, 0);
 
@@ -16,7 +19,7 @@ export default async function RevenueChartSection() {
   const days: Array<{ label: string; total: number }> = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * DAY);
-    const key = d.toLocaleDateString('ar-EG', { weekday: 'short' });
+    const key = d.toLocaleDateString(isAr ? 'ar-EG' : 'en-GB', { weekday: 'short' });
     const sameDay = (t: Date) =>
       t.getFullYear() === d.getFullYear() &&
       t.getMonth() === d.getMonth() &&
@@ -30,8 +33,8 @@ export default async function RevenueChartSection() {
 
   return (
     <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-      <h3 className="font-extrabold text-sm text-slate-100">إيراد آخر 7 أيام</h3>
-      <div className="flex items-end gap-2 h-32" role="img" aria-label="7-day revenue chart">
+      <h3 className="font-extrabold text-sm text-slate-100">{isAr ? 'إيراد آخر 7 أيام' : 'Revenue over the last 7 days'}</h3>
+      <div className="flex items-end gap-2 h-32" role="img" aria-label={isAr ? 'رسم بياني لإيرادات 7 أيام' : '7-day revenue chart'}>
         {days.map((d, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
             <span className="text-[10px] font-bold text-slate-300 tabular-nums">
