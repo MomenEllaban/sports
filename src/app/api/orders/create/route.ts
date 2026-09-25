@@ -131,14 +131,7 @@ export async function POST(req: Request) {
 
     // T07: online checkout REJECTS insufficient stock with item + available payload.
     if (shortages.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'المخزون لا يكفي لبعض الأصناف',
-          items: shortages,
-        },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'المخزون لا يكفي لبعض الأصناف', 400, undefined, { items: shortages });
     }
 
     // T16: unified discount pipeline (coupon → loyalty → cap).
@@ -317,14 +310,7 @@ export async function POST(req: Request) {
         lastErr = e;
         if ((e as { code?: string }).code === 'P2002') continue;
         if (e instanceof InsufficientStockError) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'المخزون لا يكفي',
-              items: [{ productId: e.productId, available: e.available }],
-            },
-            { status: 400 }
-          );
+          return apiError('VALIDATION_ERROR', 'المخزون لا يكفي', 400, undefined, { items: [{ productId: e.productId, available: e.available }] });
         }
         // T16: coupon/points races surface with an HTTP status.
         const st = (e as { status?: number }).status;

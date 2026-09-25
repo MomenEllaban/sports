@@ -100,14 +100,7 @@ export async function POST(req: Request) {
       }
       const available = dbProduct.inventories[0]?.stockQuantity || 0;
       if (available < line.quantity) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `المخزون لا يكفي: ${dbProduct.nameAr} (المتاح ${available})`,
-            items: [{ productId: dbProduct.id, sku: dbProduct.sku, available, requested: line.quantity }],
-          },
-          { status: 400 }
-        );
+        return apiError('VALIDATION_ERROR', `المخزون لا يكفي: ${dbProduct.nameAr} (المتاح ${available})`, 400, undefined, { items: [{ productId: dbProduct.id, sku: dbProduct.sku, available, requested: line.quantity }] });
       }
       const price = num(dbProduct.price);
       const totalPrice = price * line.quantity;
@@ -321,14 +314,7 @@ export async function POST(req: Request) {
         lastErr = e;
         if ((e as { code?: string }).code === 'P2002') continue; // number/clientSaleId race: retry
         if (e instanceof InsufficientStockError) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: `المخزون لا يكفي (المتاح ${e.available})`,
-              items: [{ productId: e.productId, available: e.available }],
-            },
-            { status: 400 }
-          );
+          return apiError('VALIDATION_ERROR', `المخزون لا يكفي (المتاح ${e.available})`, 400, undefined, { items: [{ productId: e.productId, available: e.available }] });
         }
         // T16: coupon/points races surface with an HTTP status.
         const st = (e as { status?: number }).status;

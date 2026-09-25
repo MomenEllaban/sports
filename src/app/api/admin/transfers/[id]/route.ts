@@ -77,14 +77,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }, { maxWait: 10000, timeout: 20000 });
     } catch (e) {
       if (e instanceof InsufficientStockError) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Insufficient stock in source branch',
-            items: [{ productId: e.productId, available: e.available }],
-          },
-          { status: 400 }
-        );
+        return apiError('VALIDATION_ERROR', 'Insufficient stock in source branch', 400, undefined, { items: [{ productId: e.productId, available: e.available }] });
       }
       if (e instanceof Error && e.message === 'TRANSFER_ALREADY_PROCESSED') {
         return apiError('VALIDATION_ERROR', 'Transfer already processed', 400);
