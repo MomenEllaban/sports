@@ -1,7 +1,7 @@
 # التقرير الشامل لنظام أبطال الرياضة — ERP + Storefront + POS
 
 **تاريخ التقرير:** 25 سبتمبر 2026
-**الفرع:** `refactor/admin-sidebar-restructure`
+**الفرع:** `main`
 **المصدر:** `MomenEllaban/sports`
 **نطاق التقرير:** لوحة الإدارة، المسارات والتشغيل، الأمان، منطق المخزون والطلبات والمرتجعات، وكل ما طلبته المهمة.
 
@@ -945,7 +945,7 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 
 ### 9.5 Git
 
-- Branch العمل: `refactor/admin-sidebar-restructure`.
+- Branch العمل الحالي: `main` (الـ commits السابقة كانت على `refactor/admin-sidebar-restructure`).
 - Phase 1: `c6bbe3d` — categorized admin shell.
 - Phase 2: `5ea3a94` — nested routes/module pages.
 - Phase 3: `b4de357` — security/payment/logic hardening.
@@ -1010,4 +1010,104 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 - Supplier account is a commitments/payments summary until supplier-payment-to-PO allocation and return credit notes exist.
 - Report aggregation currently has bounded source reads before in-memory aggregation; high-volume installations should move these reports to SQL groupBy/materialized views.
 - Existing production risks from the previous report remain explicit: broad historical branch isolation, online order idempotency/reservation, exchange netting, refund watchdog, live ETA/signing, and DB-level stock constraints.
-- Desktop browser visual/E2E was unavailable in the session; run it in CI/staging before release.
+- Desktop browser visual/WCAG ما زال يحتاج جلسة browser متصلة؛ تم تشغيل فحص Playwright محلي على 4 مقاسات و5 صفحات public بدون overflow أو console errors، بينما لم يتم ادعاء فحص axe/WCAG كامل.
+
+---
+
+## 11. إصلاحات UI/UX ومعالجة الأخطاء
+
+هذه الجولة نُفذت على `main` بعد جولة الميزات السابقة، وتغطي المشاكل A–D في `docs/TASKS.md`.
+
+### 11.1 قبل/بعد — A) Scrollbar مزدوج
+
+**المشكلة قبل:**
+- `AdminChrome` كان يستخدم `h-dvh` و`overflow-hidden`، لكن الـ Sidebar كان عنصرًا قابلًا للتمرير وحده، بينما كان Main عنصرًا آخر قابلًا للتمرير؛ على RTL والجداول العريضة كان يظهر scrollbar للـ document وآخر للمحتوى.
+- `h-screen` في POS مع `w-screen` كان يترك تجاوزًا أفقيًا بسبب اختلاف viewport.
+- في Storefront كانت Desktop navigation/actions تظهر معًا عند `1024px` وتسبب overflow أفقي 79px في tablet landscape.
+
+**الحل بعد:**
+- `AdminChrome` يملك viewport ويضع `data-scroll-region="admin-main"` على `main` مع `.app-scrollbar`; يضيف `body[data-app-shell='admin']` لمنع document scroll المكرر.
+- `AdminSidebar` أصبح غلافه `overflow-hidden`، وداخله Navigation وPOS وuser card داخل region داخلي واحد قابل للتمرير عند الحاجة فقط، والـ footer ثابت `shrink-0`.
+- كل الجداول العريضة وشرائط الفلاتر في Admin/POS تستخدم `.app-scrollbar` و`.app-scrollbar-horizontal`، مع لون token و`scrollbar-width: thin`، والجدول الأفقي يبقى scrollbar أفقيًا مميزًا.
+- POS يستخدم `h-dvh` و`min-h-0`، وStorefront ينقل nav الكامل إلى `xl` بينما يعرض compact menu/actions في `1024px`.
+
+**الملفات:** `src/app/globals.css`, `src/components/admin/AdminChrome.tsx`, `src/components/admin/AdminSidebar.tsx`, `src/app/[locale]/pos/page.tsx`, `src/components/storefront/Header.tsx`, `src/components/ui/foundation.tsx`, وبقية wrappers الجداول.
+
+### 11.2 قبل/بعد — B) Modal
+
+**المشكلة قبل:** كانت `Modal` في `foundation.tsx` تمرر panel كامل في `overflow-y-auto`، بينما كانت dialogs أخرى في POS/Admin تكرر markup بحدود وارتفاعات ثابتة؛ النتيجة كانت فراغ/تغطية عند جدول قصير وعدم ثبات footer عند جدول طويل.
+
+**الحل بعد:**
+- `DialogFrame` هو wrapper واحد: overlay `fixed inset-0` مع flex centering، panel بلا height ثابت، و`max-height: min(90dvh, calc(100dvh - 2rem))`.
+- `app-modal-body` هو منطقة التمرير الوحيدة، وheader/footer ثابتان، مع `aria-modal` وfocus trap وEscape وbody lock واستعادة focus، مع `getClientRects()` كفلتر صحيح للـ focusables داخل fixed elements.
+- تم ترحيل Users/Branch/Shifts/Quick Customer/Close Shift/Payment/Receipt/Return dialogs إلى `DialogFrame` دون تغيير RTL أو التصميم البصري.
+- لا يوجد JS height measurement أو layout shift؛ الحل CSS فقط مع `flex`/`max-height`.
+
+### 11.3 قبل/بعد — C) Version label
+
+كان footer موجود بالفعل أسفل Sidebar، وتم تثبيت Contract: `shrink-0`, `dir="ltr"`, `aria-label`, `whitespace-nowrap`، وعدم تكرار النسخة في Header/الصفحات. لا يوجد Changelog route وهمي، لذلك لم يُضاف رابط غير حقيقي.
+
+### 11.4 قبل/بعد — D) الأخطاء
+
+#### 11.4.1 Wishlist 401 spam
+
+**قبل:** كل `ProductCard` كان ينفذ `GET /api/account/wishlist` عند mount وعند كل storage event، و`useWishlistCount` كان ينفذ طلبًا إضافيًا؛ الزائر غير المسجل كان يسبب 401 متكررًا وضوضاء في console.
+
+**بعد:**
+- Server storefront layout يقرأ signed portal cookie مرة واحدة ويمرر `initialAuthenticated` إلى `StorefrontSessionProvider`.
+- `useWishlist()` هو المصدر الوحيد للعداد/الأزرار/صفحة Wishlist؛ الطلب يُجلَب مرة واحدة، مع in-flight dedupe، وlocalStorage للزائر، وmerge endpoint واحدة عند login، وfallback إلى guest عند 401/403.
+- Toggle optimistic مع rollback، toast واضح عند فشل 5xx، ولا unhandled promise rejection.
+
+**الملفات:** `src/components/storefront/StorefrontSessionProvider.tsx`, `WishlistButton.tsx`, `wishlist/WishlistClient.tsx`, `account/AccountClient.tsx`, `(storefront)/layout.tsx`, `api/account/wishlist/**`.
+
+#### 11.4.2 Client fetch/error boundary
+
+- `src/lib/client-api.ts` أصبح wrapper وحيد لكل `fetch` في مكونات العميل (Admin/Storefront/POS؛ لا توجد `fetch()` مباشرة بخلاف server integrations).
+- يقرأ `{error:{code,message,requestId}}` والـ legacy strings، يطبق timeout/abort، ولا يسجل 401/403 كـ `console.error`.
+- 401 يطلق auth event (redirect في Admin أو رسالة في Storefront)، 403 يعرض رسالة صلاحية، و5xx/network يعرض toast مع زر `إعادة المحاولة`، مع throttle لمنع spam.
+- `GlobalErrorBoundary` في `[locale]/layout.tsx`، و`ErrorEventHandler` مركزي، و`[locale]/pos/error.tsx` يغطيان أخطاء render في Admin/Storefront/POS.
+- `Toast` أضيف له action اختياري و`role=alert` للأخطاء.
+
+#### 11.4.3 Backend API envelope/logging
+
+**قبل:** كانت معظم API error responses تعتمد `{success:false,error:'text'}`، وأخطاء 5xx تكتب مباشرة إلى `console.error` بدون request id.
+
+**بعد:**
+- `src/lib/api-response.ts` يوفّر `apiError`, `apiSuccess`, `apiInternalError`, `getRequestId`؛ شكل الخطأ هو:
+
+```json
+{
+  "success": false,
+  "error": { "code": "VALIDATION_ERROR", "message": "...", "requestId": "..." },
+  "message": "..."
+}
+```
+
+- `x-request-id` و`requestId` يضافان للردود، و`message` top-level يبقى compatibility للـ legacy consumers.
+- تم تحويل error responses في جميع `route.ts` handlers من `NextResponse.json({success:false,...})` إلى `apiError`، بما فيها Admin/POS/webhooks، مع `apiError` extras عند وجود `needsPin` أو `needsShift` أو payload أخطاء الطلب.
+- تم استبدال `console.error` داخل API handlers بـ`captureError`؛ `monitor.ts` يضيف requestId/event shape، ولا تُسجل حالات 401 المتوقعة كـ error.
+- `NEXT_PUBLIC_SENTRY_DSN` اختياري في `.env.example` للـ browser monitoring، ولا يوجد سر في frontend.
+
+### 11.5 Console Audit
+
+|البند|Observation|Origin|Action|
+|---|---|---|---|
+| CORS `https://www.useblackbox.io/tlm` + `Failed to fetch` | browser extension/أداة Blackbox خارجية (`index.iife.js`)، لا يوجد في dependencies أو source | external | توثيق فقط؛ لم يتم تعطيل كود النظام |
+| 401 متكرر على `/api/account/wishlist` | كود التطبيق | app | تم إصلاحه بالكامل بـsession gate + hook مركزي |
+| 403/5xx/انقطاع شبكة | API/شبكة متوقعة أو حقيقية | app | envelope موحد + toast/retry + monitoring منظّم |
+| React `Decimal` server warning في public home | Server Component كان يمرر object كامل | app | تم explicit projection لأرقام plain قبل `ProductCard` |
+| Admin/POS auth shell | layout/local | app | shell واحد وscroll regions موحدة |
+
+### 11.6 التحقق
+
+- `npm run typecheck` ✅
+- `npm run lint` ✅ (0 warnings)
+- `npm run build` ✅ (252 routes؛ تم ضبط `NEXT_PUBLIC_SITE_URL` أثناء التحقق المحلي)
+- `npm run test:unit` ✅
+- `npm run test:int` ✅ (26 ملف / 87 اختبار)
+- `npm run test:dashboard` ✅ (173/173)
+- `npm run check:i18n` ✅ (207 keys each)
+- `npm run check:invariants` ✅ CLEAN
+- Playwright local probe ✅ (390/768/1024/1366 × 5 public routes، صفر horizontal overflow وصفر console/5xx response).
+
+**المتبقي قبل production:** جلسة browser متصلة untuk screenshots/WCAG/axe sign-off، ومراجعة production caveats الموجودة في القسم 10.4 (branch isolation، online idempotency/reservation، refund watchdog، ETA، DB stock constraints).

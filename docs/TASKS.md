@@ -1,6 +1,6 @@
 # جولة تصحيحات UX والميزات — Admin / POS / Storefront
 
-**الفرع:** `refactor/admin-sidebar-restructure`  
+**الفرع:** `main`
 **التاريخ:** 25 سبتمبر 2026
 **قاعدة التحديث:** كل بند يبدأ `❌`، ويصبح `🟡` عند التنفيذ الجزئي أو عند وجود blocker، و`✅` عند الاكتمال والاختبار.
 
@@ -44,3 +44,48 @@
 - اكتملت الجولة التنفيذية للبنود A1 وB1–B3 وC1–C2 وD1–D3 وE1 وF1 وG1–G2؛ A2 يبقى 🟡 حتى فحص التباين البصري الآلي.
 - migrations 22–26 موثقة في `SYSTEM_REPORT.md` وتم تطبيقها على Neon ومزامنة قاعدة الاختبار المعزولة.
 - لا يتم_stage أو حذف الملفات المحلية غير المتتبعة الحالية (`scripts/debug-*.ts`, `scripts/.stock-snap.json`).
+
+## H) إصلاحات UI/UX ومعالجة الأخطاء — 25 سبتمبر 2026
+
+**نطاق الجولة:** Admin / POS / Storefront على `main`.
+
+### H-A) Scrollbar مزدوج ومصدر الـ overflow
+
+- [x] ✅ **H-A1 — مصدر الـ scroll في Admin:** `AdminChrome` صار مالكًا للـ viewport (`h-dvh` + `body[data-app-shell=admin]`)، و`main` هو منطقة التمرير الرأسي الوحيدة. الـ Sidebar ثابت، والمنطقة الداخلية القابلة للتمرير تظهر فقط عند تجاوز ارتفاع المحتوى، ونسخة footer ثابتة.
+- [x] ✅ **H-A2 — Scrollbar موحّد:** class عامة `.app-scrollbar` + `.app-scrollbar-horizontal` بألوان design tokens و`scrollbar-width: thin`، وطبّقت على جداول Admin/POS وشرائط الفلاتر والصور.
+- [x] ✅ **H-A3 — POS/Storefront:** POS يستخدم `h-dvh` ومناطق مستقلة مصممة للوحة/التذكرة، وStorefront يمرر فقط صفوف الفلاتر/الجداول أفقيًا. تم إصلاح overflow أفقي في breakpoint التابلت.
+- [x] ✅ **اختبار responsive:** فحص Playwright محلي على `390×844`, `768×1024`, `1024×768`, `1366×768` لصفحات `/ar`, `/ar/catalog`, `/ar/cart`, `/ar/tracking`, `/ar/branches`: صفر horizontal overflow وصفر console/5xx بعد الإصلاح. (المتصفح البصري الخارجي ما زال غير متصل.)
+
+### H-B) ارتفاع الـ Modal
+
+- [x] ✅ **H-B1 — Wrapper مشترك:** `DialogFrame` في `src/components/ui/foundation.tsx` أصبح المصدر الواحد لـ`Modal` و`ConfirmDialog` وdialogs الـPOS المخصصة، مع overlay ثابت على viewport، focus trap، Escape، body lock وaria-modal.
+- [x] ✅ **H-B2 — Dynamic height:** لا يوجد height ثابت؛ panel يستخدم `max-height: min(90dvh, calc(100dvh - 2rem))`، والمحتوى هو الذي يحدد الارتفاع، و`app-modal-body` هو منطقة التمرير الوحيدة بعد تجاوز الشاشة. Footer يثبت خارج جسم التمرير.
+- [x] ✅ **H-B3 — Migration:** تم توحيد dialogs المستخدمين والفروع والورديات وPOS payment/receipt/return، مع الحفاظ على RTL.
+
+### H-C) Version label
+
+- [x] ✅ **H-C1:** `Sports Champions ERP · v1.0` في footer ثابت أسفل Sidebar (`shrink-0`)، لا يتكرر ولا يأخذ مساحة تنقل، ومع `dir=ltr` و`aria-label`، ولا يوجد رابط Changelog وهمي.
+
+### H-D) الأخطاء والـ Console
+
+- [x] ✅ **H-D1 — Wishlist 401 spam:** `StorefrontSessionProvider` يمرر حالة portal من Server Component، ولا يستدعي `/api/account/wishlist` للزائر؛ `useWishlist()` مركزي للعداد/الأزرار/الصفحة، مع request واحد وdedupe، localStorage للزائر، merge عند login، وfallback عند 401/403.
+- [x] ✅ **H-D2 — Wrapper موحد:** `src/lib/client-api.ts` هو wrapper كل طلبات المتصفح في Admin/Storefront/POS (لم تبقَ `fetch()` مباشرة في مكونات العميل)، مع timeout/abort، 401 redirect أو رسالة، 403 رسالة صريحة، 5xx/network toast مع إعادة محاولة، throttle، وعدم `console.error` للحالات المتوقعة.
+- [x] ✅ **H-D3 — ErrorBoundary:** `GlobalErrorBoundary` في الـlocale layout + `ErrorEventHandler` + `pos/error.tsx`، مع fallback ودّي وإعادة محاولة/تحديث.
+- [x] ✅ **H-D4 — API envelope:** `src/lib/api-response.ts` يوحّد `{ success:false, error:{ code, message, requestId } }` مع `x-request-id`، وحُوّل خطأ API في كل route handlers من `NextResponse.json({success:false,error})` إلى `apiError`، وأخطاء 5xx تمر عبر `captureError` مع request id. أضيف `message` top-level لتوافق العملاء القدامى.
+- [x] ✅ **H-D5 — Console Audit:** لا يوجد سكربت/dependency باسم `useblackbox` أو `index.iife.js` في المستودع؛ خطأ CORS المرصود خارجي من browser extension/أداة Blackbox وليس من كود النظام. تم توثيقه بدل تعطيله.
+
+### اختبارات الجولة
+
+| الأمر | النتيجة |
+|---|---|
+| `npm run typecheck` | ✅ PASS |
+| `npm run lint` | ✅ PASS، 0 warnings |
+| `npm run build` (مع `NEXT_PUBLIC_SITE_URL`) | ✅ PASS، 252 routes |
+| `npm run test:unit` | ✅ 18 ملف / 72 اختبار |
+| `npm run test:int` | ✅ 26 ملف / 87 اختبار |
+| `npm run test:dashboard` | ✅ 173/173 |
+| `npm run check:i18n` / `check:invariants` | ✅ PASS / CLEAN |
+| Playwright responsive probe | ✅ 4 viewports × 5 public routes، بلا overflow/console errors |
+| Desktop visual/WCAG review | 🟡 يحتاج جلسة browser متصلة؛ لم يتم إجراء فحص axe بصري كامل بعد |
+
+**ملاحظة:** لم يتم stage أو حذف `scripts/debug-*.ts` أو `scripts/.stock-snap.json`.
