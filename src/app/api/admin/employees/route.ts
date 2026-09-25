@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 
 export async function GET() {
   try {
@@ -21,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const body = await req.json();
@@ -48,6 +49,15 @@ export async function POST(req: Request) {
         isActive: true,
       },
       include: { branch: { select: { id: true, name: true, nameEn: true } } },
+    });
+
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'employee.created',
+      entity: 'Employee',
+      entityId: employee.id,
+      branchId,
+      metadata: { name: employee.name, roleTitle: employee.roleTitle, salary: Number(salary), salaryType, commissionRate: commissionPercent / 100 },
     });
 
     return NextResponse.json({ success: true, employee });

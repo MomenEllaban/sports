@@ -72,8 +72,11 @@ describe('document numbering', () => {
   });
 
   it('exposes only the prefixes that have a counter', () => {
-    expect([...DOC_PREFIXES]).toEqual(['ORD', 'POS', 'RTN']);
+    expect([...DOC_PREFIXES]).toEqual(['ORD', 'POS', 'RTN', 'TRF', 'EXP']);
     expect(isDocPrefix('ORD')).toBe(true);
+    expect(isDocPrefix('TRF')).toBe(true);
+    expect(isDocPrefix('EXP')).toBe(true);
+    // `PO` still uses a timestamp+random form and is deliberately not counted.
     expect(isDocPrefix('PO')).toBe(false);
     expect(isDocPrefix(42)).toBe(false);
   });

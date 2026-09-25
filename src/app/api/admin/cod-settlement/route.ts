@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 import { num } from '@/lib/pricing';
 
 /**
@@ -52,7 +53,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const body = await req.json();
@@ -73,6 +74,26 @@ export async function POST(req: Request) {
       where: { id: orderId },
       data: { codRemitted: remitted, codReconciled: reconciled },
     });
+
+    // This is the record of physical cash handed over by the courier. A short
+    // remittance is a cash discrepancy, so both the amounts and the mismatch
+    // belong in the trail even when the entry reconciles.
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: reconciled ? 'cod.reconciled' : 'cod.discrepancy',
+      entity: 'Order',
+      entityId: orderId,
+      branchId: order.branchId,
+      metadata: {
+        orderNumber: order.orderNumber,
+        expected: num(order.totalAmount),
+        remitted,
+        discrepancy: num(order.totalAmount) - remitted,
+        previousRemitted: num(order.codRemitted),
+        previousReconciled: order.codReconciled,
+      },
+    });
+
     return NextResponse.json({
       success: true,
       orderId,

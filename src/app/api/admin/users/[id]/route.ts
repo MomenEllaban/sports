@@ -2,6 +2,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 
@@ -71,6 +72,16 @@ export async function PATCH(
       }
     }
 
+    // Capture the pre-change values so the audit trail records the *change*,
+    // not just the new state. Only security-relevant fields are captured.
+    const before = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true, isActive: true, branchIds: true, email: true },
+    });
+    if (!before) {
+      return apiError('NOT_FOUND', 'المستخدم غير موجود', 404);
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -85,6 +96,30 @@ export async function PATCH(
         createdAt: true,
       },
     });
+
+    // One entry per kind of change keeps the trail searchable: a role change is
+    // not buried inside a generic "user.updated" row. Secrets are never logged,
+    // only that they were set.
+    const actorId = (session?.user as { id?: string } | undefined)?.id;
+    const base = { actorId, entity: 'User', entityId: id };
+    if (before.role !== updatedUser.role) {
+      void writeAudit({ ...base, action: 'user.role_changed', metadata: { from: before.role, to: updatedUser.role } });
+    }
+    if (before.isActive !== updatedUser.isActive) {
+      void writeAudit({ ...base, action: 'user.access_changed', metadata: { isActive: { from: before.isActive, to: updatedUser.isActive } } });
+    }
+    if (JSON.stringify(before.branchIds) !== JSON.stringify(updatedUser.branchIds)) {
+      void writeAudit({ ...base, action: 'user.branches_changed', metadata: { from: before.branchIds, to: updatedUser.branchIds } });
+    }
+    if (updateData.passwordHash) {
+      void writeAudit({ ...base, action: 'user.password_changed', metadata: { email: updatedUser.email } });
+    }
+    if (updateData.managerPinHash) {
+      void writeAudit({ ...base, action: 'user.manager_pin_changed', metadata: { email: updatedUser.email } });
+    }
+    if (before.email !== updatedUser.email) {
+      void writeAudit({ ...base, action: 'user.email_changed', metadata: { from: before.email, to: updatedUser.email } });
+    }
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (err: unknown) {
@@ -119,6 +154,14 @@ export async function DELETE(
     }
 
     await prisma.user.delete({ where: { id } });
+
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'user.deleted',
+      entity: 'User',
+      entityId: id,
+      metadata: { email: targetUser.email, role: targetUser.role, isActive: targetUser.isActive },
+    });
 
     return NextResponse.json({ success: true, message: 'تم حذف المستخدم بنجاح' });
   } catch (err: unknown) {

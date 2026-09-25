@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 
 export async function PATCH(
   req: Request,
@@ -41,7 +42,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
     const { id } = await params;
     const [poCount, paymentCount] = await Promise.all([
@@ -51,7 +52,15 @@ export async function DELETE(
     if (poCount > 0 || paymentCount > 0) {
       return apiError('CONFLICT', `لا يمكن حذف المورد — مرتبط بـ ${poCount} أمر شراء و${paymentCount} دفعة`, 409);
     }
+    const target = await prisma.supplier.findUnique({ where: { id }, select: { name: true } });
     await prisma.supplier.delete({ where: { id } });
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'supplier.deleted',
+      entity: 'Supplier',
+      entityId: id,
+      metadata: { name: target?.name },
+    });
     return NextResponse.json({ success: true });
   } catch (e) {
     captureError('api/admin/suppliers/[id]', e);

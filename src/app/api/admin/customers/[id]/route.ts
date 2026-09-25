@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 
 export async function PATCH(
   req: Request,
@@ -40,7 +41,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { id } = await params;
@@ -51,7 +52,23 @@ export async function DELETE(
       return apiError('CONFLICT', `لا يمكن حذف العميل لأن لديه ${orderCount} طلب مسجل`, 409);
     }
 
+    const target = await prisma.customer.findUnique({
+      where: { id },
+      select: { name: true, phone: true },
+    });
+
     await prisma.customer.delete({ where: { id } });
+
+    // Deleting a customer removes personal data, so the trail keeps the phone
+    // and name to answer a later "who was removed and why" question.
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'customer.deleted',
+      entity: 'Customer',
+      entityId: id,
+      metadata: { name: target?.name, phone: target?.phone },
+    });
+
     return NextResponse.json({ success: true });
   } catch (e) {
     captureError('api/admin/customers/[id]', e);

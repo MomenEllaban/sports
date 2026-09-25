@@ -2,6 +2,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 
 export async function PATCH(
   req: Request,
@@ -50,7 +51,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN');
+    const { error, session } = await requireRole('SUPER_ADMIN');
     if (error) return error;
 
     const { id } = await params;
@@ -81,6 +82,14 @@ export async function DELETE(
         where: { id },
         data: { isActive: false },
       });
+      void writeAudit({
+        actorId: (session?.user as { id?: string } | undefined)?.id,
+        action: 'branch.deactivated',
+        entity: 'Branch',
+        entityId: id,
+        branchId: id,
+        metadata: { name: counts.name, nameEn: counts.nameEn, reason: 'has linked records', ...counts._count },
+      });
       return NextResponse.json({
         success: true,
         message: 'تم تعطيل الفرع بنجاح لوجود مبيعات وموظفين مرتبطين به',
@@ -88,6 +97,13 @@ export async function DELETE(
     }
 
     await prisma.branch.delete({ where: { id } });
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'branch.deleted',
+      entity: 'Branch',
+      entityId: id,
+      metadata: { name: counts?.name, nameEn: counts?.nameEn },
+    });
     return NextResponse.json({ success: true, message: 'تم حذف الفرع' });
   } catch (err: unknown) {
     return apiError('INTERNAL_ERROR', String((err as Error).message || 'فشل حذف الفرع'), 500);

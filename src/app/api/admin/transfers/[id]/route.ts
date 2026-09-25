@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { decrementStock, incrementStock, InsufficientStockError } from '@/lib/inventory/service';
+import { writeAudit } from '@/lib/audit';
 
 // Approve (COMPLETED: moves stock) or reject a transfer
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return apiError('VALIDATION_ERROR', 'Transfer already processed', 400);
       }
       const transfer = await prisma.stockTransfer.findUnique({ where: { id } });
+      void writeAudit({
+        actorId: approverId,
+        action: 'transfer.rejected',
+        entity: 'StockTransfer',
+        entityId: id,
+        branchId: transfer?.fromBranchId ?? null,
+        metadata: { transferNumber: transfer?.transferNumber, toBranchId: transfer?.toBranchId },
+      });
       return NextResponse.json({ success: true, transfer });
     }
 
@@ -86,6 +95,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     const updated = await prisma.stockTransfer.findUnique({ where: { id } });
+    // Stock physically moved between branches, so this is the entry that
+    // matters for reconciling branch balances after the fact.
+    void writeAudit({
+      actorId: approverId,
+      action: 'transfer.completed',
+      entity: 'StockTransfer',
+      entityId: id,
+      branchId: transfer.fromBranchId,
+      metadata: {
+        transferNumber: transfer.transferNumber,
+        fromBranchId: transfer.fromBranchId,
+        toBranchId: transfer.toBranchId,
+        itemCount: transfer.items.length,
+        totalQuantity: transfer.items.reduce((sum, it) => sum + it.quantity, 0),
+      },
+    });
     return NextResponse.json({ success: true, transfer: updated });
   } catch (e) {
     captureError('api/admin/transfers/[id]', e);

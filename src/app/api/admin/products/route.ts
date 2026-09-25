@@ -3,10 +3,12 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
+import { num } from '@/lib/pricing';
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const body = await req.json();
@@ -88,6 +90,23 @@ export async function POST(req: Request) {
         },
       });
     }
+
+    // The opening price/cost is the baseline every later margin figure is
+    // measured against, so it belongs in the trail from the start.
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'product.created',
+      entity: 'Product',
+      entityId: product.id,
+      metadata: {
+        sku: product.sku,
+        nameAr: product.nameAr,
+        nameEn: product.nameEn,
+        price: num(product.price),
+        costPrice: num(product.costPrice),
+        openingQuantity: qty,
+      },
+    });
 
     return NextResponse.json({ success: true, product });
   } catch (e) {

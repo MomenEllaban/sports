@@ -2,6 +2,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 
@@ -32,11 +33,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN');
+    const { error, session } = await requireRole('SUPER_ADMIN');
     if (error) return error;
 
     const body = await req.json();
     const { name, email, password, phone, role, branchIds, isActive, managerPin } = body;
+    const actorId = (session?.user as { id?: string } | undefined)?.id;
 
     if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || !name.trim() || !email.trim() || !password) {
       return apiError('VALIDATION_ERROR', 'الاسم والبريد الإلكتروني وكلمة المرور مطلوبة', 400);
@@ -86,6 +88,22 @@ export async function POST(req: Request) {
         branchIds: true,
         isActive: true,
         createdAt: true,
+      },
+    });
+
+    // Never log the password or the PIN — only that they were set.
+    void writeAudit({
+      actorId,
+      action: 'user.created',
+      entity: 'User',
+      entityId: user.id,
+      metadata: {
+        email: user.email,
+        role: user.role,
+        branchIds: user.branchIds,
+        isActive: user.isActive,
+        passwordSet: true,
+        managerPinSet: Boolean(managerPinHash),
       },
     });
 

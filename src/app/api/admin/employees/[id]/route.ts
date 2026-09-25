@@ -3,13 +3,15 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
+import { num } from '@/lib/pricing';
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { id } = await params;
@@ -31,7 +33,47 @@ export async function PATCH(
     if (body.branchId !== undefined) data.branchId = body.branchId;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
 
+    const before = await prisma.employee.findUnique({
+      where: { id },
+      select: { name: true, roleTitle: true, salary: true, salaryType: true, commissionRate: true, isActive: true, branchId: true },
+    });
+    if (!before) {
+      return apiError('NOT_FOUND', 'الموظف غير موجود', 404);
+    }
+
     const employee = await prisma.employee.update({ where: { id }, data });
+
+    // Pay-affecting fields are recorded as before/after so a salary change can
+    // be explained months later.
+    const actorId = (session?.user as { id?: string } | undefined)?.id;
+    const base = { actorId, entity: 'Employee', entityId: id, branchId: employee.branchId };
+    const oldSalary = num(before.salary);
+    const newSalary = num(employee.salary);
+    if (oldSalary !== newSalary || before.salaryType !== employee.salaryType) {
+      void writeAudit({
+        ...base,
+        action: 'employee.salary_changed',
+        metadata: {
+          name: employee.name,
+          salary: { from: oldSalary, to: newSalary },
+          salaryType: { from: before.salaryType, to: employee.salaryType },
+        },
+      });
+    }
+    if (num(before.commissionRate) !== num(employee.commissionRate)) {
+      void writeAudit({
+        ...base,
+        action: 'employee.commission_changed',
+        metadata: { name: employee.name, commissionRate: { from: num(before.commissionRate), to: num(employee.commissionRate) } },
+      });
+    }
+    if (before.roleTitle !== employee.roleTitle) {
+      void writeAudit({ ...base, action: 'employee.role_changed', metadata: { from: before.roleTitle, to: employee.roleTitle } });
+    }
+    if (before.isActive !== employee.isActive) {
+      void writeAudit({ ...base, action: 'employee.access_changed', metadata: { isActive: { from: before.isActive, to: employee.isActive } } });
+    }
+
     return NextResponse.json({ success: true, employee });
   } catch (e) {
     captureError('api/admin/employees/[id]', e);

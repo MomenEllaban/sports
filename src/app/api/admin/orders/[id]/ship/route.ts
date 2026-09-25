@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requireRole } from '@/lib/auth/guards';
 import { createCourierShipment } from '@/lib/logistics';
+import { writeAudit } from '@/lib/audit';
 import { captureError } from '@/lib/monitor';
 
 /**
@@ -12,7 +13,7 @@ import { captureError } from '@/lib/monitor';
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
     const { id } = await params;
     const order = await prisma.order.findUnique({ where: { id } });
@@ -38,6 +39,19 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const updated = await prisma.order.update({
       where: { id },
       data: { trackingNumber: result.trackingNumber },
+    });
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'order.shipment_booked',
+      entity: 'Order',
+      entityId: id,
+      branchId: order.branchId,
+      metadata: {
+        orderNumber: order.orderNumber,
+        provider: order.shippingProvider,
+        previousTrackingNumber: order.trackingNumber,
+        trackingNumber: result.trackingNumber,
+      },
     });
     return NextResponse.json({ success: true, trackingNumber: updated.trackingNumber, labelUrl: result.labelUrl });
   } catch (e) {

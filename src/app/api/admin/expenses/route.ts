@@ -3,6 +3,8 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
+import { nextDocumentNumber } from '@/lib/documents';
 import { ExpenseCategory } from '@prisma/client';
 
 export async function POST(req: Request) {
@@ -20,15 +22,26 @@ export async function POST(req: Request) {
       return apiError('VALIDATION_ERROR', 'Invalid expense category', 400);
     }
 
+    const actorId = (session!.user as { id: string }).id;
+    const expenseNumber = await prisma.$transaction((tx) => nextDocumentNumber(tx, 'EXP'));
     const expense = await prisma.expense.create({
       data: {
-        expenseNumber: `EXP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        expenseNumber,
         branchId,
         category: category || 'OTHER',
         description: String(description).trim(),
         amount: Number(amount),
-        createdById: (session!.user as { id: string }).id,
+        createdById: actorId,
       },
+    });
+
+    void writeAudit({
+      actorId,
+      action: 'expense.recorded',
+      entity: 'Expense',
+      entityId: expense.id,
+      branchId,
+      metadata: { expenseNumber, amount: Number(amount), category: expense.category },
     });
 
     return NextResponse.json({ success: true, expense });

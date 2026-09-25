@@ -3,6 +3,8 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
+import { num } from '@/lib/pricing';
 
 // PATCH: full update of a product
 export async function PATCH(
@@ -10,7 +12,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { id } = await params;
@@ -44,7 +46,42 @@ export async function PATCH(
         : [];
     }
 
+    // Pricing is the sensitive part: record the previous money values so a
+    // margin change is reconstructable from the audit trail alone.
+    const before = await prisma.product.findUnique({
+      where: { id },
+      select: { sku: true, nameAr: true, price: true, costPrice: true, isActive: true },
+    });
+    if (!before) {
+      return apiError('NOT_FOUND', 'المنتج غير موجود', 404);
+    }
+
     const product = await prisma.product.update({ where: { id }, data });
+
+    const actorId = (session?.user as { id?: string } | undefined)?.id;
+    const base = { actorId, entity: 'Product', entityId: id };
+    const oldPrice = num(before.price);
+    const newPrice = num(product.price);
+    const oldCost = num(before.costPrice);
+    const newCost = num(product.costPrice);
+    if (oldPrice !== newPrice || oldCost !== newCost) {
+      void writeAudit({
+        ...base,
+        action: 'product.price_changed',
+        metadata: {
+          sku: product.sku,
+          price: { from: oldPrice, to: newPrice },
+          costPrice: { from: oldCost, to: newCost },
+        },
+      });
+    }
+    if (before.isActive !== product.isActive) {
+      void writeAudit({ ...base, action: 'product.availability_changed', metadata: { isActive: { from: before.isActive, to: product.isActive } } });
+    }
+    if (before.sku !== product.sku) {
+      void writeAudit({ ...base, action: 'product.sku_changed', metadata: { from: before.sku, to: product.sku } });
+    }
+
     return NextResponse.json({ success: true, product });
   } catch (e) {
     captureError('api/admin/products/[id]', e);
@@ -58,7 +95,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
     const { id } = await params;
@@ -70,10 +107,25 @@ export async function DELETE(
       return apiError('CONFLICT', `لا يمكن حذف المنتج — مرتبط بـ ${orderCount + saleCount} عملية مبيعات/طلبات`, 409);
     }
 
+    const target = await prisma.product.findUnique({
+      where: { id },
+      select: { sku: true, nameAr: true, nameEn: true, price: true, costPrice: true },
+    });
+
     // Delete inventory entries first
     await prisma.branchInventory.deleteMany({ where: { productId: id } });
     await prisma.inventoryLog.deleteMany({ where: { productId: id } });
     await prisma.product.delete({ where: { id } });
+
+    if (target) {
+      void writeAudit({
+        actorId: (session?.user as { id?: string } | undefined)?.id,
+        action: 'product.deleted',
+        entity: 'Product',
+        entityId: id,
+        metadata: { sku: target.sku, nameAr: target.nameAr, nameEn: target.nameEn, price: num(target.price), costPrice: num(target.costPrice) },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (e) {

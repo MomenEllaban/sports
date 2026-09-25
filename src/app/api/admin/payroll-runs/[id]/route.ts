@@ -3,12 +3,13 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 import { money, num } from '@/lib/pricing';
 
 // Adjust bonus/deductions on a DRAFT item (2.4) — net recalculated server-side.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const { id } = await params;
@@ -49,6 +50,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data: { totalAmount: num(totals._sum.netSalary ?? 0) },
     });
+
+    // Manual bonus/deduction is a direct change to someone's pay, so both the
+    // previous and the new figures are recorded.
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'payroll.item_adjusted',
+      entity: 'PayrollItem',
+      entityId: itemId,
+      metadata: {
+        payrollRunId: id,
+        employeeId: item.employeeId,
+        period: `${run.periodYear}-${String(run.periodMonth).padStart(2, '0')}`,
+        bonus: { from: num(item.bonus), to: nextBonus },
+        deductions: { from: num(item.deductions), to: nextDeductions },
+        netSalary: { from: num(item.netSalary), to: num(updated.netSalary) },
+      },
+    });
+
     return NextResponse.json({ success: true, item: updated });
   } catch (e) {
     captureError('api/admin/payroll-runs/[id]', e);
@@ -58,7 +77,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 // Approve or mark a payroll run as paid
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
 
     const { id } = await params;
@@ -69,6 +88,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!run) {
       return apiError('NOT_FOUND', 'Payroll run not found', 404);
     }
+
+    // Marking a run PAID is the point money actually leaves the business.
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: action === 'pay' ? 'payroll.paid' : 'payroll.approved',
+      entity: 'PayrollRun',
+      entityId: id,
+      metadata: {
+        period: `${run.periodYear}-${String(run.periodMonth).padStart(2, '0')}`,
+        totalAmount: num(run.totalAmount),
+        fromStatus: run.status,
+      },
+    });
 
     if (action === 'approve' && run.status === 'DRAFT') {
       const updated = await prisma.payrollRun.update({ where: { id }, data: { status: 'APPROVED' } });

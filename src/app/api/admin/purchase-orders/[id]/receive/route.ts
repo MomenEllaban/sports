@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { incrementStock } from '@/lib/inventory/service';
 import { canAccessBranch } from '@/lib/auth/branch-scope';
+import { writeAudit } from '@/lib/audit';
 
 class PoError extends Error {
   status: number;
@@ -32,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     // ONE transaction: item receipts + stock + logs + status. The conditional
     // quantityReceived update is the lock so concurrent receives cannot double-count.
-    const updated = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const po = await tx.purchaseOrder.findUnique({ where: { id }, include: { items: true } });
       if (!po) throw new PoError(404, 'Purchase order not found');
       if (!canAccessBranch(session, po.branchId)) throw new PoError(403, 'Purchase order is outside your branch scope');
@@ -67,11 +68,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
       const refreshed = await tx.purchaseOrder.findUniqueOrThrow({ where: { id }, include: { items: true } });
       const fullyReceived = refreshed.items.every((i) => i.quantityReceived >= i.quantityOrdered);
-      return tx.purchaseOrder.update({
+      const purchaseOrder = await tx.purchaseOrder.update({
         where: { id },
         data: { status: fullyReceived ? 'RECEIVED' : 'SUBMITTED' },
       });
+      // Returned so the audit entry can name the PO and the resulting
+      // quantities without re-querying outside the transaction.
+      return {
+        purchaseOrder,
+        audit: {
+          poNumber: po.poNumber,
+          branchId: po.branchId,
+          status: purchaseOrder.status,
+          received: refreshed.items.map((i) => ({ productId: i.productId, received: i.quantityReceived, ordered: i.quantityOrdered })),
+        },
+      };
     }, { maxWait: 10000, timeout: 20000 });
+
+    const updated = result.purchaseOrder;
+
+    // Receiving goods increases stock and settles what the supplier delivered,
+    // so the quantities are recorded against the PO number.
+    void writeAudit({
+      actorId,
+      action: 'purchase_order.received',
+      entity: 'PurchaseOrder',
+      entityId: id,
+      branchId: result.audit.branchId,
+      metadata: result.audit,
+    });
 
     return NextResponse.json({ success: true, purchaseOrder: updated });
   } catch (e) {

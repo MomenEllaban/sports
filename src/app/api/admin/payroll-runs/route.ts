@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { writeAudit } from '@/lib/audit';
 import { money, num } from '@/lib/pricing';
 
 // Create a payroll run for a month with items auto-built from active employees
@@ -71,16 +72,25 @@ export async function POST(req: Request) {
     });
     const totalAmount = items.reduce((s, i) => s + i.netSalary, 0);
 
+    const actorId = (session!.user as { id: string }).id;
     const run = await prisma.payrollRun.create({
       data: {
         periodMonth,
         periodYear,
         status: 'DRAFT',
         totalAmount,
-        createdById: (session!.user as { id: string }).id,
+        createdById: actorId,
         items: { create: items },
       },
       include: { items: { include: { employee: true } } },
+    });
+
+    void writeAudit({
+      actorId,
+      action: 'payroll.run_created',
+      entity: 'PayrollRun',
+      entityId: run.id,
+      metadata: { period: `${periodYear}-${String(periodMonth).padStart(2, '0')}`, totalAmount, itemCount: items.length },
     });
 
     return NextResponse.json({ success: true, payrollRun: run, salesByEmployee });

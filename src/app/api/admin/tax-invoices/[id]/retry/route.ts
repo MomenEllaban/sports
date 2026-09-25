@@ -5,6 +5,7 @@ import { num } from '@/lib/pricing';
 import { requireRole } from '@/lib/auth/guards';
 import { buildEtaReceipt } from '@/lib/eta';
 import { getVatRate } from '@/lib/settings';
+import { writeAudit } from '@/lib/audit';
 import { captureError } from '@/lib/monitor';
 
 /**
@@ -13,7 +14,7 @@ import { captureError } from '@/lib/monitor';
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { error } = await requireRole('SUPER_ADMIN', 'FINANCE');
+    const { error, session } = await requireRole('SUPER_ADMIN', 'FINANCE');
     if (error) return error;
     const { id } = await params;
     const inv = await prisma.taxInvoice.findUnique({
@@ -61,6 +62,25 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       where: { id },
       data: { etaUuid: receipt.etaUuid, qrCodeData: receipt.qrCodeDataUrl, status: receipt.status, etaResponseText: receipt.message },
     });
+
+    // Re-submitting to the tax authority is a regulatory action, so the
+    // outcome of each attempt is kept — a later SENT does not hide the earlier
+    // INVALID that prompted it.
+    void writeAudit({
+      actorId: (session?.user as { id?: string } | undefined)?.id,
+      action: 'tax_invoice.retried',
+      entity: 'TaxInvoice',
+      entityId: id,
+      branchId: inv.branchId,
+      metadata: {
+        invoiceNumber: inv.invoiceNumber,
+        fromStatus: inv.status,
+        toStatus: updated.status,
+        etaUuid: receipt.etaUuid,
+        response: receipt.message,
+      },
+    });
+
     return NextResponse.json({ success: true, status: updated.status, message: receipt.message });
   } catch (e) {
     captureError('admin/tax-invoices/[id]/retry', e);
