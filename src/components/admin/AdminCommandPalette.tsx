@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
@@ -26,9 +27,14 @@ export default function AdminCommandPalette() {
   const router = useRouter();
   const isAr = locale === 'ar';
   const [open, setOpen] = useState(false);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPortalRoot(document.body);
+  }, []);
 
   const role = (session?.user as { role?: AdminRole } | undefined)?.role;
   const groups = useMemo(() => getVisibleAdminGroups(role), [role]);
@@ -86,7 +92,7 @@ export default function AdminCommandPalette() {
     setActiveIndex(0);
     const timer = window.setTimeout(() => inputRef.current?.focus(), 0);
     return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [open, portalRoot]);
 
   useEffect(() => {
     setActiveIndex((index) => Math.min(index, Math.max(filtered.length - 1, 0)));
@@ -128,7 +134,7 @@ export default function AdminCommandPalette() {
     );
   }
 
-  return (
+  const palette = (
     <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-950/75 p-4 pt-[12vh] backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={isAr ? 'البحث السريع' : 'Quick navigation'}>
       <button type="button" className="absolute inset-0 cursor-default" aria-label={isAr ? 'إغلاق البحث' : 'Close search'} onClick={() => setOpen(false)} />
       <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black/40">
@@ -177,4 +183,5 @@ export default function AdminCommandPalette() {
       </div>
     </div>
   );
+  return portalRoot ? createPortal(palette, portalRoot) : null;
 }

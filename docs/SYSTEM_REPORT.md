@@ -1043,6 +1043,7 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 - `app-modal-body` هو منطقة التمرير الوحيدة، وheader/footer ثابتان، مع `aria-modal` وfocus trap وEscape وbody lock واستعادة focus، مع `getClientRects()` كفلتر صحيح للـ focusables داخل fixed elements.
 - تم ترحيل Users/Branch/Shifts/Quick Customer/Close Shift/Payment/Receipt/Return dialogs إلى `DialogFrame` دون تغيير RTL أو التصميم البصري.
 - لا يوجد JS height measurement أو layout shift؛ الحل CSS فقط مع `flex`/`max-height`.
+- `DialogFrame` يستخدم React Portal إلى `document.body`، ولا تستخدمه `backdrop-filter` أو `overflow` في الـ ancestors، لذلك يظل overlay مرتبطًا بالـ viewport حتى داخل `.glass-panel` الخاص بالجدول.
 
 ### 11.3 قبل/بعد — C) Version label
 
@@ -1088,6 +1089,7 @@ ALLOW_DESTRUCTIVE_CLEANUP=false
 - تم تحويل error responses في جميع `route.ts` handlers من `NextResponse.json({success:false,...})` إلى `apiError`، بما فيها Admin/POS/webhooks، مع `apiError` extras عند وجود `needsPin` أو `needsShift` أو payload أخطاء الطلب.
 - تم استبدال `console.error` داخل API handlers بـ`captureError`؛ `monitor.ts` يضيف requestId/event shape، ولا تُسجل حالات 401 المتوقعة كـ error.
 - `NEXT_PUBLIC_SENTRY_DSN` اختياري في `.env.example` للـ browser monitoring، ولا يوجد سر في frontend.
+- في POS light mode، أضيفت rules scoped للـ `.pos-payment-modal` لأن opacity surfaces مثل `bg-slate-900/80` كانت ما زالت داكنة بينما التحويل العام للـ light mode يغيّر لون النص، مما كان يخفي labels؛ الآن payment options وtab strip وchange summary لهما backgrounds متوافقة مع النص.
 
 ### 11.5 Console Audit
 

@@ -61,6 +61,7 @@
 - [x] ✅ **H-B1 — Wrapper مشترك:** `DialogFrame` في `src/components/ui/foundation.tsx` أصبح المصدر الواحد لـ`Modal` و`ConfirmDialog` وdialogs الـPOS المخصصة، مع overlay ثابت على viewport، focus trap، Escape، body lock وaria-modal.
 - [x] ✅ **H-B2 — Dynamic height:** لا يوجد height ثابت؛ panel يستخدم `max-height: min(90dvh, calc(100dvh - 2rem))`، والمحتوى هو الذي يحدد الارتفاع، و`app-modal-body` هو منطقة التمرير الوحيدة بعد تجاوز الشاشة. Footer يثبت خارج جسم التمرير.
 - [x] ✅ **H-B3 — Migration:** تم توحيد dialogs المستخدمين والفروع والورديات وPOS payment/receipt/return، مع الحفاظ على RTL.
+- [x] ✅ **H-B4 — Portal root:** `DialogFrame` وCommand Palette ينشران عبر `document.body`، لذلك لا يحبسهما `backdrop-filter` الخاص بـ`.glass-panel` داخل الجدول ولا يظلان على ارتفاعه.
 
 ### H-C) Version label
 
@@ -73,6 +74,7 @@
 - [x] ✅ **H-D3 — ErrorBoundary:** `GlobalErrorBoundary` في الـlocale layout + `ErrorEventHandler` + `pos/error.tsx`، مع fallback ودّي وإعادة محاولة/تحديث.
 - [x] ✅ **H-D4 — API envelope:** `src/lib/api-response.ts` يوحّد `{ success:false, error:{ code, message, requestId } }` مع `x-request-id`، وحُوّل خطأ API في كل route handlers من `NextResponse.json({success:false,error})` إلى `apiError`، وأخطاء 5xx تمر عبر `captureError` مع request id. أضيف `message` top-level لتوافق العملاء القدامى.
 - [x] ✅ **H-D5 — Console Audit:** لا يوجد سكربت/dependency باسم `useblackbox` أو `index.iife.js` في المستودع؛ خطأ CORS المرصود خارجي من browser extension/أداة Blackbox وليس من كود النظام. تم توثيقه بدل تعطيله.
+- [x] ✅ **H-D6 — POS light mode:** إصلاح تباين الأزرار و tab strip في نافذة `إتمام عملية البيع والدفع`؛ كانت `bg-slate-900/80` داكنة مع نص remapped داكن، وأضيفت قواعد light-mode scoped للـ modal.
 
 ### اختبارات الجولة
 

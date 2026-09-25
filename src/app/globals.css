@@ -418,6 +418,21 @@ body[data-app-shell='admin'] {
   overflow-y: auto;
 }
 
+/* POS payment modal: opacity-variant slate surfaces were still dark in light
+   mode, while the global text remap made their labels dark too. */
+[data-theme="light"] .pos-payment-modal [class~="bg-slate-900/40"] {
+  background-color: rgba(241, 245, 249, 0.95) !important;
+}
+[data-theme="light"] .pos-payment-modal [class~="bg-slate-900/80"] {
+  background-color: #ffffff !important;
+}
+[data-theme="light"] .pos-payment-modal [class~="bg-slate-950/80"] {
+  background-color: #f8fafc !important;
+}
+[data-theme="light"] .pos-payment-modal [class~="hover:bg-slate-800"]:hover {
+  background-color: #e2e8f0 !important;
+}
+
 /* Entrance animations */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(24px); }

@@ -8,6 +8,7 @@
  * Toasts live ONLY in @/components/Toast (mounted once in the root layout).
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image, { type ImageProps } from 'next/image';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/routing';
@@ -447,11 +448,15 @@ export function DialogFrame({
   showCloseButton?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  useDialogLifecycle(panelRef, active, onClose);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setPortalRoot(document.body);
+  }, []);
+  useDialogLifecycle(panelRef, active && portalRoot !== null, onClose);
   if (!active) return null;
 
   const width = size === 'xl' ? 'max-w-4xl' : size === 'lg' ? 'max-w-2xl' : size === 'sm' ? 'max-w-sm' : 'max-w-lg';
-  return (
+  const dialog = (
     <div
       className={`app-modal-overlay bg-slate-950/80 backdrop-blur-sm animate-fade-in ${overlayClassName}`}
       onClick={onClose}
@@ -489,6 +494,7 @@ export function DialogFrame({
       </div>
     </div>
   );
+  return portalRoot ? createPortal(dialog, portalRoot) : null;
 }
 
 // ── ConfirmDialog for dangerous actions (F0 §1.4) ────────

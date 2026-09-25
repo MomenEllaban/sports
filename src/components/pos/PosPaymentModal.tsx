@@ -140,7 +140,7 @@ export default function PosPaymentModal({
       title="إتمام عملية البيع والدفع"
       onClose={onClose}
       size="xl"
-      panelClassName="max-w-4xl glass-panel rounded-3xl border-slate-700 bg-slate-950 text-slate-100"
+      panelClassName="pos-payment-modal max-w-4xl glass-panel rounded-3xl border-slate-700 bg-slate-950 text-slate-100"
       bodyClassName="space-y-6"
       footer={footer}
     >
