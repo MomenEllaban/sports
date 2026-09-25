@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -13,19 +15,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const body = await req.json() as { toStatus?: unknown; expectedFromStatus?: unknown };
 
     if (!isOrderStatus(String(body.toStatus)) || !isOrderStatus(String(body.expectedFromStatus))) {
-      return NextResponse.json({ success: false, error: 'Invalid order status transition' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Invalid order status transition', 400);
     }
     if (String(body.toStatus) === 'RETURNED') {
-      return NextResponse.json(
-        { success: false, error: 'استخدم مسار المرتجعات بدلاً من تغيير الحالة مباشرة' },
-        { status: 400 },
-      );
+      return apiError('VALIDATION_ERROR', 'استخدم مسار المرتجعات بدلاً من تغيير الحالة مباشرة', 400);
     }
 
     const existing = await prisma.order.findUnique({ where: { id }, select: { branchId: true } });
-    if (!existing) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    if (!existing) return apiError('NOT_FOUND', 'Order not found', 404);
     if (!canAccessBranch(session, existing.branchId)) {
-      return NextResponse.json({ success: false, error: 'الطلب خارج نطاق فروعك' }, { status: 403 });
+      return apiError('FORBIDDEN', 'الطلب خارج نطاق فروعك', 403);
     }
 
     try {
@@ -38,13 +37,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ success: true, ...result });
     } catch (error) {
       const transitionError = error as OrderTransitionError & { status?: number };
-      return NextResponse.json(
-        { success: false, error: transitionError.message },
-        { status: transitionError.status || 400 },
-      );
+      return apiError('REQUEST_FAILED', String(transitionError.message), transitionError.status || 400);
     }
   } catch (error) {
-    console.error('Admin order status update error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to update order status' }, { status: 500 });
+    captureError('api/admin/orders/[id]/status', error);
+    return apiError('INTERNAL_ERROR', 'Failed to update order status', 500);
   }
 }

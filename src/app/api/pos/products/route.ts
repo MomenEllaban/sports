@@ -1,3 +1,4 @@
+import { apiError, apiInternalError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards';
@@ -61,7 +62,7 @@ export async function GET(req: Request) {
           filters: { categories: [], brands: [] },
         });
       }
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
 
     const [products, categories, brands] = await Promise.all([
@@ -101,7 +102,6 @@ export async function GET(req: Request) {
       filters: { categories, brands },
     });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ success: false, products: [] }, { status: 500 });
+    return apiInternalError(req, error, 'تعذر تحميل منتجات POS');
   }
 }

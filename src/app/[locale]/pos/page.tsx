@@ -3,9 +3,10 @@
 import React, { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { usePosStore } from '@/store/posStore';
 import { useToast } from '@/components/Toast';
+import { apiRequest } from '@/lib/client-api';
 import { useSession } from 'next-auth/react';
 import { useLocale } from 'next-intl';
-import { LocaleSwitcher, Stepper, Button } from '@/components/ui/foundation';
+import { LocaleSwitcher, Stepper, Button, DialogFrame } from '@/components/ui/foundation';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import PosPaymentModal from '@/components/pos/PosPaymentModal';
 import PosReceiptModal, { type PosReceiptData } from '@/components/pos/PosReceiptModal';
@@ -129,9 +130,8 @@ export default function PosTerminalPage() {
   const fetchShiftStatus = async () => {
     try {
       setShiftLoading(true);
-      const res = await fetch('/api/pos/shifts');
-      const data = await res.json();
-      setShift(data.success && data.shift ? data.shift : null);
+      const data = await apiRequest<{ shift?: typeof shift }>('/api/pos/shifts', { errorKey: 'pos:shift:status' });
+      setShift(data.shift || null);
     } catch {
       setShift(null);
     } finally {
@@ -145,17 +145,16 @@ export default function PosTerminalPage() {
     setOpenError('');
     const chosenBranch = posBranchId || (branchOptions.length > 0 ? branchOptions[0].id : undefined);
     try {
-      const res = await fetch('/api/pos/shifts', {
+      const data = await apiRequest<{ shift?: typeof shift; error?: string }>('/api/pos/shifts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branchId: chosenBranch || undefined,
           openingFloat: openFloat === '' ? undefined : Number(openFloat),
           openNote: openNote || undefined,
         }),
+        errorKey: 'pos:shift:open',
       });
-      const data = await res.json();
-      if (data.success && data.shift) {
+      if (data.shift) {
         toast('تم فتح الوردية — ابدأ أول بيعة', 'success');
         setOpenFloat('');
         setOpenNote('');
@@ -176,14 +175,9 @@ export default function PosTerminalPage() {
     setCloseError('');
     setCloseResult(null);
     try {
-      const res = await fetch(`/api/pos/shifts/${shift.id}`);
-      const data = await res.json();
-      if (data.success) {
-        setClosePreview({ expected: data.expected, openingFloat: data.openingFloat, maxShortage: data.maxShortage });
-        setShowClose(true);
-      } else {
-        toast(data.error || 'تعذر جلب الوردية', 'error');
-      }
+      const data = await apiRequest<{ expected: number; openingFloat: number; maxShortage: number }>(`/api/pos/shifts/${shift.id}`, { errorKey: `pos:shift:preview:${shift.id}` });
+      setClosePreview({ expected: data.expected, openingFloat: data.openingFloat, maxShortage: data.maxShortage });
+      setShowClose(true);
     } catch {
       toast('تعذر الاتصال بالسيرفر', 'error');
     }
@@ -194,20 +188,15 @@ export default function PosTerminalPage() {
     setCloseBusy(true);
     setCloseError('');
     try {
-      const res = await fetch(`/api/pos/shifts/${shift.id}`, {
+      const data = await apiRequest<{ expected: number; actual: number; difference: number }>(`/api/pos/shifts/${shift.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ actualCash: Number(actualCash), closeNote: closeNote || undefined }),
+        errorKey: `pos:shift:close:${shift.id}`,
       });
-      const data = await res.json();
-      if (data.success) {
-        setCloseResult({ expected: data.expected, actual: data.actual, difference: data.difference });
-        toast(`أُغلقت الوردية — الفرق ${data.difference}`, 'success');
-        clearTicket();
-        await fetchShiftStatus();
-      } else {
-        setCloseError(data.error || 'تعذر إغلاق الوردية');
-      }
+      setCloseResult({ expected: data.expected, actual: data.actual, difference: data.difference });
+      toast(`أُغلقت الوردية — الفرق ${data.difference}`, 'success');
+      clearTicket();
+      await fetchShiftStatus();
     } catch {
       setCloseError('تعذر الاتصال بالسيرفر');
     } finally {
@@ -224,9 +213,15 @@ export default function PosTerminalPage() {
       setLoading(true);
       setLoadError('');
       const url = branchId ? `/api/pos/products?branchId=${encodeURIComponent(branchId)}` : '/api/pos/products';
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
+      const data = await apiRequest<{
+        products?: DbProduct[];
+        branches?: Array<{ id: string; name: string; nameEn: string }>;
+        needsBranch?: boolean;
+        branch?: { id: string; name: string; nameEn: string };
+        filters?: { categories?: Array<{ id: string; nameAr: string; nameEn: string }>; brands?: Array<{ id: string; nameAr: string; nameEn: string }> };
+        error?: string;
+      }>(url, { errorKey: `pos:products:${branchId || 'default'}` });
+      if (data.products) {
         if (Array.isArray(data.branches) && data.branches.length > 0) {
           setBranchOptions(data.branches);
         }
@@ -256,7 +251,7 @@ export default function PosTerminalPage() {
           return;
         }
 
-        setProducts(data.products);
+        setProducts(data.products || []);
         setCategoryFilters(Array.isArray(data.filters?.categories) ? data.filters.categories : []);
         setBrandFilters(Array.isArray(data.filters?.brands) ? data.filters.brands : []);
         if (data.branch) {
@@ -311,9 +306,8 @@ export default function PosTerminalPage() {
     setCustomerSearching(true);
     setCustomerError('');
     try {
-      const res = await fetch(`/api/pos/customer?phone=${encodeURIComponent(phone)}`);
-      const data = await res.json();
-      if (data.success && data.customer) {
+      const data = await apiRequest<{ customer?: typeof customer }>(`/api/pos/customer?phone=${encodeURIComponent(phone)}`, { errorKey: 'pos:customer:search' });
+      if (data.customer) {
         setCustomer(data.customer);
         setCustomerError('');
       } else {
@@ -338,13 +332,12 @@ export default function PosTerminalPage() {
     if (!newCustomerName.trim() || !newCustomerPhone.trim()) return;
     setNewCustomerLoading(true);
     try {
-      const res = await fetch('/api/pos/customer', {
+      const data = await apiRequest<{ customer?: typeof customer; error?: string }>('/api/pos/customer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newCustomerName.trim(), phone: newCustomerPhone.trim() }),
+        errorKey: 'pos:customer:create',
       });
-      const data = await res.json();
-      if (data.success && data.customer) {
+      if (data.customer) {
         setCustomer(data.customer);
         setShowQuickCustomerModal(false);
         setNewCustomerName('');
@@ -394,15 +387,19 @@ export default function PosTerminalPage() {
     };
 
     try {
-      const res = await fetch('/api/pos/sale', {
+      const data = await apiRequest<{
+        saleNumber: string;
+        paymentPending?: boolean;
+        subtotal?: number;
+        vatAmount?: number;
+        discountAmount?: number;
+        totalAmount?: number;
+      }>('/api/pos/sale', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        errorKey: 'pos:sale:create',
       });
-
-      const data = await res.json();
-      if (data.success) {
-        if (data.paymentPending) {
+      if (data.paymentPending) {
           const pendingMsg = 'تم تسجيل الفاتورة، لكن الدفع الإلكتروني يحتاج تسوية/تأكيد من الإدارة قبل اعتباره مدفوعاً.';
           setSaleError(pendingMsg);
           toast(pendingMsg, 'error');
@@ -445,11 +442,6 @@ export default function PosTerminalPage() {
         setCouponInput('');
         setLoyaltyInput('');
         fetchPosProducts(posBranchId || undefined); // Refresh stock
-      } else {
-        const msg = data.error || 'حدث خطأ أثناء حفظ الفاتورة.';
-        setSaleError(msg);
-        toast(msg, 'error');
-      }
     } catch {
       // Offline mode: queue the sale locally and sync later.
       // The open shift at sale time travels with the queue item (T05).
@@ -485,9 +477,8 @@ export default function PosTerminalPage() {
     const remaining: typeof offlineQueue = [];
     for (const sale of offlineQueue) {
       try {
-        const res = await fetch('/api/pos/sale', {
+        await apiRequest('/api/pos/sale', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             paymentMethod: sale.paymentMethod,
             discountAmount: sale.discountAmount,
@@ -497,9 +488,8 @@ export default function PosTerminalPage() {
             clientSaleId: sale.id,
             items: sale.items.map((i) => ({ productId: i.id, quantity: i.quantity, unitPrice: i.unitPrice })),
           }),
+          errorKey: `pos:sync:${sale.id}`,
         });
-        const data = await res.json();
-        if (!data.success) remaining.push(sale);
       } catch {
         remaining.push(sale);
       }
@@ -518,7 +508,7 @@ export default function PosTerminalPage() {
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans dir-rtl">
+    <div className="h-dvh max-h-dvh min-h-0 w-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans dir-rtl">
       {/* POS Top Header Bar */}
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -596,7 +586,7 @@ export default function PosTerminalPage() {
 
       {/* Main Grid View — gated on an open shift (T05) */}
       {!shiftLoading && !shift ? (
-        <div className="flex-1 overflow-y-auto p-4 flex items-start justify-center">
+        <div className="app-scrollbar flex-1 overflow-y-auto p-4 flex items-start justify-center">
           <form onSubmit={handleOpenShift} className="w-full max-w-md glass-panel p-6 rounded-3xl border border-amber-500/40 space-y-4 mt-6">
             <Stepper steps={['عد النقدية بالدرج', 'تأكيد فتح الوردية']} active={0} />
             <h2 className="font-black text-base text-slate-100">افتح وردية لبدء البيع</h2>
@@ -664,7 +654,7 @@ export default function PosTerminalPage() {
           </form>
         </div>
       ) : (
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 overflow-y-auto lg:overflow-hidden p-2 lg:p-0">
+      <div className="app-scrollbar flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-0 overflow-y-auto lg:overflow-hidden p-2 lg:p-0">
         {/* Left Side: Product Selector & Barcode Scanner */}
         <div className="lg:col-span-7 lg:border-e border-slate-800 p-4 flex flex-col space-y-4 bg-slate-950 lg:overflow-hidden rounded-3xl lg:rounded-none border lg:border-0 border-slate-800">
           {/* Steps indicator */}
@@ -727,11 +717,11 @@ export default function PosTerminalPage() {
           </div>
 
           <div className="space-y-2" aria-label={isAr ? 'فلاتر المنتجات' : 'Product filters'}>
-            <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isAr ? 'التصنيفات' : 'Categories'}>
+            <div className="app-scrollbar app-scrollbar-horizontal flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isAr ? 'التصنيفات' : 'Categories'}>
               <button type="button" onClick={() => setSelectedCategoryId('')} aria-pressed={!selectedCategoryId} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${!selectedCategoryId ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? 'كل التصنيفات' : 'All categories'}</button>
               {categoryFilters.map((category) => <button key={category.id} type="button" onClick={() => setSelectedCategoryId(category.id)} aria-pressed={selectedCategoryId === category.id} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${selectedCategoryId === category.id ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? category.nameAr : category.nameEn}</button>)}
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isAr ? 'الماركات' : 'Brands'}>
+            <div className="app-scrollbar app-scrollbar-horizontal flex gap-2 overflow-x-auto pb-1" role="group" aria-label={isAr ? 'الماركات' : 'Brands'}>
               <button type="button" onClick={() => setSelectedBrandId('')} aria-pressed={!selectedBrandId} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${!selectedBrandId ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? 'كل الماركات' : 'All brands'}</button>
               {brandFilters.map((brand) => <button key={brand.id} type="button" onClick={() => setSelectedBrandId(brand.id)} aria-pressed={selectedBrandId === brand.id} className={`min-h-[44px] shrink-0 rounded-full border px-3 text-xs font-bold ${selectedBrandId === brand.id ? 'status-info' : 'border-slate-700 text-slate-400'}`}>{isAr ? brand.nameAr : brand.nameEn}</button>)}
             </div>
@@ -739,7 +729,7 @@ export default function PosTerminalPage() {
           </div>
 
           {/* Products Quick Touch Grid */}
-          <div className="flex-1 overflow-y-auto pr-1 min-h-[50vh] lg:min-h-0">
+          <div className="app-scrollbar flex-1 overflow-y-auto pr-1 min-h-[50vh] lg:min-h-0">
             {loading ? (
               <div className="text-center text-xs text-slate-500 py-12">جاري تحميل المنتجات...</div>
             ) : loadError ? (
@@ -839,7 +829,7 @@ export default function PosTerminalPage() {
             </div>
 
             {/* Ticket Items List */}
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            <div className="app-scrollbar flex-1 overflow-y-auto space-y-2 pr-1">
               {ticketItems.length === 0 ? (
                 <div className="text-center text-slate-500 text-xs py-16">
                   لا توجد منتجات في التذكرة حالياً. اختر من القائمة.
@@ -991,10 +981,13 @@ export default function PosTerminalPage() {
       )}
 
       {/* Close-shift wizard */}      {showClose && closePreview && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70" onClick={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }}>
-          <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-700 p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <Stepper steps={['عد النقدية بالدرج', 'راجع الفرق', 'تأكيد الإغلاق']} active={closeResult ? 2 : 1} />
-            <h3 className="font-black text-sm text-slate-100">إغلاق الوردية</h3>
+        <DialogFrame
+          title="إغلاق الوردية"
+          onClose={() => { if (!closeBusy) { setShowClose(false); setCloseResult(null); } }}
+          panelClassName="max-w-md"
+          bodyClassName="space-y-4"
+        >
+          <Stepper steps={['عد النقدية بالدرج', 'راجع الفرق', 'تأكيد الإغلاق']} active={closeResult ? 2 : 1} />
             <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1.5">
               <div className="flex justify-between text-slate-400"><span>رصيد الافتتاح:</span><span className="font-bold text-slate-200">{closePreview.openingFloat.toLocaleString()} ج.م</span></div>
               <div className="flex justify-between text-slate-400"><span>المتوقع بالدرج:</span><span className="font-black text-blue-300">{closePreview.expected.toLocaleString()} ج.م</span></div>
@@ -1048,8 +1041,7 @@ export default function PosTerminalPage() {
                 </button>
               )}
             </div>
-          </div>
-        </div>
+          </DialogFrame>
       )}
 
       {/* T-RMA return/exchange wizard */}
@@ -1061,22 +1053,13 @@ export default function PosTerminalPage() {
 
       {/* Quick Customer Modal */}
       {showQuickCustomerModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-400" />
-                إضافة عميل سريع
-              </h3>
-              <button
-                onClick={() => setShowQuickCustomerModal(false)}
-                className="text-slate-400 hover:text-slate-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateQuickCustomer} className="space-y-3">
+        <DialogFrame
+          title="إضافة عميل سريع"
+          onClose={() => setShowQuickCustomerModal(false)}
+          panelClassName="max-w-sm"
+          bodyClassName="space-y-4"
+        >
+          <form onSubmit={handleCreateQuickCustomer} className="space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
                   اسم العميل *
@@ -1124,8 +1107,7 @@ export default function PosTerminalPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </DialogFrame>
       )}
 
       {/* Modern Dedicated Tablet Payment Modal */}

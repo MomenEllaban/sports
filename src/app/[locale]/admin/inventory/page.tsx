@@ -68,7 +68,7 @@ export default async function AdminInventoryPage() {
                   </span>
                 </div>
 
-                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div className="app-scrollbar space-y-2 max-h-60 overflow-y-auto pr-1">
                   {branch.inventories.map((inv) => (
                     <div key={inv.id} className="p-2.5 rounded-xl bg-slate-900 flex justify-between items-center text-xs">
                       <span className="font-semibold text-slate-200 line-clamp-1">{inv.product.nameAr}</span>
@@ -85,7 +85,7 @@ export default async function AdminInventoryPage() {
           {/* Recent Audit Logs */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
             <h3 className="font-extrabold text-sm text-slate-100">سجل حركات المخزون (Audit Log)</h3>
-            <div className="overflow-x-auto">
+            <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
               <table className="w-full min-w-[640px] text-xs text-start">
                 <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                   <tr>

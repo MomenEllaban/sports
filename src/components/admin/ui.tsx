@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/components/Toast';
 import { inputCls } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 // Shared dialog + canonical input class live in the foundation kit.
 export { Modal } from '@/components/ui/foundation';
@@ -101,17 +102,12 @@ export function ActionButton({
   );
 }
 
-export async function apiFetch(url: string, method: string, body?: unknown) {
-  const res = await fetch(url, {
+export async function apiFetch<T = unknown>(url: string, method: string, body?: unknown): Promise<T> {
+  return apiRequest<T>(url, {
     method,
-    headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    errorKey: `admin:${method}:${url}`,
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success === false) {
-    throw new Error(data.error || `Request failed (${res.status})`);
-  }
-  return data;
 }
 
 // Unified labeled form field: visible <label> above every input + example placeholder + hint + error.

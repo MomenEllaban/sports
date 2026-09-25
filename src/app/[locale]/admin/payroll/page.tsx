@@ -26,7 +26,7 @@ export default async function AdminPayrollPage() {
           {/* Employees List */}
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
             <h3 className="font-extrabold text-sm text-slate-100">فريق العمل ومستحقات الموظفين</h3>
-            <div className="overflow-x-auto">
+            <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
               <table className="w-full min-w-[640px] text-xs text-start">
                 <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                   <tr>

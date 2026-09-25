@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -12,14 +14,14 @@ export async function POST(req: Request) {
     const { fromBranchId, toBranchId, items, notes } = body;
 
     if (!fromBranchId || !toBranchId || fromBranchId === toBranchId) {
-      return NextResponse.json({ success: false, error: 'Select two different branches' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Select two different branches', 400);
     }
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ success: false, error: 'Add at least one item' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Add at least one item', 400);
     }
     for (const it of items) {
       if (!it.productId || !Number.isInteger(it.quantity) || it.quantity <= 0) {
-        return NextResponse.json({ success: false, error: 'Invalid item quantity' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Invalid item quantity', 400);
       }
     }
 
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, transfer });
   } catch (e) {
-    console.error('Admin transfer create error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to create transfer' }, { status: 500 });
+    captureError('api/admin/transfers', e);
+    return apiError('INTERNAL_ERROR', 'Failed to create transfer', 500);
   }
 }

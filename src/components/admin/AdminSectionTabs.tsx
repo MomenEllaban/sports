@@ -21,7 +21,7 @@ export default function AdminSectionTabs({ section, className = '' }: { section:
   return (
     <nav
       aria-label={section}
-      className={`mb-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none ${className}`}
+      className={`app-scrollbar app-scrollbar-horizontal mb-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none ${className}`}
       role="tablist"
     >
       {tabs.map((tab) => {

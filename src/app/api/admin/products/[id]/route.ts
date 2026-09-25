@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -30,7 +32,7 @@ export async function PATCH(
     if (body.gs1Code !== undefined) {
       const gs1 = String(body.gs1Code).trim().replace(/\D/g, '');
       if (gs1 && ![8, 12, 13, 14].includes(gs1.length)) {
-        return NextResponse.json({ success: false, error: 'GS1 code must be 8/12/13/14 digits' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'GS1 code must be 8/12/13/14 digits', 400);
       }
       data.gs1Code = gs1 || null;
     }
@@ -45,11 +47,8 @@ export async function PATCH(
     const product = await prisma.product.update({ where: { id }, data });
     return NextResponse.json({ success: true, product });
   } catch (e) {
-    console.error('Admin product update error:', e);
-    return NextResponse.json(
-      { success: false, error: 'فشل في تحديث المنتج (قد يكون الـ SKU مكرر)' },
-      { status: 500 }
-    );
+    captureError('api/admin/products/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في تحديث المنتج (قد يكون الـ SKU مكرر)', 500);
   }
 }
 
@@ -68,13 +67,7 @@ export async function DELETE(
     const saleCount = await prisma.saleItem.count({ where: { productId: id } });
 
     if (orderCount > 0 || saleCount > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `لا يمكن حذف المنتج — مرتبط بـ ${orderCount + saleCount} عملية مبيعات/طلبات`,
-        },
-        { status: 409 }
-      );
+      return apiError('CONFLICT', `لا يمكن حذف المنتج — مرتبط بـ ${orderCount + saleCount} عملية مبيعات/طلبات`, 409);
     }
 
     // Delete inventory entries first
@@ -84,10 +77,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('Admin product delete error:', e);
-    return NextResponse.json(
-      { success: false, error: 'فشل في حذف المنتج' },
-      { status: 500 }
-    );
+    captureError('api/admin/products/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في حذف المنتج', 500);
   }
 }

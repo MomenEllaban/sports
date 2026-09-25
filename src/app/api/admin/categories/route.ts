@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -10,7 +12,7 @@ export async function GET() {
     const categories = await prisma.category.findMany({ orderBy: { nameAr: 'asc' } });
     return NextResponse.json({ success: true, categories });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed', 500);
   }
 }
 
@@ -23,10 +25,7 @@ export async function POST(req: Request) {
     const { nameAr, nameEn, description } = body;
 
     if (!nameAr || !nameEn) {
-      return NextResponse.json(
-        { success: false, error: 'الاسم بالعربي والإنجليزي مطلوبان' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'الاسم بالعربي والإنجليزي مطلوبان', 400);
     }
 
     const slug = nameEn
@@ -46,10 +45,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, category });
   } catch (e) {
-    console.error('Category create error:', e);
-    return NextResponse.json(
-      { success: false, error: 'فشل في إضافة التصنيف' },
-      { status: 500 }
-    );
+    captureError('api/admin/categories', e);
+    return apiError('INTERNAL_ERROR', 'فشل في إضافة التصنيف', 500);
   }
 }

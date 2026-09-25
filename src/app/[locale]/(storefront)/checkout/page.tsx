@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { CreditCard, Truck, CheckCircle, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 export default function CheckoutPage() {
   const tCommon = useTranslations('common');
@@ -21,10 +22,13 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<Array<{ id: string; title: string; street: string; building: string | null; city: string; governorate: string }>>([]);
   const [selectedAddressId, setSelectedAddressId] = useState('');
   useEffect(() => {
-    fetch('/api/account/me')
-      .then((r) => (r.ok ? r.json() : null))
+    void apiRequest<{ customer?: { phone?: string; name?: string | null; addresses?: typeof savedAddresses; loyaltyPoints?: number } }>('/api/account/me', {
+      suppressAuthRedirect: true,
+      suppressErrorEvents: true,
+      errorKey: 'storefront:checkout:account',
+    })
       .then((d) => {
-        if (d?.success && d.customer) {
+        if (d.customer) {
           if (d.customer.phone) setPhone(d.customer.phone);
           if (d.customer.name) setName(d.customer.name);
           if (Array.isArray(d.customer.addresses)) {
@@ -50,10 +54,9 @@ export default function CheckoutPage() {
   // T01: only offer payment methods that are actually available (gateway-gated).
   const [availableMethods, setAvailableMethods] = useState<string[] | null>(null);
   useEffect(() => {
-    fetch('/api/payments/methods')
-      .then((r) => (r.ok ? r.json() : null))
+    void apiRequest<{ methods?: string[] }>('/api/payments/methods', { errorKey: 'storefront:checkout:methods' })
       .then((d) => {
-        if (d?.success && Array.isArray(d.methods)) {
+        if (Array.isArray(d.methods) && d.methods.length > 0) {
           setAvailableMethods(d.methods);
           if (!d.methods.includes(paymentMethod)) setPaymentMethod('COD');
         } else {
@@ -78,9 +81,11 @@ export default function CheckoutPage() {
   const [loyaltyPoints, setLoyaltyPoints] = useState('');
   const [redeemRate, setRedeemRate] = useState(1);
   useEffect(() => {
-    fetch('/api/discounts/quote').then((r) => (r.ok ? r.json() : null)).then((d) => {
-      if (d?.success && Number(d.rate) > 0) setRedeemRate(Number(d.rate));
-    }).catch(() => null);
+    void apiRequest<{ rate?: number }>('/api/discounts/quote', { errorKey: 'storefront:checkout:quote' })
+      .then((d) => {
+        if (Number(d.rate) > 0) setRedeemRate(Number(d.rate));
+      })
+      .catch(() => null);
   }, []);
   const loyaltyPreview = Math.min(Math.max(0, Math.floor(Number(loyaltyPoints) || 0)), loyaltyBalance || 0) * redeemRate;
   const previewTotal = Math.max(0, total - couponAmount - loyaltyPreview);
@@ -90,17 +95,12 @@ export default function CheckoutPage() {
     setCouponBusy(true);
     setCouponError('');
     try {
-      const res = await fetch('/api/discounts/quote', {
+      const data = await apiRequest<{ amount?: number }>('/api/discounts/quote', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: couponCode.trim(), subtotal }),
+        errorKey: 'storefront:checkout:coupon',
       });
-      const data = await res.json();
-      if (data.success) setCouponAmount(data.amount);
-      else {
-        setCouponAmount(0);
-        setCouponError(data.error || 'الكود غير صالح');
-      }
+      setCouponAmount(data.amount || 0);
     } catch {
       setCouponError('تعذر التحقق من الكود');
     } finally {
@@ -111,13 +111,12 @@ export default function CheckoutPage() {
   const fetchLoyalty = async () => {
     if (!phone.trim()) return;
     try {
-      const res = await fetch('/api/discounts/loyalty', {
+      const data = await apiRequest<{ points?: number }>('/api/discounts/loyalty', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone.trim() }),
+        errorKey: 'storefront:checkout:loyalty',
       });
-      const data = await res.json();
-      if (data.success) setLoyaltyBalance(data.points);
+      if (typeof data.points === 'number') setLoyaltyBalance(data.points);
     } catch { /* silent */ }
   };
 
@@ -129,10 +128,13 @@ export default function CheckoutPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload/receipt', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.success) setReceiptUrl(data.url);
-      else setReceiptError(data.error || 'فشل رفع صورة الإيصال');
+      const data = await apiRequest<{ url?: string }>('/api/upload/receipt', {
+        method: 'POST',
+        body: fd,
+        errorKey: 'storefront:checkout:receipt',
+      });
+      if (data.url) setReceiptUrl(data.url);
+      else setReceiptError('فشل رفع صورة الإيصال');
     } catch {
       setReceiptError('تعذر رفع الصورة. حاول مرة أخرى.');
     } finally {
@@ -158,9 +160,15 @@ export default function CheckoutPage() {
     setFormError('');
 
     try {
-      const response = await fetch('/api/orders/create', {
+      const data = await apiRequest<{
+        redirectUrl?: string;
+        orderNumber: string;
+        trackingNumber?: string;
+        instructionsAr?: string;
+        paymentPending?: boolean;
+        paymentInitializationError?: string | null;
+      }>('/api/orders/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone,
           name: name || 'عميل كريم',
@@ -175,12 +183,10 @@ export default function CheckoutPage() {
           loyaltyPoints: Math.max(0, Math.floor(Number(loyaltyPoints) || 0)) || undefined,
           items: items.map((i) => ({ productId: i.id, quantity: i.quantity, price: i.price })),
         }),
+        errorKey: 'storefront:checkout:create',
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        // T01: real gateway → redirect to Paymob iframe; else show confirmation.
+      // T01: real gateway → redirect to Paymob iframe; else show confirmation.
         if (data.redirectUrl) {
           window.location.href = data.redirectUrl;
           return;
@@ -188,14 +194,11 @@ export default function CheckoutPage() {
         clearCart();
         setOrderCompleted({
           orderNumber: data.orderNumber,
-          trackingNumber: data.trackingNumber,
+          trackingNumber: data.trackingNumber || '',
           paymentInstructions: data.instructionsAr,
            paymentPending: data.paymentPending,
            paymentError: data.paymentInitializationError,
         });
-      } else {
-        setFormError(data.error || 'حدث خطأ أثناء حفظ الطلب.');
-      }
     } catch {
       setFormError('تعذر الاتصال بالسيرفر. يرجى المحاولة مرة أخرى.');
     } finally {
@@ -519,7 +522,7 @@ export default function CheckoutPage() {
                 ملخص الفاتورة
               </h3>
 
-              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              <div className="app-scrollbar space-y-3 max-h-60 overflow-y-auto pr-1">
                 {items.map((item) => (
                   <div key={item.id} className="flex justify-between text-xs">
                     <span className="text-slate-300 font-medium">

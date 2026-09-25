@@ -271,7 +271,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-2.5 max-h-[520px] overflow-y-auto pr-1">
+        <div className="app-scrollbar grid grid-cols-1 gap-2.5 max-h-[520px] overflow-y-auto pr-1">
           {DEMO_ACCOUNTS.map((acc) => {
             const isThisLoading = quickLoadingId === acc.id;
             return (

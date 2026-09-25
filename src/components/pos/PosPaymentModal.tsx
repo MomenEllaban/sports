@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import {
-  X,
   CreditCard,
   Banknote,
   Zap,
@@ -16,7 +15,7 @@ import {
   Receipt,
   Plus,
 } from 'lucide-react';
-import { Button } from '@/components/ui/foundation';
+import { Button, DialogFrame } from '@/components/ui/foundation';
 
 export interface PosPaymentModalProps {
   isOpen: boolean;
@@ -107,47 +106,57 @@ export default function PosPaymentModal({
     setTenderedInput(String(total));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div
-        className="w-full max-w-4xl max-h-[92vh] glass-panel rounded-3xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden bg-slate-950 text-slate-100"
-        onClick={(e) => e.stopPropagation()}
+  const footer = (
+    <div className="flex w-full flex-col items-center justify-between gap-3 sm:flex-row">
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={processing}
+        className="w-full rounded-2xl bg-slate-800 px-5 py-3 text-xs font-bold text-slate-200 hover:bg-slate-700 sm:w-auto"
       >
-        {/* Modal Header */}
-        <div className="p-4 md:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-black text-slate-100 flex items-center gap-2">
-                إتمام عملية البيع والدفع
-              </h2>
-              <p className="text-xs text-slate-400">
-                اختر طريقة الدفع أو طبق الخصومات للعميل ثم أكد الفاتورة
-              </p>
-            </div>
-          </div>
+        الرجوع لتعديل الأصناف
+      </button>
 
-          <div className="flex items-center gap-3">
-            <div className="text-end bg-slate-900 px-4 py-2 rounded-2xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">المطلوب سداده</span>
-              <span className="text-xl font-black text-amber-400 tabular-nums">
-                {total.toLocaleString()} <span className="text-xs font-normal">ج.م</span>
-              </span>
-            </div>
-            <button
-              onClick={onClose}
-              disabled={processing}
-              className="w-10 h-10 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-100 flex items-center justify-center transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+      <button
+        type="button"
+        onClick={onCompleteSale}
+        disabled={processing || tenderedShort}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-3.5 text-sm font-black text-slate-950 shadow-xl shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
+      >
+        {processing ? (
+          'جاري تأكيد الفاتورة...'
+        ) : (
+          <>
+            <CheckCircle2 className="h-5 w-5" />
+            <span>تأكيد الفاتورة واستخراج الإيصال • {total.toLocaleString()} ج.م</span>
+          </>
+        )}
+      </button>
+    </div>
+  );
+
+  return (
+    <DialogFrame
+      title="إتمام عملية البيع والدفع"
+      onClose={onClose}
+      size="xl"
+      panelClassName="max-w-4xl glass-panel rounded-3xl border-slate-700 bg-slate-950 text-slate-100"
+      bodyClassName="space-y-6"
+      footer={footer}
+    >
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/15 text-amber-400"><Receipt className="h-5 w-5" /></div>
+          <p className="text-xs text-slate-400">اختر طريقة الدفع أو طبق الخصومات للعميل ثم أكد الفاتورة</p>
         </div>
+        <div className="text-end">
+          <span className="block text-[10px] text-slate-400">المطلوب سداده</span>
+          <span className="text-xl font-black tabular-nums text-amber-400">{total.toLocaleString()} <span className="text-xs font-normal">ج.م</span></span>
+        </div>
+      </div>
 
-        {/* Modal Tabs (For Tablets / Mobile Switch) */}
-        <div className="flex border-b border-slate-800 bg-slate-900/40 px-4">
+      {/* Modal Tabs (For Tablets / Mobile Switch) */}
+      <div className="flex border-b border-slate-800 bg-slate-900/40 px-4">
           <button
             onClick={() => setActiveTab('PAYMENT')}
             className={`py-3 px-6 text-xs md:text-sm font-black border-b-2 transition-all flex items-center gap-2 ${
@@ -176,7 +185,7 @@ export default function PosPaymentModal({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div className="space-y-6">
           {saleError && (
             <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-2 animate-shake">
               <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -476,35 +485,6 @@ export default function PosPaymentModal({
             </div>
           )}
         </div>
-
-        {/* Modal Footer */}
-        <div className="p-4 md:p-5 border-t border-slate-800 bg-slate-900/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={processing}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
-          >
-            الرجوع لتعديل الأصناف
-          </button>
-
-          <button
-            type="button"
-            onClick={onCompleteSale}
-            disabled={processing || tenderedShort}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 disabled:pointer-events-none text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2"
-          >
-            {processing ? (
-              'جاري تأكيد الفاتورة...'
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5" />
-                <span>تأكيد الفاتورة واستخراج الإيصال • {total.toLocaleString()} ج.م</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+    </DialogFrame>
   );
 }

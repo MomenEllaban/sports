@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
@@ -62,8 +64,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     if (error) return error;
     const { id } = await params;
     const invoice = await prisma.taxInvoice.findUnique({ where: { id }, include: invoiceInclude });
-    if (!invoice) return NextResponse.json({ success: false, error: 'الفاتورة غير موجودة' }, { status: 404 });
-    if (!canAccessBranch(session, invoice.branchId)) return NextResponse.json({ success: false, error: 'الفاتورة خارج نطاق فروعك' }, { status: 403 });
+    if (!invoice) return apiError('NOT_FOUND', 'الفاتورة غير موجودة', 404);
+    if (!canAccessBranch(session, invoice.branchId)) return apiError('FORBIDDEN', 'الفاتورة خارج نطاق فروعك', 403);
     const snapshot = invoice.snapshot || legacySnapshot(invoice);
     return NextResponse.json({
       success: true,
@@ -78,8 +80,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       },
     });
   } catch (error) {
-    console.error('Admin invoice read error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر تحميل الفاتورة' }, { status: 500 });
+    captureError('api/admin/tax-invoices/[id]', error);
+    return apiError('INTERNAL_ERROR', 'تعذر تحميل الفاتورة', 500);
   }
 }
 
@@ -91,20 +93,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = await req.json() as { requestId?: unknown; locale?: unknown; reason?: unknown };
     const requestId = typeof body.requestId === 'string' ? body.requestId.trim() : '';
     if (!requestId || requestId.length < 8 || requestId.length > 120) {
-      return NextResponse.json({ success: false, error: 'requestId غير صالح' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'requestId غير صالح', 400);
     }
     const locale = body.locale === 'en' ? 'en' : 'ar';
     const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 500) : null;
 
     const existing = await prisma.invoiceReprint.findUnique({ where: { requestId }, include: { taxInvoice: true } });
     if (existing) {
-      if (existing.taxInvoiceId !== id) return NextResponse.json({ success: false, error: 'requestId مستخدم لفاتورة أخرى' }, { status: 409 });
+      if (existing.taxInvoiceId !== id) return apiError('CONFLICT', 'requestId مستخدم لفاتورة أخرى', 409);
       return NextResponse.json({ success: true, idempotent: true, copyNumber: existing.copyNumber, invoiceId: id, createdAt: existing.createdAt });
     }
 
     const invoice = await prisma.taxInvoice.findUnique({ where: { id }, include: invoiceInclude });
-    if (!invoice) return NextResponse.json({ success: false, error: 'الفاتورة غير موجودة' }, { status: 404 });
-    if (!canAccessBranch(session, invoice.branchId)) return NextResponse.json({ success: false, error: 'الفاتورة خارج نطاق فروعك' }, { status: 403 });
+    if (!invoice) return apiError('NOT_FOUND', 'الفاتورة غير موجودة', 404);
+    if (!canAccessBranch(session, invoice.branchId)) return apiError('FORBIDDEN', 'الفاتورة خارج نطاق فروعك', 403);
 
     const copyNumber = invoice.reprintCount + 1;
     const result = await prisma.$transaction(async (tx) => {
@@ -138,12 +140,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'STALE_REPRINT') {
-      return NextResponse.json({ success: false, error: 'تم إعادة طباعة الفاتورة من جهاز آخر؛ حدّث الصفحة' }, { status: 409 });
+      return apiError('CONFLICT', 'تم إعادة طباعة الفاتورة من جهاز آخر؛ حدّث الصفحة', 409);
     }
     if ((error as { code?: string }).code === 'P2002') {
-      return NextResponse.json({ success: false, error: 'requestId مستخدم مسبقاً' }, { status: 409 });
+      return apiError('CONFLICT', 'requestId مستخدم مسبقاً', 409);
     }
-    console.error('Admin invoice reprint error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر تسجيل إعادة الطباعة' }, { status: 500 });
+    captureError('api/admin/tax-invoices/[id]', error);
+    return apiError('INTERNAL_ERROR', 'تعذر تسجيل إعادة الطباعة', 500);
   }
 }

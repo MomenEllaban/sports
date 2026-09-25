@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards';
 import { closeShift, expectedCashFor, ShiftError } from '@/lib/shifts/service';
@@ -17,9 +18,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const role = session?.user?.role;
     const isPrivileged = role === 'SUPER_ADMIN' || role === 'BRANCH_MANAGER' || role === 'FINANCE';
     if (!shift || (!isPrivileged && shift.cashierId !== cashierId)) {
-      return NextResponse.json({ success: false, error: 'الوردية غير موجودة' }, { status: 404 });
+      return apiError('NOT_FOUND', 'الوردية غير موجودة', 404);
     }
-    if (shift.status !== 'OPEN') return NextResponse.json({ success: false, error: 'الوردية مغلقة بالفعل' }, { status: 409 });
+    if (shift.status !== 'OPEN') return apiError('CONFLICT', 'الوردية مغلقة بالفعل', 409);
     const expected = await expectedCashFor(shift.id, num(shift.openingFloat));
     const maxShortage = await getSetting<number>('shifts.maxShortage', 50).catch(() => 50);
     const cashRefunds = await prisma.refund.aggregate({
@@ -29,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ success: true, expected, openingFloat: num(shift.openingFloat), maxShortage, openedAt: shift.openedAt, cashRefunded: num(cashRefunds._sum.amount) });
   } catch (e) {
     captureError('pos/shifts/[id] GET', e);
-    return NextResponse.json({ success: false, error: 'تعذر جلب الوردية' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر جلب الوردية', 500);
   }
 }
 
@@ -41,11 +42,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     const cashierId = (session?.user as { id?: string })?.id;
     const role = session?.user?.role;
-    if (!cashierId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (!cashierId) return apiError('UNAUTHORIZED', 'Unauthorized', 401);
     const isPrivileged = role === 'SUPER_ADMIN' || role === 'BRANCH_MANAGER' || role === 'FINANCE';
     const shift = await prisma.shift.findUnique({ where: { id } });
     if (!shift || (!isPrivileged && shift.cashierId !== cashierId)) {
-      return NextResponse.json({ success: false, error: 'الوردية غير موجودة' }, { status: 404 });
+      return apiError('NOT_FOUND', 'الوردية غير موجودة', 404);
     }
     const body = await req.json();
     const maxShortage = await getSetting<number>('shifts.maxShortage', 50).catch(() => 50);
@@ -62,11 +63,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
       return NextResponse.json({ success: true, ...r });
     } catch (e) {
-      if (e instanceof ShiftError) return NextResponse.json({ success: false, error: e.message }, { status: e.status });
+      if (e instanceof ShiftError) return apiError('REQUEST_FAILED', String(e.message), e.status);
       throw e;
     }
   } catch (e) {
     captureError('pos/shifts/[id] POST', e);
-    return NextResponse.json({ success: false, error: 'تعذر إغلاق الوردية' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر إغلاق الوردية', 500);
   }
 }

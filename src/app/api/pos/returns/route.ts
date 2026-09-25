@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     const actorRole = session?.user?.role as string;
 
     const policy = await getReturnsPolicy();
-    if (!policy.enabled) return NextResponse.json({ success: false, error: 'المرتجعات معطلة حالياً' }, { status: 403 });
+    if (!policy.enabled) return apiError('FORBIDDEN', 'المرتجعات معطلة حالياً', 403);
 
     // Locate the original sale: receipt number, or customer's latest sales.
     let sale = null;
@@ -43,14 +44,14 @@ export async function POST(req: Request) {
         where: { OR: [{ saleNumber: needle }, { id: needle }] },
         include: { items: { include: { product: true } } },
       });
-      if (!sale) return NextResponse.json({ success: false, error: 'الفاتورة غير موجودة' }, { status: 404 });
+      if (!sale) return apiError('NOT_FOUND', 'الفاتورة غير موجودة', 404);
     } else if (typeof body.customerPhone === 'string' && body.customerPhone.trim()) {
       const customer = await prisma.customer.findUnique({
         where: { phone: body.customerPhone.trim() },
         include: { sales: { orderBy: { createdAt: 'desc' }, take: 5, include: { items: { include: { product: true } } } } },
       });
       if (!customer || customer.sales.length === 0) {
-        return NextResponse.json({ success: false, error: 'لا فواتير لهذا الرقم' }, { status: 404 });
+        return apiError('NOT_FOUND', 'لا فواتير لهذا الرقم', 404);
       }
       if (!body.saleId) {
         // Lookup step: return candidates for the wizard.
@@ -69,9 +70,9 @@ export async function POST(req: Request) {
         });
       }
       sale = customer.sales.find((s) => s.id === body.saleId) || null;
-      if (!sale) return NextResponse.json({ success: false, error: 'الفاتورة غير موجودة' }, { status: 404 });
+      if (!sale) return apiError('NOT_FOUND', 'الفاتورة غير موجودة', 404);
     } else {
-      return NextResponse.json({ success: false, error: 'رقم الفاتورة أو هاتف العميل مطلوب' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رقم الفاتورة أو هاتف العميل مطلوب', 400);
     }
 
     // POS context (branch + shift gate for cash payouts).
@@ -80,10 +81,10 @@ export async function POST(req: Request) {
       ctx = await resolvePosContext(session!, sale.branchId);
     } catch (e) {
       const err = e as PosContextError;
-      return NextResponse.json({ success: false, error: err.message, needsShift: err.status === 422 }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400, undefined, { needsShift: err.status === 422 });
     }
     if (ctx.branch.id !== sale.branchId) {
-      return NextResponse.json({ success: false, error: 'الفاتورة لفرع آخر' }, { status: 403 });
+      return apiError('FORBIDDEN', 'الفاتورة لفرع آخر', 403);
     }
 
     const items = (Array.isArray(body.items) ? body.items : []).map((it: Record<string, unknown>) => ({
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
       quantity: Math.floor(Number(it.quantity)),
       reasonCode: String(it.reasonCode || 'OTHER'),
     }));
-    if (items.length === 0) return NextResponse.json({ success: false, error: 'اختر صنفاً واحداً على الأقل' }, { status: 400 });
+    if (items.length === 0) return apiError('VALIDATION_ERROR', 'اختر صنفاً واحداً على الأقل', 400);
 
     // Quote first for the PIN decision (server recomputes authoritatively later).
     try {
@@ -117,7 +118,7 @@ export async function POST(req: Request) {
         await approveReturn(request.id, actorId);
       } catch (e) {
         const err = e as ReturnError & { status?: number };
-        return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+        return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
       }
 
       // PIN gate: cash above threshold or value above auto-approve cap.
@@ -131,7 +132,7 @@ export async function POST(req: Request) {
           void decision;
         } catch (e) {
           const err = e as DiscountAuthError;
-          return NextResponse.json({ success: false, error: err.message, needsPin: true, estimatedRefund: estRefund }, { status: err.status || 400 });
+          return apiError('REQUEST_FAILED', String(err.message), err.status || 400, undefined, { needsPin: true, estimatedRefund: estRefund });
         }
       }
 
@@ -171,11 +172,11 @@ export async function POST(req: Request) {
       });
     } catch (e) {
       const err = e as ReturnError & { status?: number };
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
   } catch (e) {
     captureError('pos/returns', e);
-    return NextResponse.json({ success: false, error: 'تعذر تنفيذ المرتجع' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر تنفيذ المرتجع', 500);
   }
 }
 

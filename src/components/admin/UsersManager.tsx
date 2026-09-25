@@ -4,18 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import Pagination from './Pagination';
-import { Button } from '@/components/ui/foundation';
+import { Button, Modal } from '@/components/ui/foundation';
 import {
   Plus,
   Edit2,
   Trash2,
-  Shield,
   CheckCircle2,
   XCircle,
   Search,
 } from 'lucide-react';
 import { Role } from '@prisma/client';
 import { useToast } from '@/components/Toast';
+import { apiRequest } from '@/lib/client-api';
 
 interface UserItem {
   id: string;
@@ -141,16 +141,12 @@ export default function UsersManager({
       const url = editingUser ? `/api/admin/users/${editingUser.id}` : '/api/admin/users';
       const method = editingUser ? 'PATCH' : 'POST';
 
-      const res = await fetch(url, {
+      const data = await apiRequest<{ success?: boolean }>(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        errorKey: `admin:users:${method}:${url}`,
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشلت العملية');
-      }
+      if (!data.success) throw new Error('فشلت العملية');
 
       setShowModal(false);
       setManagerPin('');
@@ -174,14 +170,11 @@ export default function UsersManager({
     setDeleteError('');
     setDeletingId(u.id);
     try {
-      const res = await fetch(`/api/admin/users/${u.id}`, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) {
-        const msg = data.error || (isAr ? 'تعذر حذف المستخدم' : 'Could not delete user');
-        setDeleteError(msg);
-        toast(msg, 'error');
-        return;
-      }
+      const data = await apiRequest<{ success?: boolean }>(`/api/admin/users/${u.id}`, {
+        method: 'DELETE',
+        errorKey: `admin:users:delete:${u.id}`,
+      });
+      if (!data.success) throw new Error(isAr ? 'تعذر حذف المستخدم' : 'Could not delete user');
       toast(okMsg, 'success');
       router.refresh();
     } catch {
@@ -260,7 +253,7 @@ export default function UsersManager({
       </div>
 
       {/* Users Table */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/50">
+      <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/50">
         <table className="w-full min-w-[640px] text-xs text-start">
           <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
             <tr>
@@ -379,25 +372,14 @@ export default function UsersManager({
 
       {/* Add / Edit User Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-blue-400" />
-                {editingUser
-                  ? (isAr ? `تعديل المستخدم: ${editingUser.name}` : 'Edit User')
-                  : (isAr ? 'إضافة مستخدم جديد للنظام' : 'Add New User')}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-100 text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            {error && (
+        <Modal
+          title={editingUser
+            ? (isAr ? `تعديل المستخدم: ${editingUser.name}` : `Edit User: ${editingUser.name}`)
+            : (isAr ? 'إضافة مستخدم جديد للنظام' : 'Add New User')}
+          onClose={() => setShowModal(false)}
+          size="md"
+        >
+          {error && (
               <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
                 {error}
               </div>
@@ -503,7 +485,7 @@ export default function UsersManager({
                 <label className="block font-bold text-slate-300 mb-1.5">
                   {isAr ? 'الفروع المصرح للمستخدم بالعمل بها:' : 'Assigned Branches:'}
                 </label>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto p-2 rounded-xl bg-slate-950 border border-slate-800">
+                <div className="app-scrollbar space-y-1.5 max-h-32 overflow-y-auto p-2 rounded-xl bg-slate-950 border border-slate-800">
                   {branches.map((b) => {
                     const checked = selectedBranches.includes(b.id);
                     return (
@@ -555,8 +537,7 @@ export default function UsersManager({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </Modal>
       )}
     </div>
   );

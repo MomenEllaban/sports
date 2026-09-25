@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -43,8 +45,8 @@ export async function GET() {
       })),
     });
   } catch (e) {
-    console.error('COD settlement list error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to load COD orders' }, { status: 500 });
+    captureError('api/admin/cod-settlement', e);
+    return apiError('INTERNAL_ERROR', 'Failed to load COD orders', 500);
   }
 }
 
@@ -56,15 +58,15 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { orderId, remittedAmount } = body as { orderId?: string; remittedAmount?: unknown };
     if (!orderId) {
-      return NextResponse.json({ success: false, error: 'orderId is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'orderId is required', 400);
     }
     const remitted = Number(remittedAmount);
     if (!Number.isFinite(remitted) || remitted < 0) {
-      return NextResponse.json({ success: false, error: 'remittedAmount must be a non-negative number' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'remittedAmount must be a non-negative number', 400);
     }
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order || order.paymentMethod !== 'COD') {
-      return NextResponse.json({ success: false, error: 'COD order not found' }, { status: 404 });
+      return apiError('NOT_FOUND', 'COD order not found', 404);
     }
     const reconciled = Math.abs(num(order.totalAmount) - remitted) < 0.01;
     const updated = await prisma.order.update({
@@ -79,7 +81,7 @@ export async function POST(req: Request) {
       discrepancy: num(order.totalAmount) - remitted,
     });
   } catch (e) {
-    console.error('COD settlement save error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to save remittance' }, { status: 500 });
+    captureError('api/admin/cod-settlement', e);
+    return apiError('INTERNAL_ERROR', 'Failed to save remittance', 500);
   }
 }

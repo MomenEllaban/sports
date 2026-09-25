@@ -92,7 +92,7 @@ export default function ProductDetailsClient({
           />
         </div>
         {images.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="app-scrollbar app-scrollbar-horizontal flex gap-2 overflow-x-auto">
             {images.map((src, i) => (
               <button
                 key={i}
@@ -176,7 +176,7 @@ export default function ProductDetailsClient({
               </div>
             )}
             {showChart && sizeChart && (
-              <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto rounded-xl border border-slate-800">
                 <table className="w-full text-[11px] text-start">
                   <caption className="p-2 font-bold text-slate-200">{sizeChart.titleAr}</caption>
                   <thead className="bg-slate-950 text-slate-400">

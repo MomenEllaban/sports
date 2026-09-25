@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import { clearGuestWishlist, getWishlist } from '@/components/storefront/WishlistButton';
+import { useStorefrontSession } from '@/components/storefront/StorefrontSessionProvider';
 import { User, Phone, Package, Star, MapPin, LogOut, Trash2, Plus } from 'lucide-react';
+import { apiRequest } from '@/lib/client-api';
 
 interface PortalOrder {
   id: string;
@@ -41,6 +42,7 @@ export default function AccountClient() {
   const locale = useLocale();
   const isAr = locale === 'ar';
   const router = useRouter();
+  const { setAuthenticated, mergeGuestWishlist } = useStorefrontSession();
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState('');
@@ -53,11 +55,14 @@ export default function AccountClient() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/account/me');
-      const data = await res.json();
-      if (data.success) setMe(data.customer);
-      else setMe(null);
+      const data = await apiRequest<{ success?: boolean; customer?: Me }>('/api/account/me', {
+        suppressAuthRedirect: true,
+        suppressErrorEvents: true,
+        errorKey: 'account:me',
+      });
+      setMe(data.customer ?? null);
     } catch {
+      // A guest/expired portal cookie is an expected state, not console noise.
       setMe(null);
     } finally {
       setLoading(false);
@@ -73,17 +78,18 @@ export default function AccountClient() {
     setError('');
     setLoggingIn(true);
     try {
-      const res = await fetch('/api/account/login', {
+      const data = await apiRequest<{ success?: boolean; customer?: Me; error?: string }>('/api/account/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, orderNumber }),
+        suppressErrorEvents: true,
+        errorKey: 'account:login',
       });
-      const data = await res.json();
       if (data.success) {
-        const guestIds = getWishlist();
-        if (guestIds.length > 0) {
-          const merge = await fetch('/api/account/wishlist/merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productIds: guestIds }) });
-          if (merge.ok) clearGuestWishlist();
+        setAuthenticated(true);
+        try {
+          await mergeGuestWishlist();
+        } catch {
+          // The portal session is valid; keep guest IDs locally if merge is unavailable.
         }
         setPhone('');
         setOrderNumber('');
@@ -91,38 +97,48 @@ export default function AccountClient() {
       } else {
         setError(data.error || (isAr ? 'فشل تسجيل الدخول' : 'Login failed'));
       }
-    } catch {
-      setError(isAr ? 'تعذر الاتصال بالسيرفر' : 'Connection failed');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : (isAr ? 'تعذر الاتصال بالسيرفر' : 'Connection failed'));
     } finally {
       setLoggingIn(false);
     }
   };
 
   const logout = async () => {
-    await fetch('/api/account/logout', { method: 'POST' });
-    setMe(null);
-    router.refresh();
+    try {
+      await apiRequest('/api/account/logout', { method: 'POST', suppressErrorEvents: true, errorKey: 'account:logout' });
+    } finally {
+      setAuthenticated(false);
+      setMe(null);
+      router.refresh();
+    }
   };
 
   const addAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!street.trim()) return;
-    const res = await fetch('/api/account/addresses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ street, building }),
-    });
-    const data = await res.json();
-    if (data.success) {
+    try {
+      await apiRequest('/api/account/addresses', {
+        method: 'POST',
+        body: JSON.stringify({ street, building }),
+        suppressErrorEvents: true,
+        errorKey: 'account:address:create',
+      });
       setStreet('');
       setBuilding('');
       await load();
+    } catch (addressError) {
+      setError(addressError instanceof Error ? addressError.message : (isAr ? 'تعذر حفظ العنوان' : 'Could not save address'));
     }
   };
 
   const removeAddress = async (id: string) => {
-    await fetch(`/api/account/addresses?id=${id}`, { method: 'DELETE' });
-    await load();
+    try {
+      await apiRequest(`/api/account/addresses?id=${id}`, { method: 'DELETE', suppressErrorEvents: true, errorKey: 'account:address:delete' });
+      await load();
+    } catch (addressError) {
+      setError(addressError instanceof Error ? addressError.message : (isAr ? 'تعذر حذف العنوان' : 'Could not delete address'));
+    }
   };
 
   if (loading) {

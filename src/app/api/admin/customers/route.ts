@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -11,10 +13,7 @@ export async function POST(req: Request) {
     const { phone, name, email, notes } = body;
 
     if (!phone || String(phone).trim().length < 7) {
-      return NextResponse.json(
-        { success: false, error: 'رقم الموبايل مطلوب (7 أرقام على الأقل)' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'رقم الموبايل مطلوب (7 أرقام على الأقل)', 400);
     }
 
     const customer = await prisma.customer.create({
@@ -31,15 +30,9 @@ export async function POST(req: Request) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     if (msg.includes('Unique constraint')) {
-      return NextResponse.json(
-        { success: false, error: 'رقم الموبايل مسجل بالفعل' },
-        { status: 409 }
-      );
+      return apiError('CONFLICT', 'رقم الموبايل مسجل بالفعل', 409);
     }
-    console.error('Admin customer create error:', e);
-    return NextResponse.json(
-      { success: false, error: 'فشل في إضافة العميل' },
-      { status: 500 }
-    );
+    captureError('api/admin/customers', e);
+    return apiError('INTERNAL_ERROR', 'فشل في إضافة العميل', 500);
   }
 }

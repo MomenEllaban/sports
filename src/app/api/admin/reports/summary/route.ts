@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
       : new Date();
     const branchId = searchParams.get('branch') || undefined;
     const deadDays = await getSetting<number>('reports.deadStockDays', 60).catch(() => 60);
-    if (isNaN(+from) || isNaN(+to)) return NextResponse.json({ success: false, error: 'Invalid dates' }, { status: 400 });
+    if (isNaN(+from) || isNaN(+to)) return apiError('VALIDATION_ERROR', 'Invalid dates', 400);
 
     const branchFilter = branchId ? { branchId } : {};
     const [orderItems, saleItems, returnItems, deadCutoff] = await Promise.all([
@@ -182,6 +183,6 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     captureError('admin/reports/summary', e);
-    return NextResponse.json({ success: false, error: 'تعذر بناء التقرير' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر بناء التقرير', 500);
   }
 }

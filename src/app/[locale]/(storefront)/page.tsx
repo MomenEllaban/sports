@@ -35,6 +35,24 @@ export default async function StorefrontHomePage({
     },
   });
 
+  const cardProducts = products.map((product) => ({
+    id: product.id,
+    sku: product.sku,
+    barcode: product.barcode,
+    nameAr: product.nameAr,
+    nameEn: product.nameEn,
+    descriptionAr: product.descriptionAr,
+    descriptionEn: product.descriptionEn,
+    price: num(product.price),
+    isFeatured: product.isFeatured,
+    images: product.images,
+    category: { nameAr: product.category.nameAr, nameEn: product.category.nameEn },
+    inventories: product.inventories.map((inventory) => ({
+      branch: { name: inventory.branch.name, nameEn: inventory.branch.nameEn },
+      stockQuantity: inventory.stockQuantity,
+    })),
+  }));
+
   const categories = await prisma.category.findMany({
     take: 5,
   });
@@ -143,9 +161,9 @@ export default async function StorefrontHomePage({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product, index) => (
+            {cardProducts.map((product, index) => (
               <Reveal key={product.id} delay={Math.min(index * 70, 280)}>
-                <ProductCard product={{ ...product, price: num(product.price) }} />
+                <ProductCard product={product} />
               </Reveal>
             ))}
           </div>

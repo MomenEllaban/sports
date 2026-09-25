@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import { Clock3, DollarSign, AlertCircle, CheckCircle2, Search, Filter, Printer, X } from 'lucide-react';
-import { DataTable } from '@/components/ui/foundation';
+import { Clock3, DollarSign, AlertCircle, CheckCircle2, Search, Filter, Printer } from 'lucide-react';
+import { DataTable, DialogFrame } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -94,20 +95,15 @@ export default function ShiftsManager({
     setCloseError('');
 
     try {
-      const res = await fetch(`/api/pos/shifts/${closeTarget.id}`, {
+      const data = await apiRequest<{ success?: boolean; actual?: number; difference?: number; expected?: number }>(`/api/pos/shifts/${closeTarget.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           actualCash: Number(actualCashInput),
           closeNote: adminCloseNote.trim() || 'إغلاق وتسوية من لوحة الإدارة',
         }),
+        errorKey: `admin:shifts:close:${closeTarget.id}`,
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setCloseError(data.error || 'تعذر إغلاق الوردية');
-        setIsSubmittingClose(false);
-        return;
-      }
+      if (!data.success) throw new Error('تعذر إغلاق الوردية');
 
       // Update local shift
       setShifts((prev) =>
@@ -117,9 +113,9 @@ export default function ShiftsManager({
                 ...s,
                 status: 'CLOSED',
                 closedAt: new Date().toISOString(),
-                actualCash: data.actual,
-                difference: data.difference,
-                expectedCash: data.expected,
+                actualCash: data.actual ?? 0,
+                difference: data.difference ?? 0,
+                expectedCash: data.expected ?? 0,
                 closeNote: adminCloseNote.trim() || 'إغلاق إداري',
               }
             : s
@@ -414,19 +410,14 @@ export default function ShiftsManager({
 
       {/* Details Modal */}
       {selectedShift && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedShift(null)}>
-          <div className="w-full max-w-lg glass-panel p-6 rounded-3xl border border-slate-700 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-black text-slate-100 flex items-center gap-2">
-                <Clock3 className="w-5 h-5 text-amber-400" />
-                {isAr ? 'تفاصيل الوردية' : 'Shift Details'} — {selectedShift.id.slice(-8)}
-              </h3>
-              <button onClick={() => setSelectedShift(null)} className="text-slate-400 hover:text-slate-100 p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
+        <DialogFrame
+          title={`${isAr ? 'تفاصيل الوردية' : 'Shift Details'} — ${selectedShift.id.slice(-8)}`}
+          onClose={() => setSelectedShift(null)}
+          size="lg"
+          panelClassName="max-w-lg glass-panel"
+          bodyClassName="space-y-4"
+        >
+          <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-slate-400 block mb-1">{isAr ? 'الكاشير' : 'Cashier'}</span>
                 <span className="font-bold text-slate-100">{selectedShift.cashierName}</span>
@@ -505,25 +496,19 @@ export default function ShiftsManager({
                 {isAr ? 'إغلاق' : 'Close'}
               </button>
             </div>
-          </div>
-        </div>
+          </DialogFrame>
       )}
 
       {/* Force Close Modal */}
       {closeTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => !isSubmittingClose && setCloseTarget(null)}>
-          <div className="w-full max-w-md glass-panel p-6 rounded-3xl border border-rose-500/40 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-black text-rose-400 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                {isAr ? 'إغلاق وتسوية إدارية للوردية' : 'Admin Force Close Shift'}
-              </h3>
-              <button disabled={isSubmittingClose} onClick={() => setCloseTarget(null)} className="text-slate-400 hover:text-slate-100 p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
+        <DialogFrame
+          title={isAr ? 'إغلاق وتسوية إدارية للوردية' : 'Admin Force Close Shift'}
+          onClose={() => !isSubmittingClose && setCloseTarget(null)}
+          size="md"
+          panelClassName="max-w-md glass-panel border-rose-500/40"
+          bodyClassName="space-y-4"
+        >
+          <p className="text-xs leading-relaxed text-slate-300">
               {isAr
                 ? `سيتم إغلاق وردية الكاشير (${closeTarget.cashierName}) في فرع (${closeTarget.branchName}) وتسوية الدرج إدارياً.`
                 : `Closing shift for (${closeTarget.cashierName}) at (${closeTarget.branchName}).`}
@@ -580,8 +565,7 @@ export default function ShiftsManager({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </DialogFrame>
       )}
     </div>
   );

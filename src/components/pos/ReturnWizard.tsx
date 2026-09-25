@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { RotateCcw, Search, ArrowLeftRight } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { Stepper, SafeImage, ConfirmDialog, Button, NumberField } from '@/components/ui/foundation';
+import { Stepper, SafeImage, ConfirmDialog, Button, NumberField, DialogFrame } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 interface LookupItem {
   saleItemId: string; productId: string; nameAr: string; sku: string;
@@ -44,17 +45,14 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
     setBusy(true);
     setError('');
     try {
-      const res = await fetch('/api/pos/returns', {
+      const data = await apiRequest<{ lookup?: boolean; sales?: LookupSale[]; error?: string }>('/api/pos/returns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ saleNumber: find.trim() || undefined, customerPhone: phone.trim() || undefined }),
+        errorKey: 'pos:returns:lookup',
       });
-      const data = await res.json();
-      if (!data.success) {
-        setError(data.error || 'غير موجود');
-      } else if (data.lookup) {
-        setCandidates(data.sales);
-        if (data.sales.length === 0) setError('لا فواتير مطابقة');
+      if (data.lookup) {
+        setCandidates(data.sales || []);
+        if (!data.sales || data.sales.length === 0) setError('لا فواتير مطابقة');
       }
     } catch {
       setError('تعذر الاتصال — المرتجع يحتاج إنترنت ولا يعمل أوفلاين');
@@ -73,9 +71,8 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
 
   const searchExchange = async () => {
     if (!exchangeSearch.trim()) return;
-    const res = await fetch(`/api/pos/products?q=${encodeURIComponent(exchangeSearch.trim())}`);
-    const data = await res.json().catch(() => null);
-    if (data?.success && Array.isArray(data.products)) {
+    const data = await apiRequest<{ products?: Array<{ id: string; nameAr: string; sku: string; price: number; inventories?: Array<{ stockQuantity: number }> }> }>(`/api/pos/products?q=${encodeURIComponent(exchangeSearch.trim())}`, { errorKey: 'pos:returns:exchange-search' });
+    if (Array.isArray(data.products)) {
       setExchangeOptions(data.products.slice(0, 8).map((p: { id: string; nameAr: string; sku: string; price: number; inventories?: Array<{ stockQuantity: number }> }) => ({
         id: p.id, nameAr: p.nameAr, sku: p.sku, price: p.price,
         stock: (p.inventories || []).reduce((s: number, x: { stockQuantity: number }) => s + x.stockQuantity, 0),
@@ -91,9 +88,8 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
     setError('');
     try {
       const chosen = exchangeProduct ? [{ productId: exchangeProduct, quantity: exchangeQty }] : [];
-      const res = await fetch('/api/pos/returns', {
+      const data = await apiRequest<{ returnNumber: string; status: string; refundTotal: number; payout?: { ok: boolean; error?: string }; needsPin?: boolean; error?: string }>('/api/pos/returns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           saleId: sale.id,
           customerPhone: phone.trim() || undefined,
@@ -108,17 +104,12 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
           exchange: isExchange && chosen.length > 0 ? { items: chosen, paymentMethod: 'CASH' } : undefined,
           clientRequestId: `pos-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
         }),
+        errorKey: 'pos:returns:create',
       });
-      const data = await res.json();
-      if (data.success) {
-        setResult({ returnNumber: data.returnNumber, status: data.status, refundTotal: data.refundTotal, payout: data.payout || { ok: false } });
-        toast(`تم تسجيل المرتجع ${data.returnNumber}`, 'success');
-        setStep(4);
-        onDone();
-      } else {
-        setError(data.needsPin ? `يحتاج PIN مدير: ${data.error}` : data.error || 'فشل');
-        if (data.needsPin) setStep(3);
-      }
+      setResult({ returnNumber: data.returnNumber, status: data.status, refundTotal: data.refundTotal, payout: data.payout || { ok: false } });
+      toast(`تم تسجيل المرتجع ${data.returnNumber}`, 'success');
+      setStep(4);
+      onDone();
     } catch {
       setError('تعذر الاتصال — المرتجع يحتاج إنترنت ولا يعمل أوفلاين');
     } finally {
@@ -134,12 +125,15 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/70 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="max-w-2xl mx-auto rounded-3xl bg-slate-900 border border-slate-700 p-5 sm:p-6 space-y-4 my-6" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-black text-base flex items-center gap-2">
-          <RotateCcw className="w-5 h-5 text-amber-400" />
-          مرتجع / استبدال
-        </h2>
+    <>
+      <DialogFrame
+        title="مرتجع / استبدال"
+        onClose={onClose}
+        size="lg"
+        panelClassName="max-w-2xl"
+        bodyClassName="space-y-4"
+        header={<span className="flex items-center gap-2"><RotateCcw className="h-5 w-5 text-amber-400" />مرتجع / استبدال</span>}
+      >
         <Stepper steps={['الفاتورة', 'الأصناف', 'استبدال', 'التسوية', 'تم']} active={Math.min(step, 4)} />
 
         {step === 0 && (
@@ -288,7 +282,7 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
             </div>
           </div>
         )}
-      </div>
+      </DialogFrame>
       <ConfirmDialog
         open={confirming}
         title="تأكيد المرتجع؟"
@@ -298,6 +292,6 @@ export default function PosReturnWizard({ onClose, onDone }: { onClose: () => vo
         onClose={() => { if (!busy) setConfirming(false); }}
         busy={busy}
       />
-    </div>
+    </>
   );
 }

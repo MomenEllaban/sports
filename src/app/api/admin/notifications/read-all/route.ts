@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -14,7 +16,7 @@ export async function POST() {
     });
     return NextResponse.json({ success: true, updated: result.count });
   } catch (e) {
-    console.error('Admin notifications read-all error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to update notifications' }, { status: 500 });
+    captureError('api/admin/notifications/read-all', e);
+    return apiError('INTERNAL_ERROR', 'Failed to update notifications', 500);
   }
 }

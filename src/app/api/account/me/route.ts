@@ -1,19 +1,18 @@
-import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { isPortalEnabled } from '@/lib/settings';
 import { readPortalSession } from '@/lib/account/session';
+import { apiError, apiInternalError, apiSuccess, getRequestId } from '@/lib/api-response';
 
 /** Customer portal profile: loyalty, orders, addresses (4.3). */
-export async function GET() {
+export async function GET(request: Request) {
+  const requestId = getRequestId(request);
   try {
     if (!(await isPortalEnabled().catch(() => true))) {
-      return NextResponse.json({ success: false, error: 'portal disabled' }, { status: 403 });
+      return apiError('FORBIDDEN', 'بوابة العميل معطّلة حالياً', 403, requestId);
     }
     const session = await readPortalSession();
-    if (!session) {
-      return NextResponse.json({ success: false, error: 'not logged in' }, { status: 401 });
-    }
+    if (!session) return apiError('UNAUTHORIZED', 'سجّل الدخول لعرض حسابك', 401, requestId);
     const customer = await prisma.customer.findUnique({
       where: { id: session.customerId },
       include: {
@@ -21,11 +20,8 @@ export async function GET() {
         orders: { orderBy: { createdAt: 'desc' }, take: 50, include: { items: { include: { product: { select: { nameAr: true, nameEn: true, sku: true } } } } } },
       },
     });
-    if (!customer) {
-      return NextResponse.json({ success: false, error: 'account not found' }, { status: 404 });
-    }
-    return NextResponse.json({
-      success: true,
+    if (!customer) return apiError('NOT_FOUND', 'تعذر العثور على حساب العميل', 404, requestId);
+    return apiSuccess({
       customer: {
         id: customer.id,
         name: customer.name,
@@ -33,26 +29,25 @@ export async function GET() {
         email: customer.email,
         loyaltyPoints: customer.loyaltyPoints,
         addresses: customer.addresses,
-        orders: customer.orders.map((o) => ({
-          id: o.id,
-          orderNumber: o.orderNumber,
-          orderStatus: o.orderStatus,
-          paymentStatus: o.paymentStatus,
-          paymentMethod: o.paymentMethod,
-          totalAmount: num(o.totalAmount),
-          trackingNumber: o.trackingNumber,
-          createdAt: o.createdAt.toISOString(),
-          items: o.items.map((i) => ({
-            quantity: i.quantity,
-            unitPrice: num(i.unitPrice),
-            totalPrice: num(i.totalPrice),
-            product: i.product,
+        orders: customer.orders.map((order) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          orderStatus: order.orderStatus,
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+          totalAmount: num(order.totalAmount),
+          trackingNumber: order.trackingNumber,
+          createdAt: order.createdAt.toISOString(),
+          items: order.items.map((item) => ({
+            quantity: item.quantity,
+            unitPrice: num(item.unitPrice),
+            totalPrice: num(item.totalPrice),
+            product: item.product,
           })),
         })),
       },
-    });
-  } catch (e) {
-    console.error('Portal me error:', e);
-    return NextResponse.json({ success: false, error: 'failed' }, { status: 500 });
+    }, 200, requestId);
+  } catch (error) {
+    return apiInternalError(request, error, 'تعذر تحميل حساب العميل');
   }
 }

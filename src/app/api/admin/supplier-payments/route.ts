@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -18,7 +19,7 @@ export async function GET() {
     return NextResponse.json({ success: true, payments: rows.map((r) => ({ ...r, amount: num(r.amount) })) });
   } catch (e) {
     captureError('admin/supplier-payments GET', e);
-    return NextResponse.json({ success: false, error: 'تعذر الجلب' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر الجلب', 500);
   }
 }
 
@@ -27,13 +28,13 @@ export async function POST(req: Request) {
     const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE');
     if (error) return error;
     const body = (await req.json()) as { supplierId?: string; amount?: number; method?: string; reference?: string; notes?: string };
-    if (!body.supplierId) return NextResponse.json({ success: false, error: 'المورد مطلوب' }, { status: 400 });
+    if (!body.supplierId) return apiError('VALIDATION_ERROR', 'المورد مطلوب', 400);
     const amount = Math.round(Number(body.amount) * 100) / 100;
     if (!Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json({ success: false, error: 'المبلغ غير صالح' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'المبلغ غير صالح', 400);
     }
     const supplier = await prisma.supplier.findUnique({ where: { id: body.supplierId } });
-    if (!supplier) return NextResponse.json({ success: false, error: 'المورد غير موجود' }, { status: 404 });
+    if (!supplier) return apiError('NOT_FOUND', 'المورد غير موجود', 404);
     const created = await prisma.supplierPayment.create({
       data: {
         supplierId: supplier.id,
@@ -48,6 +49,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, payment: { ...created, amount: num(created.amount) } });
   } catch (e) {
     captureError('admin/supplier-payments POST', e);
-    return NextResponse.json({ success: false, error: 'تعذر الحفظ' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر الحفظ', 500);
   }
 }

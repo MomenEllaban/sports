@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -10,7 +12,7 @@ export async function GET() {
     const suppliers = await prisma.supplier.findMany({ orderBy: { name: 'asc' } });
     return NextResponse.json({ success: true, suppliers });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed', 500);
   }
 }
 
@@ -23,10 +25,10 @@ export async function POST(req: Request) {
     const { name, contactPerson, phone, email, address, taxNumber } = body;
 
     if (typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ success: false, error: 'اسم المورد مطلوب' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'اسم المورد مطلوب', 400);
     }
     if (email !== undefined && email !== null && email !== '' && !/^\S+@\S+\.\S+$/.test(String(email).trim())) {
-      return NextResponse.json({ success: false, error: 'البريد الإلكتروني غير صالح' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'البريد الإلكتروني غير صالح', 400);
     }
 
     const code = `SUP-${Date.now()}`;
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, supplier });
   } catch (e) {
-    console.error('Supplier create error:', e);
-    return NextResponse.json({ success: false, error: 'فشل في إضافة المورد' }, { status: 500 });
+    captureError('api/admin/suppliers', e);
+    return apiError('INTERNAL_ERROR', 'فشل في إضافة المورد', 500);
   }
 }

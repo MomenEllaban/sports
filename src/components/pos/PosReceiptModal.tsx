@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Printer, CheckCircle2, PlusCircle } from 'lucide-react';
-import { Button } from '@/components/ui/foundation';
+import { Button, DialogFrame } from '@/components/ui/foundation';
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -151,87 +151,64 @@ export default function PosReceiptModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div
-        className="w-full max-w-md glass-panel p-6 rounded-3xl border border-emerald-500/40 shadow-2xl bg-slate-950 text-slate-100 space-y-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center animate-scale-in">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-black text-slate-100">تم تسجيل الفاتورة بنجاح!</h2>
-          <p className="text-xs text-slate-400 font-mono">
-            رقم الفاتورة: <strong className="text-amber-400">{data.saleNumber}</strong>
-          </p>
-        </div>
-
-        {/* Thermal Receipt Preview Paper Card */}
-        <div className="p-4 rounded-2xl bg-white text-slate-950 font-mono text-[11px] shadow-inner space-y-2 border border-slate-300">
-          <div className="text-center border-b border-dashed border-slate-400 pb-2">
-            <div className="font-black text-sm">SPORTS CHAMPIONS</div>
-            <div className="text-[10px] text-slate-600">{data.branchName}</div>
-            <div className="text-[10px] text-slate-600">{new Date(data.createdAt).toLocaleString('ar-EG')}</div>
-          </div>
-
-          <div className="space-y-1 py-1 max-h-36 overflow-y-auto pr-1">
-            {data.items.map((it, idx) => (
-              <div key={idx} className="flex justify-between items-center text-[10px]">
-                <span className="line-clamp-1 flex-1 font-sans">{it.nameAr} x{it.quantity}</span>
-                <span className="font-bold tabular-nums shrink-0">{(it.quantity * it.unitPrice).toLocaleString()} ج.م</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="border-t border-dashed border-slate-400 pt-2 space-y-1">
-            <div className="flex justify-between">
-              <span>المجموع:</span>
-              <span>{data.subtotal.toLocaleString()} ج.م</span>
-            </div>
-            {data.discount > 0 && (
-              <div className="flex justify-between text-emerald-700 font-bold">
-                <span>الخصم:</span>
-                <span>-{data.discount.toLocaleString()} ج.م</span>
-              </div>
-            )}
-            <div className="flex justify-between font-black text-xs pt-1 border-t border-slate-200">
-              <span>المدفوع ({data.paymentMethod}):</span>
-              <span>{data.total.toLocaleString()} ج.م</span>
-            </div>
-            {data.change !== undefined && data.change > 0 && (
-              <div className="flex justify-between text-[10px] text-slate-600">
-                <span>الباقي:</span>
-                <span>{data.change.toLocaleString()} ج.م</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-2 pt-1">
-          <Button
-            type="button"
-            variant="brand"
-            onClick={handlePrint}
-            className="w-full"
-          >
-            <Printer className="w-4 h-4" />
+    <DialogFrame
+      title="تم تسجيل الفاتورة بنجاح"
+      onClose={onClose}
+      size="md"
+      panelClassName="max-w-md border-emerald-500/40 bg-slate-950"
+      bodyClassName="space-y-5"
+      footer={(
+        <div className="grid w-full gap-2 sm:grid-cols-2">
+          <Button type="button" variant="brand" onClick={handlePrint} className="w-full">
+            <Printer className="h-4 w-4" />
             <span>طباعة الإيصال الحراري (80mm)</span>
           </Button>
-
           <button
             type="button"
             onClick={() => {
               onClose();
               onNewSale();
             }}
-            className="w-full py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-2"
+            className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-slate-800 text-xs font-bold text-slate-200 hover:bg-slate-700"
           >
-            <PlusCircle className="w-4 h-4" />
+            <PlusCircle className="h-4 w-4" />
             <span>فاتورة جديدة للعميل القادم</span>
           </button>
         </div>
+      )}
+    >
+      <div className="space-y-2 text-center">
+        <div className="mx-auto flex h-14 w-14 animate-scale-in items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/20 text-emerald-400">
+          <CheckCircle2 className="h-8 w-8" />
+        </div>
+        <p className="font-mono text-xs text-slate-400">
+          رقم الفاتورة: <strong className="text-amber-400">{data.saleNumber}</strong>
+        </p>
       </div>
-    </div>
+
+      <div className="space-y-2 rounded-2xl border border-slate-300 bg-white p-4 font-mono text-[11px] text-slate-950 shadow-inner">
+        <div className="border-b border-dashed border-slate-400 pb-2 text-center">
+          <div className="text-sm font-black">SPORTS CHAMPIONS</div>
+          <div className="text-[10px] text-slate-600">{data.branchName}</div>
+          <div className="text-[10px] text-slate-600">{new Date(data.createdAt).toLocaleString('ar-EG')}</div>
+        </div>
+
+        <div className="app-scrollbar max-h-36 space-y-1 overflow-y-auto py-1 pr-1">
+          {data.items.map((it, idx) => (
+            <div key={idx} className="flex items-center justify-between text-[10px]">
+              <span className="line-clamp-1 flex-1 font-sans">{it.nameAr} x{it.quantity}</span>
+              <span className="shrink-0 font-bold tabular-nums">{(it.quantity * it.unitPrice).toLocaleString()} ج.م</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-1 border-t border-dashed border-slate-400 pt-2">
+          <div className="flex justify-between"><span>المجموع:</span><span>{data.subtotal.toLocaleString()} ج.م</span></div>
+          {data.discount > 0 && <div className="flex justify-between font-bold text-emerald-700"><span>الخصم:</span><span>-{data.discount.toLocaleString()} ج.م</span></div>}
+          <div className="flex justify-between border-t border-slate-200 pt-1 text-xs font-black"><span>المدفوع ({data.paymentMethod}):</span><span>{data.total.toLocaleString()} ج.م</span></div>
+          {data.change !== undefined && data.change > 0 && <div className="flex justify-between text-[10px] text-slate-600"><span>الباقي:</span><span>{data.change.toLocaleString()} ج.م</span></div>}
+        </div>
+      </div>
+    </DialogFrame>
   );
 }

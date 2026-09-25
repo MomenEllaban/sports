@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -15,12 +16,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (error) return error;
     const { id } = await params;
     const order = await prisma.order.findUnique({ where: { id } });
-    if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    if (!order) return apiError('NOT_FOUND', 'Order not found', 404);
     if (order.shippingProvider !== 'BOSTA' && order.shippingProvider !== 'MYLERZ') {
-      return NextResponse.json({ success: false, error: 'الشحن اليدوي/الاستلام لا يحتاج حجز' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الشحن اليدوي/الاستلام لا يحتاج حجز', 400);
     }
     if (order.trackingNumber && !order.trackingNumber.startsWith('MANUAL-')) {
-      return NextResponse.json({ success: false, error: 'الشحنة محجوزة بالفعل' }, { status: 409 });
+      return apiError('CONFLICT', 'الشحنة محجوزة بالفعل', 409);
     }
     const result = await createCourierShipment({
       orderNumber: order.orderNumber,
@@ -32,7 +33,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       provider: order.shippingProvider,
     });
     if (result.manual) {
-      return NextResponse.json({ success: false, error: 'شركة الشحن غير مفعلة — أدخل مفتاحها في الإعدادات أولاً' }, { status: 422 });
+      return apiError('REQUEST_FAILED', 'شركة الشحن غير مفعلة — أدخل مفتاحها في الإعدادات أولاً', 422);
     }
     const updated = await prisma.order.update({
       where: { id },
@@ -41,6 +42,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ success: true, trackingNumber: updated.trackingNumber, labelUrl: result.labelUrl });
   } catch (e) {
     captureError('admin/orders/[id]/ship', e);
-    return NextResponse.json({ success: false, error: 'تعذر حجز الشحنة' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر حجز الشحنة', 500);
   }
 }

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { apiRequest } from '@/lib/client-api';
 
 export interface PublicReview {
   id: string;
@@ -45,18 +46,13 @@ export default function ReviewsSection({ productId, reviews, avg, count }: {
     if (busy) return;
     setBusy(true);
     try {
-      const res = await fetch('/api/reviews', {
+      const data = await apiRequest<{ message?: string }>('/api/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, rating, text: text || undefined }),
+        errorKey: 'storefront:reviews:create',
       });
-      const data = await res.json();
-      if (data.success) {
-        toast(data.message || 'تم إرسال تقييمك', 'success');
-        setText('');
-      } else {
-        toast(data.error || 'فشل الإرسال', 'error');
-      }
+      toast(data.message || 'تم إرسال تقييمك', 'success');
+      setText('');
     } catch {
       toast('تعذر الاتصال', 'error');
     } finally {

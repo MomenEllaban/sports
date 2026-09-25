@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -15,17 +17,17 @@ export async function POST(req: Request) {
     const periodYear = Number(body.periodYear) || now.getFullYear();
 
     if (periodMonth < 1 || periodMonth > 12 || periodYear < 2020) {
-      return NextResponse.json({ success: false, error: 'Invalid payroll period' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Invalid payroll period', 400);
     }
 
     const existing = await prisma.payrollRun.findFirst({ where: { periodMonth, periodYear } });
     if (existing) {
-      return NextResponse.json({ success: false, error: 'Payroll run already exists for this month' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Payroll run already exists for this month', 400);
     }
 
     const employees = await prisma.employee.findMany({ where: { isActive: true } });
     if (employees.length === 0) {
-      return NextResponse.json({ success: false, error: 'No active employees' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'No active employees', 400);
     }
 
     // 2.4: commission base = ACTUAL POS sales by this employee's linked user in the payroll month.
@@ -83,7 +85,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, payrollRun: run, salesByEmployee });
   } catch (e) {
-    console.error('Admin payroll create error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to create payroll run' }, { status: 500 });
+    captureError('api/admin/payroll-runs', e);
+    return apiError('INTERNAL_ERROR', 'Failed to create payroll run', 500);
   }
 }

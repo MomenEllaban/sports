@@ -131,11 +131,11 @@ export default function AdminSidebar({
     <>
       {mobileOpen && <button type="button" aria-label="إغلاق القائمة" onClick={onClose} className="fixed inset-0 z-40 bg-slate-950/70 lg:hidden" />}
       <aside
-        className={`${visibleWidth} ${mobileOpen ? 'flex' : 'hidden lg:flex'} fixed inset-y-0 start-0 z-50 h-dvh flex-col overflow-y-auto border-e border-slate-800 bg-slate-900 transition-[width] duration-200 ease-out lg:static lg:z-auto lg:shrink-0`}
+        className={`${visibleWidth} ${mobileOpen ? 'flex' : 'hidden lg:flex'} fixed inset-y-0 start-0 z-50 h-dvh min-h-0 flex-col overflow-hidden border-e border-slate-800 bg-slate-900 transition-[width] duration-200 ease-out lg:static lg:z-auto lg:shrink-0`}
         aria-label={isAr ? 'قائمة التنقل الرئيسية' : 'Primary navigation'}
       >
         <div className="flex min-h-0 flex-1 flex-col p-3">
-          <div className={`mb-4 flex items-center gap-2 border-b border-slate-800 pb-3 ${showLabels ? 'justify-between' : 'justify-center'}`}>
+          <div className={`mb-4 flex shrink-0 items-center gap-2 border-b border-slate-800 pb-3 ${showLabels ? 'justify-between' : 'justify-center'}`}>
             <Link href="/admin" onClick={onClose} className={`flex min-w-0 items-center gap-3 ${showLabels ? 'flex-1' : 'justify-center'}`}>
               <Image src="/logo.avif" alt="أبطال الرياضة" width={960} height={822} priority quality={80} sizes="48px" className="h-10 w-auto shrink-0 rounded-lg object-contain" />
               {showLabels && (
@@ -163,73 +163,79 @@ export default function AdminSidebar({
             </div>
           </div>
 
-          {!!role && (['SUPER_ADMIN', 'BRANCH_MANAGER', 'CASHIER'] as readonly string[]).includes(role) && (
-            <Link
-              href="/pos"
-              onClick={onClose}
-              title={isAr ? 'فتح نقطة البيع POS' : 'Open POS'}
-              className={`mb-4 inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-amber-400/50 bg-gradient-to-l from-amber-500/25 to-amber-400/10 px-3 text-xs font-black text-amber-300 shadow-lg shadow-amber-500/10 transition hover:border-amber-300 hover:bg-amber-500 hover:text-slate-950 ${showLabels ? 'justify-start' : ''}`}
-            >
-              <Monitor className="h-5 w-5 shrink-0" aria-hidden="true" />
-              {showLabels && <span>{isAr ? 'نقطة البيع POS' : 'Point of Sale POS'}</span>}
-            </Link>
-          )}
+          <div data-scroll-region="admin-sidebar" className="app-scrollbar min-h-0 flex-1 overflow-y-auto pe-1">
+            {!!role && (['SUPER_ADMIN', 'BRANCH_MANAGER', 'CASHIER'] as readonly string[]).includes(role) && (
+              <Link
+                href="/pos"
+                onClick={onClose}
+                title={isAr ? 'فتح نقطة البيع POS' : 'Open POS'}
+                className={`mb-4 inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-amber-400/50 bg-gradient-to-l from-amber-500/25 to-amber-400/10 px-3 text-xs font-black text-amber-300 shadow-lg shadow-amber-500/10 transition hover:border-amber-300 hover:bg-amber-500 hover:text-slate-950 ${showLabels ? 'justify-start' : ''}`}
+              >
+                <Monitor className="h-5 w-5 shrink-0" aria-hidden="true" />
+                {showLabels && <span>{isAr ? 'نقطة البيع POS' : 'Point of Sale POS'}</span>}
+              </Link>
+            )}
 
-          {showLabels ? (
-            <div className="mb-4 space-y-1.5 rounded-2xl border border-slate-800 bg-slate-950/90 p-3 text-xs">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-medium text-slate-400">{isAr ? 'المستخدم المسجل' : 'Signed in'}</span>
-                <span className="max-w-[7rem] truncate rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">{role || (isAr ? 'جارٍ التحقق' : 'Checking role')}</span>
+            {showLabels ? (
+              <div className="mb-4 space-y-1.5 rounded-2xl border border-slate-800 bg-slate-950/90 p-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-medium text-slate-400">{isAr ? 'المستخدم المسجل' : 'Signed in'}</span>
+                  <span className="max-w-[7rem] truncate rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">{role || (isAr ? 'جارٍ التحقق' : 'Checking role')}</span>
+                </div>
+                <p className="truncate font-black text-slate-100">{userName}</p>
+                {userEmail && <p className="truncate font-mono text-[10px] text-slate-400" dir="ltr">{userEmail}</p>}
               </div>
-              <p className="truncate font-black text-slate-100">{userName}</p>
-              {userEmail && <p className="truncate font-mono text-[10px] text-slate-400" dir="ltr">{userEmail}</p>}
-            </div>
-          ) : (
-            <Tooltip label={userName}>
-              <div className="mb-4 flex h-10 items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/90 text-slate-300" aria-label={userName}>
-                <User className="h-5 w-5" aria-hidden="true" />
-              </div>
-            </Tooltip>
-          )}
+            ) : (
+              <Tooltip label={userName}>
+                <div className="mb-4 flex h-10 items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/90 text-slate-300" aria-label={userName}>
+                  <User className="h-5 w-5" aria-hidden="true" />
+                </div>
+              </Tooltip>
+            )}
 
-          <nav className="min-h-0 flex-1 space-y-2" aria-label={isAr ? 'أقسام الإدارة' : 'Admin sections'}>
-            {groups.map((group) => {
-              const groupActive = group.items.some((item) => pathMatches(pathname, item.href));
-              const isOpen = groupOpen[group.key] ?? true;
-              const groupLabel = isAr ? group.labelAr : group.labelEn;
-              return (
-                <section key={group.key} className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group.key)}
-                    aria-expanded={isOpen}
-                    aria-controls={`admin-group-${group.key}`}
-                    className={`group flex min-h-10 w-full items-center rounded-xl border text-start transition-colors ${showLabels ? 'gap-2.5 px-3' : 'justify-center px-1'} ${groupActive ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-transparent text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'}`}
-                  >
-                    <AdminIcon name={group.icon} className="h-4.5 w-4.5 shrink-0" />
-                    {showLabels && <span className="min-w-0 flex-1 truncate text-xs font-black">{groupLabel}</span>}
-                    {showLabels && <span className={`text-[10px] transition-transform ${isOpen ? 'rotate-90' : ''} rtl-flip`} aria-hidden="true">›</span>}
-                  </button>
-                  {isOpen && (
-                    <div id={`admin-group-${group.key}`} className="space-y-1 ps-2">
-                      {group.items.map((item) => (
-                        <SidebarLink key={item.key} item={item} pathname={pathname} collapsed={!showLabels} isAr={isAr} onNavigate={onClose} />
-                      ))}
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </nav>
-          {groups.length === 0 && (
-            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center text-[11px] text-slate-500">
-              {isAr ? 'جارٍ تحميل الصلاحيات…' : 'Loading permissions…'}
-            </div>
-          )}
+            <nav className="min-h-0 space-y-2" aria-label={isAr ? 'أقسام الإدارة' : 'Admin sections'}>
+              {groups.map((group) => {
+                const groupActive = group.items.some((item) => pathMatches(pathname, item.href));
+                const isOpen = groupOpen[group.key] ?? true;
+                const groupLabel = isAr ? group.labelAr : group.labelEn;
+                return (
+                  <section key={group.key} className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.key)}
+                      aria-expanded={isOpen}
+                      aria-controls={`admin-group-${group.key}`}
+                      className={`group flex min-h-10 w-full items-center rounded-xl border text-start transition-colors ${showLabels ? 'gap-2.5 px-3' : 'justify-center px-1'} ${groupActive ? 'border-blue-500/30 bg-blue-500/10 text-blue-300' : 'border-transparent text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'}`}
+                    >
+                      <AdminIcon name={group.icon} className="h-4.5 w-4.5 shrink-0" />
+                      {showLabels && <span className="min-w-0 flex-1 truncate text-xs font-black">{groupLabel}</span>}
+                      {showLabels && <span className={`text-[10px] transition-transform ${isOpen ? 'rotate-90' : ''} rtl-flip`} aria-hidden="true">›</span>}
+                    </button>
+                    {isOpen && (
+                      <div id={`admin-group-${group.key}`} className="space-y-1 ps-2">
+                        {group.items.map((item) => (
+                          <SidebarLink key={item.key} item={item} pathname={pathname} collapsed={!showLabels} isAr={isAr} onNavigate={onClose} />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </nav>
+            {groups.length === 0 && (
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-center text-[11px] text-slate-500">
+                {isAr ? 'جارٍ تحميل الصلاحيات…' : 'Loading permissions…'}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="border-t border-slate-800 p-3 text-center text-[10px] text-slate-500">
-          {showLabels ? 'Sports Champions ERP · v1.0' : 'ERP'}
-        </div>
+        <footer
+          className="shrink-0 border-t border-slate-800 p-3 text-center text-[10px] text-slate-500"
+          aria-label={isAr ? 'إصدار النظام' : 'System version'}
+          title="Sports Champions ERP · v1.0"
+        >
+          <span dir="ltr" className="whitespace-nowrap">{showLabels ? 'Sports Champions ERP · v1.0' : 'ERP · v1.0'}</span>
+        </footer>
       </aside>
     </>
   );

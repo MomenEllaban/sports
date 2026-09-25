@@ -92,7 +92,7 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
             </span>
             <StatusBadge value={run.status} />
           </div>
-          <div className="overflow-x-auto">
+          <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
             <table className="w-full min-w-[640px] text-xs text-start">
               <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                 <tr>

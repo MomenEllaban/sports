@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -12,10 +14,10 @@ export async function POST(req: Request) {
     const { branchId, category, description, amount } = body;
 
     if (!branchId || !description || !(Number(amount) > 0)) {
-      return NextResponse.json({ success: false, error: 'Branch, description and positive amount are required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Branch, description and positive amount are required', 400);
     }
     if (category && !Object.values(ExpenseCategory).includes(category)) {
-      return NextResponse.json({ success: false, error: 'Invalid expense category' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Invalid expense category', 400);
     }
 
     const expense = await prisma.expense.create({
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, expense });
   } catch (e) {
-    console.error('Admin expense create error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to record expense' }, { status: 500 });
+    captureError('api/admin/expenses', e);
+    return apiError('INTERNAL_ERROR', 'Failed to record expense', 500);
   }
 }

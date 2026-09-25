@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -17,7 +19,7 @@ export async function POST(req: Request) {
     try {
       body = JSON.parse(rawBody) as Record<string, unknown>;
     } catch {
-      return NextResponse.json({ success: false, error: 'invalid JSON body' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'invalid JSON body', 400);
     }
 
     const obj = (body.obj ?? {}) as Record<string, unknown>;
@@ -37,28 +39,28 @@ export async function POST(req: Request) {
     const secret = process.env.PAYMOB_HMAC_SECRET;
     const signature = req.headers.get('x-paymob-signature') || (body.hmac as string) || (body.signature as string);
     if (!verifyWebhookHmac('sha512', secret, rawBody, signature)) {
-      return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
+      return apiError('UNAUTHORIZED', 'invalid signature', 401);
     }
 
     if (!orderNumber) {
-      return NextResponse.json({ success: false, error: 'orderNumber is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'orderNumber is required', 400);
     }
     if (paidAmount === undefined || !Number.isFinite(paidAmount) || paidAmount < 0) {
-      return NextResponse.json({ success: false, error: 'paid amount is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'paid amount is required', 400);
     }
 
     const order = await prisma.order.findUnique({ where: { orderNumber } });
     if (!order) {
-      return NextResponse.json({ success: false, error: 'order not found' }, { status: 404 });
+      return apiError('NOT_FOUND', 'order not found', 404);
     }
     if (order.paymentMethod !== 'PAYMOB') {
-      return NextResponse.json({ success: false, error: 'payment method mismatch' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'payment method mismatch', 400);
     }
     if (order.orderStatus === 'CANCELLED' || order.orderStatus === 'RETURNED' || order.paymentStatus === 'REFUNDED') {
-      return NextResponse.json({ success: false, error: 'order is no longer payable' }, { status: 409 });
+      return apiError('CONFLICT', 'order is no longer payable', 409);
     }
     if (order.paymentRef && transactionRef && order.paymentRef !== transactionRef) {
-      return NextResponse.json({ success: false, error: 'transaction reference mismatch' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'transaction reference mismatch', 400);
     }
     if (order.paymentStatus === 'PAID') {
       return NextResponse.json({ success: true, idempotentReplay: true, orderNumber });
@@ -72,10 +74,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, orderNumber, paymentStatus: 'FAILED' });
     }
     if (success !== true) {
-      return NextResponse.json({ success: false, error: 'payment status is ambiguous' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'payment status is ambiguous', 400);
     }
     if (Math.abs(paidAmount - num(order.totalAmount)) > 0.01) {
-      return NextResponse.json({ success: false, error: 'amount mismatch' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'amount mismatch', 400);
     }
 
     const updated = await prisma.order.update({
@@ -87,7 +89,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ success: true, orderNumber, paymentStatus: updated.paymentStatus });
   } catch (e) {
-    console.error('Paymob webhook error:', e);
-    return NextResponse.json({ success: false, error: 'webhook failed' }, { status: 500 });
+    captureError('api/webhooks/paymob', e);
+    return apiError('INTERNAL_ERROR', 'webhook failed', 500);
   }
 }

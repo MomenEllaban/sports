@@ -8,6 +8,7 @@ import { Link, usePathname } from '@/i18n/routing';
 import ThemeToggle from './ThemeToggle';
 import { LocaleSwitcher } from '@/components/ui/foundation';
 import AdminCommandPalette from './AdminCommandPalette';
+import { apiRequest } from '@/lib/client-api';
 
 const ROLE_LABELS_AR: Record<string, string> = {
   SUPER_ADMIN: 'المدير العام',
@@ -36,16 +37,14 @@ export default function AdminHeader({ onMenuClick }: { onMenuClick?: () => void 
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/admin/notifications')
-      .then((r) => (r.ok ? r.json() : null))
+    void apiRequest<{ success?: boolean; unreadCount?: number }>('/api/admin/notifications', { suppressErrorEvents: true, errorKey: 'admin:header:notifications' })
       .then((d) => {
-        if (!cancelled && d?.success) setUnreadCount(d.unreadCount);
+        if (!cancelled && d.success) setUnreadCount(d.unreadCount || 0);
       })
       .catch(() => { /* badge stays hidden on error */ });
-    fetch('/api/admin/settings/status')
-      .then((r) => (r.ok ? r.json() : null))
+    void apiRequest<{ success?: boolean; missingCount?: number }>('/api/admin/settings/status', { suppressErrorEvents: true, errorKey: 'admin:header:setup' })
       .then((d) => {
-        if (!cancelled && d?.success) setMissingSetup(d.missingCount);
+        if (!cancelled && d.success) setMissingSetup(d.missingCount || 0);
       })
       .catch(() => { /* setup badge stays hidden on error */ });
     return () => { cancelled = true; };

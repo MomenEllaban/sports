@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '../auth';
+import { apiError } from '@/lib/api-response';
 import type { Role } from '@prisma/client';
 
 /** Roles allowed on POS terminals (pages + APIs). */
@@ -26,12 +27,12 @@ export interface GuardResult {
 export async function requireRole(...roles: Role[]): Promise<GuardResult> {
   const raw = (await getServerSession(authOptions)) as AppSession | null;
   if (!raw?.user) {
-    return { session: null, error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) };
+    return { session: null, error: apiError('UNAUTHORIZED', 'يجب تسجيل الدخول للوصول إلى هذه الصفحة', 401) };
   }
   const session: AppSession = raw;
   const role = session.user?.role;
   if (roles.length > 0 && (!role || !roles.includes(role))) {
-    return { session: null, error: NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 }) };
+    return { session: null, error: apiError('FORBIDDEN', 'لا تملك صلاحية للوصول إلى هذه الصفحة', 403) };
   }
   return { session, error: null };
 }

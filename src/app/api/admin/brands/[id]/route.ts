@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -20,8 +22,8 @@ export async function PATCH(
     });
     return NextResponse.json({ success: true, brand });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ success: false, error: 'فشل في تحديث الماركة' }, { status: 500 });
+    captureError('api/admin/brands/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في تحديث الماركة', 500);
   }
 }
 
@@ -35,15 +37,12 @@ export async function DELETE(
     const { id } = await params;
     const productCount = await prisma.product.count({ where: { brandId: id } });
     if (productCount > 0) {
-      return NextResponse.json(
-        { success: false, error: `لا يمكن حذف الماركة — مرتبطة بـ ${productCount} منتج` },
-        { status: 409 }
-      );
+      return apiError('CONFLICT', `لا يمكن حذف الماركة — مرتبطة بـ ${productCount} منتج`, 409);
     }
     await prisma.brand.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ success: false, error: 'فشل في حذف الماركة' }, { status: 500 });
+    captureError('api/admin/brands/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في حذف الماركة', 500);
   }
 }

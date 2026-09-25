@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/db';
@@ -20,44 +22,44 @@ export async function POST(req: Request) {
       (body.orderStatus as string) || (body.paymentStatus as string) || (body.status as string);
 
     if (!orderNumber && !fawryRef) {
-      return NextResponse.json({ success: false, error: 'orderNumber or fawryRef is required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'orderNumber or fawryRef is required', 400);
     }
 
     const secureKey = process.env.FAWRY_SECURE_KEY || process.env.FAWRY_SECURITY_KEY;
     const signature = req.headers.get('x-fawry-signature') || (body.signature as string) || (body.messageSignature as string);
 
     if (!secureKey) {
-      return NextResponse.json({ success: false, error: 'webhook secret not configured' }, { status: 401 });
+      return apiError('UNAUTHORIZED', 'webhook secret not configured', 401);
     }
     if (!orderNumber) {
-      return NextResponse.json({ success: false, error: 'merchantRef required for signature check' }, { status: 401 });
+      return apiError('UNAUTHORIZED', 'merchantRef required for signature check', 401);
     }
     const expected = crypto.createHash('sha256').update(`${orderNumber}${secureKey}`).digest('hex');
     if (!signature || !timingSafeEqual(expected, signature)) {
-      return NextResponse.json({ success: false, error: 'invalid signature' }, { status: 401 });
+      return apiError('UNAUTHORIZED', 'invalid signature', 401);
     }
 
     const order = orderNumber
       ? await prisma.order.findUnique({ where: { orderNumber } })
       : await prisma.order.findFirst({ where: { paymentRef: fawryRef } });
     if (!order) {
-      return NextResponse.json({ success: false, error: 'order not found' }, { status: 404 });
+      return apiError('NOT_FOUND', 'order not found', 404);
     }
     if (order.paymentMethod !== 'FAWRY') {
-      return NextResponse.json({ success: false, error: 'payment method mismatch' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'payment method mismatch', 400);
     }
     if (order.orderStatus === 'CANCELLED' || order.orderStatus === 'RETURNED' || order.paymentStatus === 'REFUNDED') {
-      return NextResponse.json({ success: false, error: 'order is no longer payable' }, { status: 409 });
+      return apiError('CONFLICT', 'order is no longer payable', 409);
     }
     if (order.paymentRef && fawryRef && order.paymentRef !== fawryRef) {
-      return NextResponse.json({ success: false, error: 'transaction reference mismatch' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'transaction reference mismatch', 400);
     }
     const amountValue = body.amount ?? body.amountEgp ?? body.amountCents;
     if (amountValue !== undefined) {
       const amount = Number(amountValue);
       const normalized = body.amountCents !== undefined ? amount / 100 : amount;
       if (!Number.isFinite(normalized) || Math.abs(normalized - Number(order.totalAmount)) > 0.01) {
-        return NextResponse.json({ success: false, error: 'amount mismatch' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'amount mismatch', 400);
       }
     }
     if (order.paymentStatus === 'PAID') {
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
     const paid = ['PAID', 'SUCCESS', 'SETTLED'].includes(String(status ?? '').toUpperCase());
     const failed = ['FAILED', 'CANCELLED', 'DECLINED'].includes(String(status ?? '').toUpperCase());
     if (!paid && !failed) {
-      return NextResponse.json({ success: false, error: 'payment status is ambiguous' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'payment status is ambiguous', 400);
     }
     const updated = await prisma.order.update({
       where: { id: order.id },
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ success: true, orderNumber: order.orderNumber, paymentStatus: updated.paymentStatus });
   } catch (e) {
-    console.error('Fawry webhook error:', e);
-    return NextResponse.json({ success: false, error: 'webhook failed' }, { status: 500 });
+    captureError('api/webhooks/fawry', e);
+    return apiError('INTERNAL_ERROR', 'webhook failed', 500);
   }
 }

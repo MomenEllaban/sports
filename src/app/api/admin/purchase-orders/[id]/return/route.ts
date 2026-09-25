@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -17,16 +18,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = (await req.json()) as { productId?: string; quantity?: number; reason?: string };
     const qty = Math.floor(Number(body.quantity));
     if (!body.productId || !Number.isInteger(qty) || qty <= 0) {
-      return NextResponse.json({ success: false, error: 'الصنف والكمية مطلوبان' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الصنف والكمية مطلوبان', 400);
     }
     if (!body.reason || !String(body.reason).trim()) {
-      return NextResponse.json({ success: false, error: 'سبب الإرجاع إجباري' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'سبب الإرجاع إجباري', 400);
     }
     const po = await prisma.purchaseOrder.findUnique({ where: { id }, include: { items: true } });
-    if (!po) return NextResponse.json({ success: false, error: 'أمر الشراء غير موجود' }, { status: 404 });
+    if (!po) return apiError('NOT_FOUND', 'أمر الشراء غير موجود', 404);
     const item = po.items.find((i) => i.productId === body.productId);
     if (!item || item.quantityReceived < qty) {
-      return NextResponse.json({ success: false, error: 'الكمية تتجاوز المستلم من هذا الصنف' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الكمية تتجاوز المستلم من هذا الصنف', 400);
     }
     const actorId = (session?.user as { id?: string })?.id;
     try {
@@ -47,7 +48,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }, { maxWait: 10000, timeout: 20000 });
     } catch (e) {
       if (e instanceof InsufficientStockError) {
-        return NextResponse.json({ success: false, error: `المخزون الحالي (${e.available}) لا يغطي المرتجع` }, { status: 422 });
+        return apiError('REQUEST_FAILED', `المخزون الحالي (${e.available}) لا يغطي المرتجع`, 422);
       }
       throw e;
     }
@@ -55,6 +56,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ success: true });
   } catch (e) {
     captureError('admin/purchase-orders/[id]/return', e);
-    return NextResponse.json({ success: false, error: 'تعذر تسجيل المرتجع' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر تسجيل المرتجع', 500);
   }
 }

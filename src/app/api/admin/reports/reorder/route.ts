@@ -1,10 +1,12 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { canAccessBranch, scopedBranchIds } from '@/lib/auth/branch-scope';
 import { getReorderRows } from '@/lib/reports/reorder';
 
-function fail(message: string, status = 400) { return NextResponse.json({ success: false, error: message }, { status }); }
+function fail(message: string, status = 400) { return apiError(status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : status === 404 ? 'NOT_FOUND' : status === 409 ? 'CONFLICT' : 'VALIDATION_ERROR', message, status); }
 
 export async function GET(req: Request) {
   try {
@@ -18,8 +20,8 @@ export async function GET(req: Request) {
     const result = await getReorderRows({ q: params.get('q') || undefined, branchId, page: Math.max(1, Number(params.get('page') || 1)), pageSize: Math.min(100, Math.max(5, Number(params.get('pageSize') || 25))), requested: requested === 'requested' || requested === 'unrequested' ? requested : undefined });
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
-    console.error('Reorder report error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر تحميل كشكول النواقص' }, { status: 500 });
+    captureError('api/admin/reports/reorder', error);
+    return apiError('INTERNAL_ERROR', 'تعذر تحميل كشكول النواقص', 500);
   }
 }
 
@@ -35,8 +37,8 @@ export async function PATCH(req: Request) {
     const updated = await prisma.branchInventory.update({ where: { id: row.id }, data: { reorderPoint: Number(body.reorderPoint), reorderQuantity: Number(body.reorderQuantity) } });
     return NextResponse.json({ success: true, reorderPoint: updated.reorderPoint, reorderQuantity: updated.reorderQuantity });
   } catch (error) {
-    console.error('Reorder policy update error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر حفظ حد إعادة الطلب' }, { status: 500 });
+    captureError('api/admin/reports/reorder', error);
+    return apiError('INTERNAL_ERROR', 'تعذر حفظ حد إعادة الطلب', 500);
   }
 }
 
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'FORBIDDEN') return fail('أحد الأصناف خارج نطاق فروعك', 403);
     if (error instanceof Error && error.message === 'INVALID') return fail('عناصر الطلب غير صالحة');
-    console.error('Reorder request error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر تسجيل طلبات النواقص' }, { status: 500 });
+    captureError('api/admin/reports/reorder', error);
+    return apiError('INTERNAL_ERROR', 'تعذر تسجيل طلبات النواقص', 500);
   }
 }

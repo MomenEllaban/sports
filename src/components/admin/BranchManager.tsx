@@ -5,6 +5,8 @@ import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { Plus, Edit2, Trash2, MapPin, Phone, Clock, Building, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { Modal } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 interface BranchItem {
   id: string;
@@ -92,16 +94,12 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
         : '/api/admin/branches';
       const method = editingBranch ? 'PATCH' : 'POST';
 
-      const res = await fetch(url, {
+      const data = await apiRequest<{ success?: boolean }>(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        errorKey: `admin:branches:${method}:${url}`,
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'فشلت العملية');
-      }
+      if (!data.success) throw new Error('فشلت العملية');
 
       setShowModal(false);
       toast(okMsg, 'success');
@@ -124,16 +122,11 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
     setDeleteError('');
     setDeletingId(b.id);
     try {
-      const res = await fetch(`/api/admin/branches/${b.id}`, {
+      const data = await apiRequest<{ success?: boolean }>(`/api/admin/branches/${b.id}`, {
         method: 'DELETE',
+        errorKey: `admin:branches:delete:${b.id}`,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) {
-        const msg = data.error || (isAr ? 'تعذر حذف الفرع' : 'Could not delete branch');
-        setDeleteError(msg);
-        toast(msg, 'error');
-        return;
-      }
+      if (!data.success) throw new Error(isAr ? 'تعذر حذف الفرع' : 'Could not delete branch');
       toast(okMsg, 'success');
       router.refresh();
     } catch {
@@ -235,25 +228,14 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
 
       {/* Add / Edit Branch Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
-                <Building className="w-4 h-4 text-amber-400" />
-                {editingBranch
-                  ? (isAr ? `تعديل الفرع: ${editingBranch.name}` : 'Edit Branch')
-                  : (isAr ? 'إضافة فرع جديد' : 'Add New Branch')}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-100 text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            {error && (
+        <Modal
+          title={editingBranch
+            ? (isAr ? `تعديل الفرع: ${editingBranch.name}` : `Edit Branch: ${editingBranch.name}`)
+            : (isAr ? 'إضافة فرع جديد' : 'Add New Branch')}
+          onClose={() => setShowModal(false)}
+          size="md"
+        >
+          {error && (
               <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
                 {error}
               </div>
@@ -374,8 +356,7 @@ export default function BranchManager({ branches }: { branches: BranchItem[] }) 
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </Modal>
       )}
     </div>
   );

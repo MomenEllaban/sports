@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Download, Award, Layers, Users, Truck, Skull } from 'lucide-react';
 import { DataTable, Button } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 interface Summary {
   productProfit: Array<{ id: string; nameAr: string; qty: number; revenue: number; cost: number; profit: number }>;
@@ -41,10 +42,8 @@ export default function ReportsClient({ branches }: { branches: Array<{ id: stri
     try {
       const p = new URLSearchParams({ from, to });
       if (branch) p.set('branch', branch);
-      const res = await fetch(`/api/admin/reports/summary?${p}`);
-      const d = await res.json();
-      if (d.success) setData(d);
-      else setError(d.error || 'فشل التقرير');
+      const data = await apiRequest<Summary>(`/api/admin/reports/summary?${p}`, { errorKey: 'admin:reports:summary' });
+      setData(data);
     } catch {
       setError('تعذر الاتصال');
     } finally {

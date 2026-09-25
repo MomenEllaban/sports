@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -20,10 +21,7 @@ export async function PATCH(
         _sum: { stockQuantity: true },
       });
       if ((stock._sum.stockQuantity || 0) > 0) {
-        return NextResponse.json(
-          { success: false, error: 'لا يمكن تعطيل فرع به مخزون — انقل المخزون أولاً' },
-          { status: 400 }
-        );
+        return apiError('VALIDATION_ERROR', 'لا يمكن تعطيل فرع به مخزون — انقل المخزون أولاً', 400);
       }
     }
 
@@ -43,10 +41,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, branch });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message || 'فشل تحديث الفرع' },
-      { status: 500 }
-    );
+    return apiError('INTERNAL_ERROR', String((err as Error).message || 'فشل تحديث الفرع'), 500);
   }
 }
 
@@ -95,9 +90,6 @@ export async function DELETE(
     await prisma.branch.delete({ where: { id } });
     return NextResponse.json({ success: true, message: 'تم حذف الفرع' });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message || 'فشل حذف الفرع' },
-      { status: 500 }
-    );
+    return apiError('INTERNAL_ERROR', String((err as Error).message || 'فشل حذف الفرع'), 500);
   }
 }

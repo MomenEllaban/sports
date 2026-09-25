@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -28,11 +30,8 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, customer });
   } catch (e) {
-    console.error('Admin customer update error:', e);
-    return NextResponse.json(
-      { success: false, error: 'فشل في تحديث بيانات العميل' },
-      { status: 500 }
-    );
+    captureError('api/admin/customers/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في تحديث بيانات العميل', 500);
   }
 }
 
@@ -49,22 +48,13 @@ export async function DELETE(
     // Safety: check if customer has orders
     const orderCount = await prisma.order.count({ where: { customerId: id } });
     if (orderCount > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `لا يمكن حذف العميل لأن لديه ${orderCount} طلب مسجل`,
-        },
-        { status: 409 }
-      );
+      return apiError('CONFLICT', `لا يمكن حذف العميل لأن لديه ${orderCount} طلب مسجل`, 409);
     }
 
     await prisma.customer.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('Admin customer delete error:', e);
-    return NextResponse.json(
-      { success: false, error: 'فشل في حذف العميل' },
-      { status: 500 }
-    );
+    captureError('api/admin/customers/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في حذف العميل', 500);
   }
 }

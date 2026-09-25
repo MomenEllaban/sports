@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react';
 import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { DataTable, Button } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 interface Supplier { id: string; name: string }
 interface Payment { id: string; supplierId: string; amount: number; method: string; reference: string | null; notes: string | null; createdAt: string; supplier: { name: string } }
@@ -26,9 +27,8 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
   const [page, setPage] = useState(1);
 
   const reload = async () => {
-    const res = await fetch('/api/admin/supplier-payments');
-    const data = await res.json();
-    if (data.success) setRows(data.payments);
+    const data = await apiRequest<{ payments?: Payment[] }>('/api/admin/supplier-payments', { errorKey: 'admin:supplier-payments:list' });
+    if (data.payments) setRows(data.payments);
     router.refresh();
   };
 

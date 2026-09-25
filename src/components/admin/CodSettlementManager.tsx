@@ -78,7 +78,7 @@ export default function CodSettlementManager({ initialOrders }: { initialOrders:
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-800">
+      <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto rounded-2xl border border-slate-800">
         <table className="w-full min-w-[640px] text-xs text-start">
           <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
             <tr>

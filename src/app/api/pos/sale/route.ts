@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { buildEtaReceipt } from '@/lib/eta';
@@ -27,14 +29,14 @@ export async function POST(req: Request) {
       ctx = await resolvePosContext(session!, branchId ?? null);
     } catch (e) {
       const err = e as PosContextError;
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
 
     if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ success: false, error: 'الفاتورة فارغة: أضف صنفاً واحداً على الأقل' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الفاتورة فارغة: أضف صنفاً واحداً على الأقل', 400);
     }
     if (!['CASH', 'CARD', 'INSTAPAY', 'FAWRY', 'VODAFONE_CASH'].includes(paymentMethod)) {
-      return NextResponse.json({ success: false, error: 'طريقة الدفع غير صالحة' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'طريقة الدفع غير صالحة', 400);
     }
 
     // A terminal/online reference supplied by the browser is not proof of an
@@ -74,10 +76,10 @@ export async function POST(req: Request) {
     const lines: Array<{ productId: string; quantity: number }> = [];
     for (const item of items) {
       if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
-        return NextResponse.json({ success: false, error: 'كمية غير صالحة في الفاتورة' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'كمية غير صالحة في الفاتورة', 400);
       }
       if (typeof item.productId !== 'string' || !item.productId) {
-        return NextResponse.json({ success: false, error: 'صنف غير صالح في الفاتورة' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'صنف غير صالح في الفاتورة', 400);
       }
       lines.push({ productId: item.productId, quantity: item.quantity });
     }
@@ -94,7 +96,7 @@ export async function POST(req: Request) {
     for (const line of lines) {
       const dbProduct = byId.get(line.productId);
       if (!dbProduct || !dbProduct.isActive) {
-        return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'صنف غير موجود أو موقوف', 400);
       }
       const available = dbProduct.inventories[0]?.stockQuantity || 0;
       if (available < line.quantity) {
@@ -116,7 +118,7 @@ export async function POST(req: Request) {
     // Strict discount validation + manager authorization (T06), before any write.
     const rawDiscount = (body as { discountAmount?: unknown }).discountAmount ?? 0;
     if (typeof rawDiscount !== 'number' || !Number.isFinite(rawDiscount) || rawDiscount < 0 || rawDiscount > subtotal) {
-      return NextResponse.json({ success: false, error: 'مبلغ الخصم غير صالح' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'مبلغ الخصم غير صالح', 400);
     }
     const discount = Math.round(rawDiscount * 100) / 100;
     let approvedById: string | null = null;
@@ -130,7 +132,7 @@ export async function POST(req: Request) {
       approvedById = decision.approvedById;
     } catch (e) {
       const err = e as DiscountAuthError;
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
 
     // T09: totals via the central pricing module (same exclusive-VAT semantics).
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
         couponQuote = await quoteCoupon(rawCoupon, posSubtotal);
       } catch (e) {
         const err = e as CouponError & { status?: number };
-        return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+        return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
       }
     }
     const wantPoints = resolvedCustomerId ? Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0)) : 0;
@@ -163,10 +165,10 @@ export async function POST(req: Request) {
       const bal = (await prisma.customer.findUnique({ where: { id: resolvedCustomerId }, select: { loyaltyPoints: true } }))?.loyaltyPoints || 0;
       // T-RMA: negative loyalty (after returns) blocks new redemptions until covered.
       if (bal < 0) {
-        return NextResponse.json({ success: false, error: 'رصيد النقاط سالب — لا يمكن الاستبدال حتى تعويضه' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'رصيد النقاط سالب — لا يمكن الاستبدال حتى تعويضه', 400);
       }
       if (wantPoints > bal) {
-        return NextResponse.json({ success: false, error: 'رصيد النقاط لا يكفي' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'رصيد النقاط لا يكفي', 400);
       }
     }
     const totals = computeStackedTotals({
@@ -331,7 +333,7 @@ export async function POST(req: Request) {
         // T16: coupon/points races surface with an HTTP status.
         const st = (e as { status?: number }).status;
         if (typeof st === 'number' && st >= 400 && st < 500) {
-          return NextResponse.json({ success: false, error: (e as Error).message }, { status: st });
+          return apiError('REQUEST_FAILED', String((e as Error).message), st);
         }
         throw e;
       }
@@ -378,7 +380,7 @@ export async function POST(req: Request) {
       qrCodeDataUrl: receipt?.qrCodeDataUrl || '',
     });
   } catch (error) {
-    console.error('POS Sale API error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر تنفيذ عملية البيع' }, { status: 500 });
+    captureError('api/pos/sale', error);
+    return apiError('INTERNAL_ERROR', 'تعذر تنفيذ عملية البيع', 500);
   }
 }

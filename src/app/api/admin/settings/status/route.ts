@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -28,6 +29,6 @@ export async function GET() {
     const missingRequired = items.filter((i) => i.required && i.status !== 'CONFIRMED').map((i) => i.key);
     return NextResponse.json({ success: true, items, groups, missingRequired, missingCount: missingRequired.length });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed to load setup status' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed to load setup status', 500);
   }
 }

@@ -1,39 +1,37 @@
-import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isPortalEnabled, getSetting } from '@/lib/settings';
 import { issuePortalToken, portalCookieHeader } from '@/lib/account/session';
 import { checkRateLimit, clientIp, rateLimitedResponse } from '@/lib/rate-limit';
-import { captureError } from '@/lib/monitor';
+import { apiError, apiInternalError, apiSuccess, getRequestId } from '@/lib/api-response';
 
 /**
  * Customer portal login (4.3, hardened F1):
  * - Rate-limited per IP (`ratelimit.portalLoginPerMin`).
- * - Anti-enumeration: unknown phone and wrong order number return the SAME
- *   generic 401 message (no 404 oracle for phone existence).
- * - OTP-ready: when `portal.otpMode=sms`, respond with { otpRequired: true }
- *   so the UI can switch to the OTP step once an SMS provider lands.
+ * - Anti-enumeration: unknown phone and wrong order number return the same
+ *   generic 401 message.
+ * - OTP-ready: when `portal.otpMode=sms`, return an explicit not-ready state.
  */
 const GENERIC_FAIL = 'بيانات الدخول غير صحيحة — تحقق من رقم الموبايل ورقم الطلب';
 
 export async function POST(req: Request) {
+  const requestId = getRequestId(req);
   try {
     const limit = await getSetting<number>('ratelimit.portalLoginPerMin', 10).catch(() => 10);
     const rl = checkRateLimit(`portal-login:${clientIp(req)}`, limit, 60_000);
     if (!rl.ok) return rateLimitedResponse(rl.retryAfterSec);
 
     if (!(await isPortalEnabled().catch(() => true))) {
-      return NextResponse.json({ success: false, error: 'بوابة العميل معطّلة حالياً' }, { status: 403 });
+      return apiError('FORBIDDEN', 'بوابة العميل معطّلة حالياً', 403, requestId);
     }
-    const body = await req.json();
-    const phone = String(body.phone || '').trim();
-    const orderNumber = String(body.orderNumber || '').trim().toUpperCase();
+    const body = await req.json().catch(() => null) as { phone?: unknown; orderNumber?: unknown } | null;
+    const phone = String(body?.phone || '').trim();
+    const orderNumber = String(body?.orderNumber || '').trim().toUpperCase();
     if (!phone || !orderNumber) {
-      return NextResponse.json({ success: false, error: 'رقم الموبايل ورقم آخر طلب مطلوبان' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رقم الموبايل ورقم آخر طلب مطلوبان', 400, requestId);
     }
     const otpMode = await getSetting<string>('portal.otpMode', 'off').catch(() => 'off');
     if (otpMode === 'sms') {
-      // F1: design-ready stub — real OTP dispatch lands with the SMS provider.
-      return NextResponse.json({ success: false, otpRequired: true, error: 'التحقق برمز SMS غير مفعل بعد — تواصل مع الإدارة' }, { status: 501 });
+      return apiError('NOT_IMPLEMENTED', 'التحقق برمز SMS غير مفعّل بعد — تواصل مع الإدارة', 501, requestId, { otpRequired: true });
     }
     const customer = await prisma.customer.findUnique({ where: { phone } });
     const order = customer
@@ -41,14 +39,11 @@ export async function POST(req: Request) {
           where: { orderNumber, OR: [{ customerId: customer.id }, { guestPhone: phone }] },
         })
       : null;
-    if (!customer || !order) {
-      return NextResponse.json({ success: false, error: GENERIC_FAIL }, { status: 401 });
-    }
-    const res = NextResponse.json({ success: true, name: customer.name, loyaltyPoints: customer.loyaltyPoints });
+    if (!customer || !order) return apiError('UNAUTHORIZED', GENERIC_FAIL, 401, requestId);
+    const res = apiSuccess({ name: customer.name, loyaltyPoints: customer.loyaltyPoints }, 200, requestId);
     res.headers.append('Set-Cookie', portalCookieHeader(issuePortalToken(customer.id)));
     return res;
-  } catch (e) {
-    captureError('account/login', e);
-    return NextResponse.json({ success: false, error: 'تعذر تسجيل الدخول' }, { status: 500 });
+  } catch (error) {
+    return apiInternalError(req, error, 'تعذر تسجيل الدخول');
   }
 }

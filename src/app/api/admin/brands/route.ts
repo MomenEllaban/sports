@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -10,7 +12,7 @@ export async function GET() {
     const brands = await prisma.brand.findMany({ orderBy: { nameAr: 'asc' } });
     return NextResponse.json({ success: true, brands });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed', 500);
   }
 }
 
@@ -21,10 +23,7 @@ export async function POST(req: Request) {
 
     const { nameAr, nameEn } = await req.json();
     if (!nameAr || !nameEn) {
-      return NextResponse.json(
-        { success: false, error: 'الاسم بالعربي والإنجليزي مطلوبان' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'الاسم بالعربي والإنجليزي مطلوبان', 400);
     }
 
     const slug = nameEn
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, brand });
   } catch (e) {
-    console.error('Brand create error:', e);
-    return NextResponse.json({ success: false, error: 'فشل في إضافة الماركة' }, { status: 500 });
+    captureError('api/admin/brands', e);
+    return apiError('INTERNAL_ERROR', 'فشل في إضافة الماركة', 500);
   }
 }

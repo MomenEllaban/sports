@@ -8,6 +8,8 @@ import SessionProviderWrapper from '@/components/SessionProviderWrapper';
 import { ToastProvider } from '@/components/Toast';
 import Preloader from '@/components/Preloader';
 import NavigationProgress from '@/components/layout/NavigationProgress';
+import GlobalErrorBoundary from '@/components/GlobalErrorBoundary';
+import ErrorEventHandler from '@/components/ErrorEventHandler';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -50,11 +52,14 @@ export default async function LocaleLayout({
         <SessionProviderWrapper>
           <NextIntlClientProvider messages={messages} locale={locale}>
             <ToastProvider>
-              <Suspense fallback={null}>
-                <NavigationProgress />
-              </Suspense>
-              <Preloader />
-              {children}
+              <ErrorEventHandler />
+              <GlobalErrorBoundary>
+                <Suspense fallback={null}>
+                  <NavigationProgress />
+                </Suspense>
+                <Preloader />
+                {children}
+              </GlobalErrorBoundary>
             </ToastProvider>
           </NextIntlClientProvider>
         </SessionProviderWrapper>

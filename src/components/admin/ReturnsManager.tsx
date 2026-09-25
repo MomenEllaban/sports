@@ -5,6 +5,7 @@ import { useLocale } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import { Plus } from 'lucide-react';
 import { DataTable, EmptyState } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 export interface ReturnRow {
   id: string;
@@ -63,9 +64,8 @@ export default function ReturnsManager({ initial, branches, counts }: {
       if (channel) p.set('channel', channel);
       if (branch) p.set('branch', branch);
       if (q.trim()) p.set('q', q.trim());
-      const res = await fetch(`/api/admin/returns?${p}`);
-      const data = await res.json();
-      if (data.success) setRows(data.returns);
+      const data = await apiRequest<{ returns?: ReturnRow[] }>(`/api/admin/returns?${p}`, { errorKey: 'admin:returns:list' });
+      if (data.returns) setRows(data.returns);
     } finally {
       setLoading(false);
     }

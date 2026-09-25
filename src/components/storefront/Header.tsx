@@ -105,7 +105,7 @@ export default function Header() {
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 flex items-center justify-between gap-3">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group shrink-0 min-w-0">
+        <Link href="/" className="flex min-h-[44px] items-center gap-2.5 group shrink-0 min-w-0">
           <Image
             src="/logo.avif"
             alt={t('appName')}
@@ -127,7 +127,7 @@ export default function Header() {
         </Link>
 
         {/* Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 text-sm font-semibold" aria-label="Main">
+        <nav className="hidden xl:flex items-center gap-1 text-sm font-semibold" aria-label="Main">
           {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
@@ -198,7 +198,7 @@ export default function Header() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="lg:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all shrink-0"
+            className="xl:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all shrink-0"
             aria-label={isAr ? 'القائمة' : 'Toggle menu'}
             aria-expanded={mobileOpen}
           >
@@ -209,7 +209,7 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       {mobileOpen && (
-        <nav className="lg:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md animate-fade-in" aria-label="Mobile">
+        <nav className="xl:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md animate-fade-in" aria-label="Mobile">
           <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-sm font-bold text-slate-200">
             {[...navLinks, { href: '/pos', label: t('pos') }, { href: '/admin', label: t('admin') }].map((link) => {
               const active = isActive(link.href);

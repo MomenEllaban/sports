@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -23,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { received } = body as { received: Array<{ itemId: string; quantity: number }> };
 
     if (!Array.isArray(received) || received.length === 0) {
-      return NextResponse.json({ success: false, error: 'No received quantities' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'No received quantities', 400);
     }
 
     const actorId = (session!.user as { id: string }).id;
@@ -74,9 +76,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ success: true, purchaseOrder: updated });
   } catch (e) {
     if (e instanceof PoError) {
-      return NextResponse.json({ success: false, error: e.message }, { status: e.status });
+      return apiError('REQUEST_FAILED', String(e.message), e.status);
     }
-    console.error('Admin PO receive error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to receive goods' }, { status: 500 });
+    captureError('api/admin/purchase-orders/[id]/receive', e);
+    return apiError('INTERNAL_ERROR', 'Failed to receive goods', 500);
   }
 }

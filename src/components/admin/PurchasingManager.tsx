@@ -252,7 +252,7 @@ export default function PurchasingManager({
             <div>
               <label className="block text-[11px] font-bold text-slate-400 mb-1">{isAr ? 'ابحث عن صنف بالاسم أو SKU أو الباركود' : 'Search product by name, SKU, or barcode'}</label>
               <input value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder={isAr ? 'اكتب ثم اختر الصنف...' : 'Type then choose a product...'} className={inputCls} />
-              <div className="mt-2 max-h-40 overflow-y-auto space-y-1" role="listbox" aria-label={isAr ? 'نتائج الأصناف' : 'Product results'}>
+              <div className="app-scrollbar mt-2 max-h-40 overflow-y-auto space-y-1" role="listbox" aria-label={isAr ? 'نتائج الأصناف' : 'Product results'}>
                 {products.filter((product) => {
                   const term = productSearch.trim().toLowerCase();
                   return !term || [product.nameAr, product.nameEn, product.sku, product.barcode || ''].some((value) => value.toLowerCase().includes(term));

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { apiRequest } from '@/lib/client-api';
 
 /**
  * Gateway return page (T01): Paymob redirects back here. We verify the
@@ -19,10 +20,9 @@ export default function CheckoutSuccessPage() {
       setState('missing');
       return;
     }
-    fetch(`/api/orders/track?query=${encodeURIComponent(orderNumber)}`)
-      .then((r) => r.json())
+    void apiRequest<{ order?: { paymentStatus: string } }>(`/api/orders/track?query=${encodeURIComponent(orderNumber)}`, { errorKey: 'storefront:checkout:verify' })
       .then((d) => {
-        if (d?.success && d.order) setState(d.order.paymentStatus === 'PAID' ? 'paid' : 'pending');
+        if (d.order) setState(d.order.paymentStatus === 'PAID' ? 'paid' : 'pending');
         else setState('missing');
       })
       .catch(() => setState('pending'));

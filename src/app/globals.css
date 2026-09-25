@@ -349,6 +349,75 @@
   display: none;
 }
 
+/*
+ * App scroll regions
+ * -----------------
+ * The admin/POS shells own the viewport and expose one intentional vertical
+ * scroll region. Tables and filter rows use the same tokenized scrollbar so a
+ * horizontal table scroll is visually distinct from the page scroll.
+ */
+.app-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 68%, var(--text-muted)) var(--bg-surface);
+  overscroll-behavior: contain;
+}
+.app-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.app-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  border-radius: 999px;
+}
+.app-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-primary) 68%, var(--text-muted));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.app-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+  background-clip: padding-box;
+}
+.app-scrollbar:not(.app-scrollbar-horizontal) {
+  scrollbar-gutter: stable;
+}
+.app-scrollbar-horizontal {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* The admin shell is a viewport application, not a document-flow page. */
+body[data-app-shell='admin'] {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Shared modal surface: content determines height until the viewport cap. */
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.app-modal-panel {
+  display: flex;
+  width: 100%;
+  max-height: min(90dvh, calc(100dvh - 2rem));
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-modal-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
 /* Entrance animations */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(24px); }

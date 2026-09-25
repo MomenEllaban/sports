@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createCourierShipment, ALEXANDRIA_DELIVERY_ZONES } from '@/lib/logistics';
@@ -19,17 +21,17 @@ export async function POST(req: Request) {
     const { phone, name, address, fulfillmentType, zoneId, paymentMethod, items } = body;
 
     if (!phone || !items || items.length === 0) {
-      return NextResponse.json({ success: false, error: 'رقم الموبايل والمنتجات مطلوبة.' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رقم الموبايل والمنتجات مطلوبة.', 400);
     }
     if (fulfillmentType !== 'DELIVERY' && fulfillmentType !== 'PICKUP') {
-      return NextResponse.json({ success: false, error: 'طريقة الاستلام غير صالحة.' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'طريقة الاستلام غير صالحة.', 400);
     }
     const requestedZoneId = typeof zoneId === 'string' && zoneId.trim() ? zoneId.trim() : 'ALX-CENTRAL';
     const deliveryZone = fulfillmentType === 'DELIVERY'
       ? ALEXANDRIA_DELIVERY_ZONES.find((zone) => zone.id === requestedZoneId)
       : undefined;
     if (fulfillmentType === 'DELIVERY' && !deliveryZone) {
-      return NextResponse.json({ success: false, error: 'منطقة التوصيل غير صالحة.' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'منطقة التوصيل غير صالحة.', 400);
     }
     // Never trust a client-supplied delivery fee; calculate it from the server zone table.
     const serverDeliveryFee = fulfillmentType === 'PICKUP' ? 0 : deliveryZone!.fee;
@@ -38,7 +40,7 @@ export async function POST(req: Request) {
     try {
       const available = await availablePaymentMethods();
       if (!available.includes(paymentMethod as PaymentMethod)) {
-        return NextResponse.json({ success: false, error: 'طريقة الدفع غير متاحة حالياً' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'طريقة الدفع غير متاحة حالياً', 400);
       }
     } catch {
       /* availability check is best-effort; creation validates again below */
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
     });
 
     if (!flagshipBranch) {
-      return NextResponse.json({ success: false, error: 'الفرع غير متوفر حالياً.' }, { status: 500 });
+      return apiError('INTERNAL_ERROR', 'الفرع غير متوفر حالياً.', 500);
     }
 
     // 2. Find or create Customer
@@ -74,23 +76,23 @@ export async function POST(req: Request) {
     if (fulfillmentType !== 'PICKUP' && rawAddressId) {
       const saved = await prisma.address.findFirst({ where: { id: rawAddressId, customerId: customer.id } });
       if (!saved) {
-        return NextResponse.json({ success: false, error: 'العنوان المحفوظ غير صالح' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'العنوان المحفوظ غير صالح', 400);
       }
       addressId = saved.id;
       finalAddress = [saved.street, saved.building, saved.city, saved.governorate].filter(Boolean).join('، ');
     }
     if (fulfillmentType !== 'PICKUP' && !finalAddress.trim()) {
-      return NextResponse.json({ success: false, error: 'عنوان التوصيل مطلوب' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'عنوان التوصيل مطلوب', 400);
     }
 
     // 3. Validate items + compute totals from DB prices (T06 semantics). No writes yet.
     const requested: Array<{ productId: string; quantity: number }> = [];
     for (const item of items) {
       if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
-        return NextResponse.json({ success: false, error: 'كمية غير صالحة في الطلب' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'كمية غير صالحة في الطلب', 400);
       }
       if (typeof item.productId !== 'string' || !item.productId) {
-        return NextResponse.json({ success: false, error: 'صنف غير صالح في الطلب' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'صنف غير صالح في الطلب', 400);
       }
       requested.push({ productId: item.productId, quantity: item.quantity });
     }
@@ -107,7 +109,7 @@ export async function POST(req: Request) {
     for (const item of requested) {
       const dbProduct = byId.get(item.productId);
       if (!dbProduct || !dbProduct.isActive) {
-        return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'صنف غير موجود أو موقوف', 400);
       }
 
       const available = dbProduct.inventories[0]?.stockQuantity || 0;
@@ -151,13 +153,13 @@ export async function POST(req: Request) {
         couponQuote = await quoteCoupon(rawCoupon, subtotal0);
       } catch (e) {
         const err = e as CouponError & { status?: number };
-        return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+        return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
       }
     }
     const wantPoints = Math.max(0, Math.floor(Number(body.loyaltyPoints) || 0));
     // T-RMA: negative loyalty (after returns) blocks new redemptions until covered.
     if (wantPoints > 0 && (customer.loyaltyPoints || 0) < 0) {
-      return NextResponse.json({ success: false, error: 'رصيد النقاط سالب — لا يمكن الاستبدال حتى تعويضه' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رصيد النقاط سالب — لا يمكن الاستبدال حتى تعويضه', 400);
     }
     const totals = computeStackedTotals({
       lines: orderItemsData,
@@ -173,7 +175,7 @@ export async function POST(req: Request) {
     });
     // Loyalty needs a real balance check now (atomic re-check inside the tx).
     if (totals.pointsUsed > (customer.loyaltyPoints || 0)) {
-      return NextResponse.json({ success: false, error: 'رصيد النقاط لا يكفي' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رصيد النقاط لا يكفي', 400);
     }
     const vatAmount = totals.vat;
     const totalAmount = totals.total;
@@ -327,7 +329,7 @@ export async function POST(req: Request) {
         // T16: coupon/points races surface with an HTTP status.
         const st = (e as { status?: number }).status;
         if (typeof st === 'number' && st >= 400 && st < 500) {
-          return NextResponse.json({ success: false, error: (e as Error).message }, { status: st });
+          return apiError('REQUEST_FAILED', String((e as Error).message), st);
         }
         throw e;
       }
@@ -400,7 +402,7 @@ export async function POST(req: Request) {
       etaUuid: receipt?.etaUuid,
     });
   } catch (error) {
-    console.error('Order creation error:', error);
-    return NextResponse.json({ success: false, error: 'فشل في حفظ الطلب.' }, { status: 500 });
+    captureError('api/orders/create', error);
+    return apiError('INTERNAL_ERROR', 'فشل في حفظ الطلب.', 500);
   }
 }

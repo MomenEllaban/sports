@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -38,7 +39,7 @@ export async function GET() {
     });
   } catch (e) {
     captureError('admin/coupons GET', e);
-    return NextResponse.json({ success: false, error: 'تعذر جلب الكوبونات' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر جلب الكوبونات', 500);
   }
 }
 
@@ -48,9 +49,9 @@ export async function POST(req: Request) {
     if (error) return error;
     const body = (await req.json()) as Record<string, unknown>;
     const parsed = parseCouponInput(body);
-    if ('error' in parsed) return NextResponse.json({ success: false, error: parsed.error }, { status: 400 });
+    if ('error' in parsed) return apiError('VALIDATION_ERROR', String(parsed.error), 400);
     const existing = await prisma.coupon.findUnique({ where: { code: parsed.code } });
-    if (existing) return NextResponse.json({ success: false, error: 'الكود مستخدم بالفعل' }, { status: 409 });
+    if (existing) return apiError('CONFLICT', 'الكود مستخدم بالفعل', 409);
     const created = await prisma.coupon.create({
       data: {
         code: parsed.code,
@@ -69,6 +70,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, coupon: created });
   } catch (e) {
     captureError('admin/coupons POST', e);
-    return NextResponse.json({ success: false, error: 'تعذر إنشاء الكوبون' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر إنشاء الكوبون', 500);
   }
 }

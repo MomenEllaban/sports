@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -44,7 +45,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, returns: rows });
   } catch (e) {
     captureError('admin/returns GET', e);
-    return NextResponse.json({ success: false, error: 'تعذر الجلب' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر الجلب', 500);
   }
 }
 
@@ -70,11 +71,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, return: request, replay: !!replay, frequencyWarning });
     } catch (e) {
       const err = e as ReturnError & { status?: number };
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
   } catch (e) {
     captureError('admin/returns POST', e);
-    return NextResponse.json({ success: false, error: 'تعذر الإنشاء' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر الإنشاء', 500);
   }
 }
 

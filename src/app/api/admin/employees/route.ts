@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -13,7 +15,7 @@ export async function GET() {
     });
     return NextResponse.json({ success: true, employees });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed', 500);
   }
 }
 
@@ -26,15 +28,12 @@ export async function POST(req: Request) {
     const { name, phone, roleTitle, salary, salaryType = 'MONTHLY', commissionRate = 0, branchId } = body;
 
     if (!name || !phone || !roleTitle || salary === undefined || !branchId) {
-      return NextResponse.json(
-        { success: false, error: 'الاسم، الموبايل، المسمى الوظيفي، الراتب، والفرع مطلوبة' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'الاسم، الموبايل، المسمى الوظيفي، الراتب، والفرع مطلوبة', 400);
     }
 
     const commissionPercent = Number(commissionRate);
     if (!Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 100) {
-      return NextResponse.json({ success: false, error: 'Commission must be between 0 and 100 percent' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Commission must be between 0 and 100 percent', 400);
     }
 
     const employee = await prisma.employee.create({
@@ -53,7 +52,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, employee });
   } catch (e) {
-    console.error('Employee create error:', e);
-    return NextResponse.json({ success: false, error: 'فشل في إضافة الموظف' }, { status: 500 });
+    captureError('api/admin/employees', e);
+    return apiError('INTERNAL_ERROR', 'فشل في إضافة الموظف', 500);
   }
 }

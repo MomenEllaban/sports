@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image, { type ImageProps } from 'next/image';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/routing';
-import { AlertTriangle, ChevronLeft, ChevronRight, Globe, Inbox, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Globe, Inbox, X } from 'lucide-react';
 
 // ── DirectionalIcon (Group 07): semantic back/forward chevron.
 // Renders ChevronLeft for "back" (ChevronRight for "forward") and auto-flips
@@ -291,7 +291,7 @@ export function DataTable<T extends { id: string }>({
   return (
     <>
       {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto rounded-card border border-slate-800 shadow-card">
+      <div className="app-scrollbar app-scrollbar-horizontal hidden md:block overflow-x-auto rounded-card border border-slate-800 shadow-card">
         <table className={tableCls}>
           <thead className={tableHeadCls}>
             <tr>{columns.map((c) => <th key={c.key} className={tableHeadCellCls}>{c.header}</th>)}</tr>
@@ -347,7 +347,7 @@ function useFocusTrap(activeRef: React.RefObject<HTMLElement | null>, active: bo
       if (e.key !== 'Tab') return;
       const focusables = [...root.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-      )].filter((el) => el.offsetParent !== null);
+      )].filter((el) => el.getClientRects().length > 0);
       if (focusables.length === 0) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
@@ -364,93 +364,166 @@ function useFocusTrap(activeRef: React.RefObject<HTMLElement | null>, active: bo
   }, [active, activeRef]);
 }
 
+// ── Shared dialog frame ────────────────────────────────────────────────
+// One viewport-owned surface for every dialog. The panel has no fixed
+// height: it grows with its content and only scrolls its body after the
+// viewport cap is reached. This is important for short tables and long
+// forms alike, and avoids measuring heights in JavaScript.
+export type DialogSize = 'sm' | 'md' | 'lg' | 'xl';
+
+let openDialogCount = 0;
+let bodyOverflowBeforeDialog = '';
+
+function useDialogScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    if (openDialogCount === 0) {
+      bodyOverflowBeforeDialog = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    openDialogCount += 1;
+    return () => {
+      openDialogCount = Math.max(0, openDialogCount - 1);
+      if (openDialogCount === 0) document.body.style.overflow = bodyOverflowBeforeDialog;
+    };
+  }, [active]);
+}
+
+function useDialogLifecycle(
+  panelRef: React.RefObject<HTMLDivElement | null>,
+  active: boolean,
+  onClose: () => void,
+) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useFocusTrap(panelRef, active);
+  useDialogScrollLock(active);
+  useEffect(() => {
+    if (!active) return;
+    const previous = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCloseRef.current();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previous?.focus();
+    };
+  }, [active, panelRef]);
+}
+
+export function DialogFrame({
+  title,
+  onClose,
+  children,
+  size = 'md',
+  footer,
+  active = true,
+  role = 'dialog',
+  panelClassName = '',
+  bodyClassName = '',
+  footerClassName = '',
+  overlayClassName = '',
+  closeLabel = 'إغلاق',
+  header,
+  headerClassName = '',
+  showCloseButton = true,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  size?: DialogSize;
+  footer?: React.ReactNode;
+  active?: boolean;
+  role?: 'dialog' | 'alertdialog';
+  panelClassName?: string;
+  bodyClassName?: string;
+  footerClassName?: string;
+  overlayClassName?: string;
+  closeLabel?: string;
+  header?: React.ReactNode;
+  headerClassName?: string;
+  showCloseButton?: boolean;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogLifecycle(panelRef, active, onClose);
+  if (!active) return null;
+
+  const width = size === 'xl' ? 'max-w-4xl' : size === 'lg' ? 'max-w-2xl' : size === 'sm' ? 'max-w-sm' : 'max-w-lg';
+  return (
+    <div
+      className={`app-modal-overlay bg-slate-950/80 backdrop-blur-sm animate-fade-in ${overlayClassName}`}
+      onClick={onClose}
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        role={role}
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+        className={`app-modal-panel app-scrollbar bg-slate-900 border border-slate-700 rounded-panel ${width} shadow-modal animate-fade-up outline-none ${panelClassName}`}
+      >
+        <div className={`flex shrink-0 items-center justify-between gap-3 border-b border-slate-800 px-6 pb-3 pt-6 ${headerClassName}`}>
+          {header ?? <h3 className="font-extrabold text-sm text-slate-100">{title}</h3>}
+          {showCloseButton && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={closeLabel}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-control bg-slate-800 text-slate-300 hover:bg-slate-700"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        <div className={`app-modal-body app-scrollbar px-6 ${footer ? 'pb-4' : 'pb-6'} ${bodyClassName}`}>
+          {children}
+        </div>
+        {footer && (
+          <div className={`flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-slate-800 px-6 pb-6 pt-4 ${footerClassName}`}>
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── ConfirmDialog for dangerous actions (F0 §1.4) ────────
 export function ConfirmDialog({ open, title, impact, confirmLabel, onConfirm, onClose, busy }: {
   open: boolean; title: string; impact: string; confirmLabel: string; onConfirm: () => void; onClose: () => void; busy?: boolean;
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  useFocusTrap(dialogRef, open);
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.activeElement as HTMLElement | null;
-    dialogRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
-    document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-      prev?.focus();
-    };
-  }, [open, onCloseRef]);
-  if (!open) return null;
   return (
-    <div role="alertdialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/70 animate-fade-in" onClick={onClose}>
-      <div ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-panel bg-slate-900 border border-slate-700 p-6 space-y-4 shadow-modal outline-none animate-fade-up">
-        <h3 className="font-black text-sm text-slate-100 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-400" />{title}</h3>
-        <p className="text-xs text-slate-400 leading-relaxed">{impact}</p>
-        <div className="grid grid-cols-2 gap-2">
+    <DialogFrame
+      active={open}
+      role="alertdialog"
+      title={title}
+      onClose={onClose}
+      panelClassName="max-w-sm"
+      bodyClassName="text-xs leading-relaxed text-slate-400"
+      footer={(
+        <div className="grid w-full grid-cols-2 gap-2">
           <Button variant="secondary" onClick={onClose} disabled={busy}>رجوع</Button>
           <Button variant="danger" onClick={onConfirm} disabled={busy}>{busy ? '...' : confirmLabel}</Button>
         </div>
-      </div>
-    </div>
+      )}
+    >
+      <p>{impact}</p>
+    </DialogFrame>
   );
 }
 
 // ── Modal (F0 §1.4): one shared dialog with Escape/focus management ─
 export function Modal({ title, onClose, children, size = 'md', footer }: {
   title: string; onClose: () => void; children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg'; footer?: React.ReactNode;
+  size?: DialogSize; footer?: React.ReactNode;
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  useFocusTrap(panelRef, true);
-  useEffect(() => {
-    const prev = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
-    document.addEventListener('keydown', onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-      prev?.focus();
-    };
-  }, [onCloseRef]);
-  const width = size === 'lg' ? 'max-w-2xl' : size === 'sm' ? 'max-w-sm' : 'max-w-lg';
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div
-        ref={panelRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-        className={`bg-slate-900 border border-slate-700 p-6 rounded-panel w-full ${width} space-y-4 shadow-modal max-h-[90vh] overflow-y-auto animate-fade-up outline-none`}
-      >
-        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 className="font-extrabold text-sm text-slate-100">{title}</h3>
-          <button
-            onClick={onClose}
-            aria-label="إغلاق"
-            className="w-11 h-11 flex items-center justify-center rounded-control bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        {children}
-        {footer && (
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-800 pt-4">{footer}</div>
-        )}
-      </div>
-    </div>
+    <DialogFrame title={title} onClose={onClose} size={size} footer={footer} bodyClassName="space-y-4">
+      {children}
+    </DialogFrame>
   );
 }
 

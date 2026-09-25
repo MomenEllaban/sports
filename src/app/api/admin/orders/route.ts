@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -26,28 +28,25 @@ export async function POST(req: Request) {
     } = body;
 
     if (!guestPhone || !deliveryAddress || !branchId || !items || items.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'الموبايل، العنوان، الفرع، والمنتجات مطلوبة' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'الموبايل، العنوان، الفرع، والمنتجات مطلوبة', 400);
     }
 
     const branch = await prisma.branch.findFirst({ where: { id: branchId, isActive: true } });
     if (!branch) {
-      return NextResponse.json({ success: false, error: 'الفرع غير صالح' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الفرع غير صالح', 400);
     }
     if (!canAccessBranch(session, branchId)) {
-      return NextResponse.json({ success: false, error: 'لا تملك صلاحية إنشاء طلب في هذا الفرع' }, { status: 403 });
+      return apiError('FORBIDDEN', 'لا تملك صلاحية إنشاء طلب في هذا الفرع', 403);
     }
 
     // Validate item shape first so we can load all products in one query.
     const requested: Array<{ productId: string; quantity: number }> = [];
     for (const item of items) {
       if (typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
-        return NextResponse.json({ success: false, error: 'كمية غير صالحة في الطلب' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'كمية غير صالحة في الطلب', 400);
       }
       if (typeof item.productId !== 'string' || !item.productId) {
-        return NextResponse.json({ success: false, error: 'صنف غير صالح في الطلب' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'صنف غير صالح في الطلب', 400);
       }
       requested.push({ productId: item.productId, quantity: item.quantity });
     }
@@ -62,7 +61,7 @@ export async function POST(req: Request) {
     for (const line of requested) {
       const product = byId.get(line.productId);
       if (!product || !product.isActive) {
-        return NextResponse.json({ success: false, error: 'صنف غير موجود أو موقوف' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'صنف غير موجود أو موقوف', 400);
       }
       const price = num(product.price);
       orderItemsData.push({
@@ -167,7 +166,7 @@ export async function POST(req: Request) {
     const created = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     return NextResponse.json({ success: true, order: created });
   } catch (e) {
-    console.error('Admin order create error:', e);
-    return NextResponse.json({ success: false, error: 'فشل في إنشاء الطلب' }, { status: 500 });
+    captureError('api/admin/orders', e);
+    return apiError('INTERNAL_ERROR', 'فشل في إنشاء الطلب', 500);
   }
 }

@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -18,18 +19,18 @@ export async function POST(req: Request) {
     const phone = String(body.phone || '').trim();
     const orderNumber = String(body.orderNumber || '').trim().toUpperCase();
     if (!phone || !orderNumber) {
-      return NextResponse.json({ success: false, error: 'رقم الموبايل ورقم الطلب مطلوبان' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رقم الموبايل ورقم الطلب مطلوبان', 400);
     }
     const order = await prisma.order.findFirst({
       where: { orderNumber, OR: [{ guestPhone: phone }, { customer: { phone } }] },
       include: { items: { include: { product: { select: { id: true, nameAr: true, sku: true, images: true, categoryId: true } } } } },
     });
     if (!order) {
-      return NextResponse.json({ success: false, error: 'بيانات الطلب غير متطابقة' }, { status: 401 });
+      return apiError('UNAUTHORIZED', 'بيانات الطلب غير متطابقة', 401);
     }
     const policy = await getReturnsPolicy();
     if (!policy.enabled) {
-      return NextResponse.json({ success: false, error: 'المرتجعات معطلة حالياً' }, { status: 403 });
+      return apiError('FORBIDDEN', 'المرتجعات معطلة حالياً', 403);
     }
     const items = (Array.isArray(body.items) ? body.items : []).map((it: Record<string, unknown>) => ({
       refId: typeof it.orderItemId === 'string' ? it.orderItemId : undefined,
@@ -57,11 +58,11 @@ export async function POST(req: Request) {
       });
     } catch (e) {
       const err = e as ReturnError & { status?: number };
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
   } catch (e) {
     captureError('returns/request', e);
-    return NextResponse.json({ success: false, error: 'تعذر إرسال الطلب' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر إرسال الطلب', 500);
   }
 }
 
@@ -71,12 +72,12 @@ export async function GET(req: Request) {
     const q = new URL(req.url).searchParams;
     const orderNumber = (q.get('order') || '').trim().toUpperCase();
     const phone = (q.get('phone') || '').trim();
-    if (!orderNumber || !phone) return NextResponse.json({ success: false, error: 'order + phone required' }, { status: 400 });
+    if (!orderNumber || !phone) return apiError('VALIDATION_ERROR', 'order + phone required', 400);
     const order = await prisma.order.findFirst({
       where: { orderNumber, OR: [{ guestPhone: phone }, { customer: { phone } }] },
       include: { items: { include: { product: { select: { id: true, nameAr: true, sku: true, images: true, categoryId: true } } } } },
     });
-    if (!order) return NextResponse.json({ success: false, error: 'not matched' }, { status: 401 });
+    if (!order) return apiError('UNAUTHORIZED', 'not matched', 401);
     const policy = await getReturnsPolicy();
     const ageDays = (Date.now() - order.createdAt.getTime()) / 86_400_000;
     const blocked = new Set(policy.nonReturnableCategories);
@@ -106,6 +107,6 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     captureError('returns/eligibility', e);
-    return NextResponse.json({ success: false, error: 'failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'failed', 500);
   }
 }

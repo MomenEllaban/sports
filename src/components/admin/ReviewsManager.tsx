@@ -7,6 +7,7 @@ import { Check, Trash2, Star } from 'lucide-react';
 import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { DataTable, ConfirmDialog } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 interface ReviewRow {
   id: string;
@@ -35,9 +36,8 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
   }, [pendingOnly, setPage]);
 
   const reload = async () => {
-    const res = await fetch(`/api/admin/reviews${pendingOnly ? '?pending=1' : ''}`);
-    const data = await res.json();
-    if (data.success) setRows(data.reviews);
+    const data = await apiRequest<{ reviews?: ReviewRow[] }>(`/api/admin/reviews${pendingOnly ? '?pending=1' : ''}`, { errorKey: 'admin:reviews:list' });
+    if (data.reviews) setRows(data.reviews);
     router.refresh();
   };
 
@@ -58,7 +58,7 @@ export default function ReviewsManager({ initial }: { initial: ReviewRow[] }) {
     if (!confirmDelete) return;
     setBusy(confirmDelete.id);
     try {
-      await fetch(`/api/admin/reviews?id=${confirmDelete.id}`, { method: 'DELETE' });
+      await apiRequest(`/api/admin/reviews?id=${confirmDelete.id}`, { method: 'DELETE', errorKey: `admin:reviews:delete:${confirmDelete.id}` });
       toast(isAr ? 'تم الحذف' : 'Deleted', 'success');
       setConfirmDelete(null);
       await reload();

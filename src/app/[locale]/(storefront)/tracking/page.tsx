@@ -5,6 +5,7 @@ import { Search, Truck, CheckCircle2, Clock, MapPin, Phone } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { ReturnRequestPanel, ReturnTrackerPanel } from '@/components/storefront/ReturnPortal';
+import { apiRequest } from '@/lib/client-api';
 
 export default function TrackingPage() {
   const locale = useLocale();
@@ -41,14 +42,9 @@ export default function TrackingPage() {
 
     try {
       // F1: phone-only lookups are rejected server-side; send the pair.
-      const res = await fetch(`/api/orders/track?${buildParams(query, phone)}`);
-      const data = await res.json();
-
-      if (data.success && data.order) {
-        setOrderResult(data.order);
-      } else {
-        setErrorMsg(data.message || (isAr ? 'لم نتمكن من العثور على طلب بهذا الرقم أو الموبايل.' : 'Could not find an order with this number or phone.'));
-      }
+      const data = await apiRequest<{ order?: typeof orderResult }>(`/api/orders/track?${buildParams(query, phone)}`, { errorKey: 'storefront:orders:track' });
+      if (data.order) setOrderResult(data.order);
+      else setErrorMsg(isAr ? 'لم نتمكن من العثور على طلب بهذا الرقم أو الموبايل.' : 'Could not find an order with this number or phone.');
     } catch {
       setErrorMsg(isAr ? 'تعذر الاتصال بالسيرفر. حاول مرة أخرى.' : 'Server connection failed. Please try again.');
     } finally {

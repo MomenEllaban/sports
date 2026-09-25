@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -12,7 +13,7 @@ export async function GET() {
     const { error, session } = await requireRole(...POS_ROLES);
     if (error) return error;
     const cashierId = (session?.user as { id?: string })?.id;
-    if (!cashierId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (!cashierId) return apiError('UNAUTHORIZED', 'Unauthorized', 401);
     const shift = await getOpenShift(cashierId);
     if (!shift) return NextResponse.json({ success: true, shift: null });
     return NextResponse.json({
@@ -21,7 +22,7 @@ export async function GET() {
     });
   } catch (e) {
     captureError('pos/shifts GET', e);
-    return NextResponse.json({ success: false, error: 'تعذر جلب الوردية' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر جلب الوردية', 500);
   }
 }
 
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
     const { error, session } = await requireRole(...POS_ROLES);
     if (error) return error;
     const cashierId = (session?.user as { id?: string })?.id;
-    if (!cashierId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    if (!cashierId) return apiError('UNAUTHORIZED', 'Unauthorized', 401);
     const body = await req.json();
     const role = session!.user?.role;
     let branchId = typeof body.branchId === 'string' && body.branchId.trim() ? body.branchId.trim() : null;
@@ -46,18 +47,18 @@ export async function POST(req: Request) {
       const firstActive = await prisma.branch.findFirst({ where: { isActive: true } });
       branchId = firstActive?.id || null;
     }
-    if (!branchId) return NextResponse.json({ success: false, error: 'لا يوجد فروع نشطة في النظام' }, { status: 422 });
+    if (!branchId) return apiError('REQUEST_FAILED', 'لا يوجد فروع نشطة في النظام', 422);
     const fallbackFloat = await getSetting<number>('shifts.openingFloat', 500).catch(() => 500);
     const openingFloat = body.openingFloat === undefined ? fallbackFloat : Number(body.openingFloat);
     try {
       const shift = await openShift({ branchId, cashierId, openingFloat, openNote: typeof body.openNote === 'string' ? body.openNote : undefined });
       return NextResponse.json({ success: true, shift: { id: shift.id, branchId: shift.branchId, openedAt: shift.openedAt, openingFloat: num(shift.openingFloat) } });
     } catch (e) {
-      if (e instanceof ShiftError) return NextResponse.json({ success: false, error: e.message }, { status: e.status });
+      if (e instanceof ShiftError) return apiError('REQUEST_FAILED', String(e.message), e.status);
       throw e;
     }
   } catch (e) {
     captureError('pos/shifts POST', e);
-    return NextResponse.json({ success: false, error: 'تعذر فتح الوردية' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر فتح الوردية', 500);
   }
 }

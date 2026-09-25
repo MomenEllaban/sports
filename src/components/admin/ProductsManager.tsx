@@ -8,6 +8,7 @@ import { Modal, apiFetch } from './ui';
 import { inputCls, Button, SafeImage } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
+import { apiRequest } from '@/lib/client-api';
 
 interface ProductRow {
   id: string;
@@ -212,18 +213,17 @@ export default function ProductsManager({
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('/api/admin/upload', {
+      const data = await apiRequest<{ url?: string }>('/api/admin/upload', {
         method: 'POST',
         body: formData,
+        errorKey: 'admin:upload:image',
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || (isAr ? 'فشل رفع الصورة' : 'Failed to upload image'));
-      }
+      const uploadedUrl = data.url;
+      if (!uploadedUrl) throw new Error(isAr ? 'فشل رفع الصورة' : 'Failed to upload image');
 
       setProductForm((prev) => ({
         ...prev,
-        images: [...prev.images, data.url],
+        images: [...prev.images, uploadedUrl],
       }));
     } catch (err: unknown) {
       setImageUploadError(err instanceof Error ? err.message : (isAr ? 'فشل رفع الصورة' : 'Upload failed'));
@@ -246,16 +246,15 @@ export default function ProductsManager({
         return;
       }
 
-      const res = await fetch('/api/admin/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmed }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+      try {
+        const data = await apiRequest<{ url?: string }>('/api/admin/upload', {
+          method: 'POST',
+          body: JSON.stringify({ url: trimmed }),
+          errorKey: 'admin:upload:image-url',
+        });
+        setProductForm((prev) => ({ ...prev, images: [...prev.images, data.url || trimmed] }));
+      } catch {
         setProductForm((prev) => ({ ...prev, images: [...prev.images, trimmed] }));
-      } else {
-        setProductForm((prev) => ({ ...prev, images: [...prev.images, data.url] }));
       }
       setImageUrlInput('');
     } catch {
@@ -797,7 +796,7 @@ export default function ProductsManager({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
             <table className="w-full min-w-[760px] text-xs text-start">
               <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
                 <tr>

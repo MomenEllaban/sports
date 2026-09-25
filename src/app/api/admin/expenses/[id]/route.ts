@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -15,31 +17,31 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.branchId) data.branchId = body.branchId;
     if (body.category) {
       if (!Object.values(ExpenseCategory).includes(body.category)) {
-        return NextResponse.json({ success: false, error: 'Invalid expense category' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Invalid expense category', 400);
       }
       data.category = body.category;
     }
     if (body.description !== undefined) {
       if (!String(body.description).trim()) {
-        return NextResponse.json({ success: false, error: 'Description is required' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Description is required', 400);
       }
       data.description = String(body.description).trim();
     }
     if (body.amount !== undefined) {
       if (!(Number(body.amount) > 0)) {
-        return NextResponse.json({ success: false, error: 'Amount must be positive' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Amount must be positive', 400);
       }
       data.amount = Number(body.amount);
     }
     if (Object.keys(data).length === 0) {
-      return NextResponse.json({ success: false, error: 'Nothing to update' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Nothing to update', 400);
     }
 
     const expense = await prisma.expense.update({ where: { id }, data });
     return NextResponse.json({ success: true, expense });
   } catch (e) {
-    console.error('Admin expense update error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to update expense' }, { status: 500 });
+    captureError('api/admin/expenses/[id]', e);
+    return apiError('INTERNAL_ERROR', 'Failed to update expense', 500);
   }
 }
 
@@ -52,7 +54,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     await prisma.expense.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('Admin expense delete error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to delete expense' }, { status: 500 });
+    captureError('api/admin/expenses/[id]', e);
+    return apiError('INTERNAL_ERROR', 'Failed to delete expense', 500);
   }
 }

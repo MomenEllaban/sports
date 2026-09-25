@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole, POS_ROLES } from '@/lib/auth/guards';
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
     const phone = searchParams.get('phone');
 
     if (!phone || phone.length < 5) {
-      return NextResponse.json({ success: false, error: 'رقم موبايل غير كافٍ' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'رقم موبايل غير كافٍ', 400);
     }
 
     const customer = await prisma.customer.findFirst({
@@ -20,12 +21,12 @@ export async function GET(req: Request) {
     });
 
     if (!customer) {
-      return NextResponse.json({ success: false, error: 'العميل غير موجود' });
+      return apiError('NOT_FOUND', 'العميل غير موجود', 404);
     }
 
     return NextResponse.json({ success: true, customer });
   } catch {
-    return NextResponse.json({ success: false, error: 'فشل في البحث' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'فشل في البحث', 500);
   }
 }
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     const { name, phone, email, address } = body;
 
     if (!name || !phone) {
-      return NextResponse.json({ success: false, error: 'الاسم ورقم الهاتف مطلوبان' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الاسم ورقم الهاتف مطلوبان', 400);
     }
 
     // Check if customer with same phone already exists
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, customer }, { status: 201 });
   } catch {
-    return NextResponse.json({ success: false, error: 'فشل إنشاء العميل' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'فشل إنشاء العميل', 500);
   }
 }
 

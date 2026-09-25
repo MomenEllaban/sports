@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, reviews });
   } catch (e) {
     captureError('admin/reviews GET', e);
-    return NextResponse.json({ success: false, error: 'تعذر جلب التقييمات' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر جلب التقييمات', 500);
   }
 }
 
@@ -30,14 +31,14 @@ export async function PATCH(req: Request) {
     const body = await req.json();
     const { id, approved } = body as { id?: string; approved?: boolean };
     if (!id || typeof approved !== 'boolean') {
-      return NextResponse.json({ success: false, error: 'بيانات غير صالحة' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'بيانات غير صالحة', 400);
     }
     const updated = await prisma.review.update({ where: { id }, data: { approved } });
     writeAudit({ actorId: (session?.user as { id?: string })?.id, action: approved ? 'review.approve' : 'review.unapprove', entity: 'Review', entityId: id }).catch(() => null);
     return NextResponse.json({ success: true, review: updated });
   } catch (e) {
     captureError('admin/reviews PATCH', e);
-    return NextResponse.json({ success: false, error: 'تعذر التحديث' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر التحديث', 500);
   }
 }
 
@@ -46,11 +47,11 @@ export async function DELETE(req: Request) {
     const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
     const id = new URL(req.url).searchParams.get('id');
-    if (!id) return NextResponse.json({ success: false, error: 'المعرف مطلوب' }, { status: 400 });
+    if (!id) return apiError('VALIDATION_ERROR', 'المعرف مطلوب', 400);
     await prisma.review.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {
     captureError('admin/reviews DELETE', e);
-    return NextResponse.json({ success: false, error: 'تعذر الحذف' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر الحذف', 500);
   }
 }

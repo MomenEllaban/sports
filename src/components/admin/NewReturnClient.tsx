@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import { apiFetch } from '@/components/admin/ui';
 import { useToast } from '@/components/Toast';
 import { Stepper } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 const REASONS = [
   ['SIZE_ISSUE', 'مقاس'], ['DEFECTIVE', 'عيب مصنعي'], ['WRONG_ITEM', 'صنف خطأ'],
@@ -32,21 +33,17 @@ export default function NewReturnClient() {
     setBusy(true);
     setError('');
     try {
-      const res = await fetch(
-        docType === 'order'
-          ? `/api/orders/track?query=${encodeURIComponent(docNumber.trim())}`
-          : `/api/admin/sales/lookup?number=${encodeURIComponent(docNumber.trim())}`
-      );
-      const data = await res.json();
+      const lookupUrl = docType === 'order'
+        ? `/api/orders/track?query=${encodeURIComponent(docNumber.trim())}`
+        : `/api/admin/sales/lookup?number=${encodeURIComponent(docNumber.trim())}`;
+      const data = await apiRequest<{ success?: boolean; sale?: typeof doc }>(lookupUrl, { errorKey: `admin:returns:lookup:${docType}` });
       if (docType === 'order') {
-        if (!data.success) throw new Error(data.message || 'غير موجود');
         // track API returns masked summary; fetch full lines via admin returns lookup
-        const full = await fetch(`/api/admin/returns/lookup?orderNumber=${encodeURIComponent(docNumber.trim())}`);
-        const fd = await full.json();
-        if (!fd.success) throw new Error(fd.error || 'غير موجود');
-        setDoc(fd.doc);
+        const full = await apiRequest<{ doc?: typeof doc }>(`/api/admin/returns/lookup?orderNumber=${encodeURIComponent(docNumber.trim())}`, { errorKey: 'admin:returns:full-lookup' });
+        if (!full.doc) throw new Error('غير موجود');
+        setDoc(full.doc);
       } else {
-        if (!data.success) throw new Error(data.error || 'غير موجود');
+        if (!data.sale) throw new Error('غير موجود');
         setDoc(data.sale);
       }
       setPicks({});

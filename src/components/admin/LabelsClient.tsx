@@ -48,7 +48,7 @@ export default function LabelsClient({ products }: {
           <label htmlFor="lb-search" className="block font-bold text-slate-300 mb-1">بحث بالاسم / SKU / باركود</label>
           <input id="lb-search" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           {matches.length > 0 && (
-            <ul className="absolute z-10 mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 max-h-48 overflow-y-auto">
+            <ul className="app-scrollbar absolute z-10 mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 max-h-48 overflow-y-auto">
               {matches.map((p) => (
                 <li key={p.id}>
                   <button onClick={() => { toggle(p); setQuery(''); }} className="w-full min-h-[44px] text-start px-3 py-2 hover:bg-slate-800 text-xs">

@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -19,13 +20,13 @@ export async function POST(req: Request) {
       branchId?: string; productId?: string; countedQty?: number; reason?: string;
     };
     if (!branchId || !productId) {
-      return NextResponse.json({ success: false, error: 'الفرع والصنف مطلوبان' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الفرع والصنف مطلوبان', 400);
     }
     if (!Number.isInteger(countedQty) || (countedQty as number) < 0) {
-      return NextResponse.json({ success: false, error: 'الكمية المعدودة غير صالحة' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'الكمية المعدودة غير صالحة', 400);
     }
     if (!reason || !String(reason).trim()) {
-      return NextResponse.json({ success: false, error: 'سبب التسوية إجباري' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'سبب التسوية إجباري', 400);
     }
     const actorId = (session?.user as { id?: string })?.id;
     const result = await prisma.$transaction(async (tx) => {
@@ -57,8 +58,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, ...result });
   } catch (e) {
     const st = (e as { status?: number }).status;
-    if (typeof st === 'number') return NextResponse.json({ success: false, error: (e as Error).message }, { status: st });
+    if (typeof st === 'number') return apiError('REQUEST_FAILED', String((e as Error).message), st);
     captureError('admin/inventory/adjust', e);
-    return NextResponse.json({ success: false, error: 'تعذر التسوية' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر التسوية', 500);
   }
 }

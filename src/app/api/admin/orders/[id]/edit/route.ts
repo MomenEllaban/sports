@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -11,7 +13,7 @@ type EditLine = { productId: string; quantity: number };
 const EDITABLE_STATUSES: OrderStatus[] = [OrderStatus.PENDING, OrderStatus.CONFIRMED];
 
 function bad(message: string, status = 400) {
-  return NextResponse.json({ success: false, error: message }, { status });
+  return apiError(status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : status === 404 ? 'NOT_FOUND' : status === 409 ? 'CONFLICT' : 'VALIDATION_ERROR', message, status);
 }
 
 function isPositiveInt(value: unknown): value is number {
@@ -190,12 +192,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ success: true, order: updated, totals });
   } catch (error) {
     if (error instanceof InsufficientStockError) {
-      return NextResponse.json({ success: false, error: 'المخزون لا يكفي', productId: error.productId, available: error.available }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'المخزون لا يكفي', 400, undefined, { productId: error.productId, available: error.available });
     }
     if (error instanceof Error && error.message === 'STALE_ORDER') {
       return bad('تم تعديل الطلب من جهاز آخر حدّث الصفحة ثم أعد المحاولة', 409);
     }
-    console.error('Admin order edit error:', error);
-    return NextResponse.json({ success: false, error: 'فشل تعديل الطلب' }, { status: 500 });
+    captureError('api/admin/orders/[id]/edit', error);
+    return apiError('INTERNAL_ERROR', 'فشل تعديل الطلب', 500);
   }
 }

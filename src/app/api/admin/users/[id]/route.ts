@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -33,7 +34,7 @@ export async function PATCH(
     if (typeof body.phone !== 'undefined') updateData.phone = body.phone ? body.phone.trim() : null;
     if (body.role) {
       if (!Object.values(Role).includes(body.role)) {
-        return NextResponse.json({ success: false, error: 'دور غير صالح' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'دور غير صالح', 400);
       }
       updateData.role = body.role as Role;
     }
@@ -47,7 +48,7 @@ export async function PATCH(
     // Manager discount PIN (SUPER_ADMIN only, 4-8 digits, stored as bcrypt hash).
     if (typeof body.managerPin !== 'undefined' && body.managerPin !== '') {
       if (!/^\d{4,8}$/.test(String(body.managerPin))) {
-        return NextResponse.json({ success: false, error: 'PIN must be 4-8 digits' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'PIN must be 4-8 digits', 400);
       }
       updateData.managerPinHash = await bcrypt.hash(String(body.managerPin), 10);
       updateData.pinFailedAttempts = 0;
@@ -57,10 +58,7 @@ export async function PATCH(
     // Nobody may change their own role or deactivate themselves (anti lock-out).
     const selfId = (session?.user as { id?: string } | undefined)?.id;
     if (selfId && selfId === id && (updateData.role || updateData.isActive === false)) {
-      return NextResponse.json(
-        { success: false, error: 'لا يمكنك تغيير دورك أو تعطيل حسابك بنفسك' },
-        { status: 403 }
-      );
+      return apiError('FORBIDDEN', 'لا يمكنك تغيير دورك أو تعطيل حسابك بنفسك', 403);
     }
 
     // Check email uniqueness if email changed
@@ -69,10 +67,7 @@ export async function PATCH(
         where: { email: updateData.email, NOT: { id } },
       });
       if (existing) {
-        return NextResponse.json(
-          { success: false, error: 'هذا البريد الإلكتروني مستخدم بالفعل' },
-          { status: 409 }
-        );
+        return apiError('CONFLICT', 'هذا البريد الإلكتروني مستخدم بالفعل', 409);
       }
     }
 
@@ -93,10 +88,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message || 'فشل تحديث بيانات المستخدم' },
-      { status: 500 }
-    );
+    return apiError('INTERNAL_ERROR', String((err as Error).message || 'فشل تحديث بيانات المستخدم'), 500);
   }
 }
 
@@ -114,31 +106,22 @@ export async function DELETE(
     const sessionEmail = session?.user?.email;
     const sessionUser = session?.user as { id?: string; email?: string } | undefined;
     if (sessionUser?.id === id) {
-      return NextResponse.json(
-        { success: false, error: 'لا يمكنك حذف حسابك الشخصي الذي سجلت به الدخول' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'لا يمكنك حذف حسابك الشخصي الذي سجلت به الدخول', 400);
     }
 
     const targetUser = await prisma.user.findUnique({ where: { id } });
     if (!targetUser) {
-      return NextResponse.json({ success: false, error: 'المستخدم غير موجود' }, { status: 404 });
+      return apiError('NOT_FOUND', 'المستخدم غير موجود', 404);
     }
 
     if (sessionEmail && targetUser.email === sessionEmail) {
-      return NextResponse.json(
-        { success: false, error: 'لا يمكنك حذف حسابك الشخصي الذي سجلت به الدخول' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'لا يمكنك حذف حسابك الشخصي الذي سجلت به الدخول', 400);
     }
 
     await prisma.user.delete({ where: { id } });
 
     return NextResponse.json({ success: true, message: 'تم حذف المستخدم بنجاح' });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message || 'فشل حذف المستخدم' },
-      { status: 500 }
-    );
+    return apiError('INTERNAL_ERROR', String((err as Error).message || 'فشل حذف المستخدم'), 500);
   }
 }

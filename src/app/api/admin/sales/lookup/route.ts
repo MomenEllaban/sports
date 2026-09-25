@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -10,12 +11,12 @@ export async function GET(req: Request) {
     const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
     const number = (new URL(req.url).searchParams.get('number') || '').trim();
-    if (!number) return NextResponse.json({ success: false, error: 'number required' }, { status: 400 });
+    if (!number) return apiError('VALIDATION_ERROR', 'number required', 400);
     const sale = await prisma.sale.findFirst({
       where: { OR: [{ saleNumber: number }, { id: number }] },
       include: { items: { include: { product: { select: { id: true, nameAr: true } } } } },
     });
-    if (!sale) return NextResponse.json({ success: false, error: 'الفاتورة غير موجودة' }, { status: 404 });
+    if (!sale) return apiError('NOT_FOUND', 'الفاتورة غير موجودة', 404);
     return NextResponse.json({
       success: true,
       sale: {
@@ -29,6 +30,6 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     captureError('admin/sales/lookup', e);
-    return NextResponse.json({ success: false, error: 'failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'failed', 500);
   }
 }

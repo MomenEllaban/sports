@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { requireRole } from '@/lib/auth/guards';
 import { getReport, parseReportQuery, type ReportType } from '@/lib/reports/data';
 import { scopedBranchIds } from '@/lib/auth/branch-scope';
@@ -14,7 +15,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
     const { error, session } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE');
     if (error) return error;
     const { type: rawType } = await params;
-    if (!['sales', 'inventory', 'branches', 'finance'].includes(rawType)) return NextResponse.json({ success: false, error: 'Unknown report' }, { status: 404 });
+    if (!['sales', 'inventory', 'branches', 'finance'].includes(rawType)) return apiError('NOT_FOUND', 'Unknown report', 404);
     const type = rawType as ReportType;
     const url = new URL(req.url);
     const parsed = parseReportQuery(url.searchParams);
@@ -33,7 +34,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
     const csv = '\uFEFF' + [headers.map(cell).join(','), ...rows.map((row) => [row.nameAr, row.nameEn, row.sku, row.barcode, row.category, row.brand, row.buyPrice, row.sellPrice, row.quantity, row.revenue, row.cost, row.profit, row.branchName].map(cell).join(','))].join('\r\n');
     return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="${type}-${new Date().toISOString().slice(0, 10)}.csv"`, 'Cache-Control': 'no-store' } });
   } catch (error) {
-    console.error('Report export error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر تصدير التقرير' }, { status: 500 });
+    captureError('api/admin/reports/[type]/export', error);
+    return apiError('INTERNAL_ERROR', 'تعذر تصدير التقرير', 500);
   }
 }

@@ -147,7 +147,7 @@ export default function AdminCommandPalette() {
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
-        <div className="max-h-[min(55vh,26rem)] overflow-y-auto p-2">
+        <div className="app-scrollbar max-h-[min(55vh,26rem)] overflow-y-auto p-2">
           {filtered.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-slate-500">{isAr ? 'لا توجد نتائج مطابقة.' : 'No matching pages.'}</div>
           ) : (

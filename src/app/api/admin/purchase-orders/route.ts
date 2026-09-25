@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -5,7 +7,7 @@ import { canAccessBranch } from '@/lib/auth/branch-scope';
 import { num, money } from '@/lib/pricing';
 
 function fail(message: string, status = 400) {
-  return NextResponse.json({ success: false, error: message }, { status });
+  return apiError(status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : status === 404 ? 'NOT_FOUND' : status === 409 ? 'CONFLICT' : 'VALIDATION_ERROR', message, status);
 }
 
 function normalizeLines(raw: unknown): Array<{ productId: string; quantityOrdered: number; unitCost: number }> | null {
@@ -77,7 +79,7 @@ export async function POST(req: Request) {
     const createdRecord = created as unknown as { id: string; totalAmount: unknown; items: Array<{ unitCost: unknown }> };
     return NextResponse.json({ success: true, purchaseOrder: { ...created, totalAmount: num(createdRecord.totalAmount), items: createdRecord.items.map((item) => ({ ...item, unitCost: num(item.unitCost) })) } });
   } catch (error) {
-    console.error('Purchase order create error:', error);
-    return NextResponse.json({ success: false, error: 'تعذر حفظ أمر التوريد' }, { status: 500 });
+    captureError('api/admin/purchase-orders', error);
+    return apiError('INTERNAL_ERROR', 'تعذر حفظ أمر التوريد', 500);
   }
 }

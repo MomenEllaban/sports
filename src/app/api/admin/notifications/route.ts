@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -13,7 +15,7 @@ export async function GET() {
     });
     return NextResponse.json({ success: true, unreadCount });
   } catch (e) {
-    console.error('Admin notifications count error:', e);
-    return NextResponse.json({ success: false, error: 'Failed' }, { status: 500 });
+    captureError('api/admin/notifications', e);
+    return apiError('INTERNAL_ERROR', 'Failed', 500);
   }
 }

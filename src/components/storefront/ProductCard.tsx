@@ -117,7 +117,7 @@ export default function ProductCard({
 
           <Link
             href={`/catalog/${product.id}`}
-            className="font-bold text-slate-100 text-base line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors hover:underline"
+            className="inline-flex min-h-[44px] items-center font-bold text-slate-100 text-base line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors hover:underline"
           >
             {name}
           </Link>

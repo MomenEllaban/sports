@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -101,7 +102,7 @@ export async function GET() {
     }
     return NextResponse.json({ success: true, settings, masked });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed to load settings' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed to load settings', 500);
   }
 }
 
@@ -113,17 +114,17 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { key, value } = body as { key?: unknown; value?: unknown };
     if (typeof key !== 'string' || !EDITABLE_KEYS.has(key)) {
-      return NextResponse.json({ success: false, error: 'Setting is not editable' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Setting is not editable', 400);
     }
     const problem = validateValue(key, value);
     if (problem) {
-      return NextResponse.json({ success: false, error: problem }, { status: 400 });
+      return apiError('VALIDATION_ERROR', String(problem), 400);
     }
     // Sensitive keys are stored encrypted; blank means "keep existing".
     let toStore: unknown = value;
     if (SENSITIVE_KEYS.has(key)) {
       if (typeof value !== 'string') {
-        return NextResponse.json({ success: false, error: `${key} must be text` }, { status: 400 });
+        return apiError('VALIDATION_ERROR', `${key} must be text`, 400);
       }
       if (!value.trim()) {
         return NextResponse.json({ success: true, kept: true });
@@ -143,6 +144,6 @@ export async function PUT(req: Request) {
     }).catch(() => null);
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ success: false, error: 'Failed to save setting' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'Failed to save setting', 500);
   }
 }

@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { requireRole } from '@/lib/auth/guards';
 import { executeRefund, recordManualRefund, ReturnError } from '@/lib/returns/service';
@@ -19,10 +20,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ success: result.ok, result });
     } catch (e) {
       const err = e as ReturnError & { status?: number };
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
   } catch (e) {
     captureError('admin/returns/refunds/[id]', e);
-    return NextResponse.json({ success: false, error: 'تعذر التنفيذ' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر التنفيذ', 500);
   }
 }

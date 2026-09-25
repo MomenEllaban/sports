@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -21,7 +22,7 @@ export async function GET() {
     });
     return NextResponse.json({ success: true, branches });
   } catch {
-    return NextResponse.json({ success: false, error: 'فشل تحميل الفروع' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'فشل تحميل الفروع', 500);
   }
 }
 
@@ -34,10 +35,7 @@ export async function POST(req: Request) {
     const { name, nameEn, address, addressEn, phone, city, workingHours } = body;
 
     if (!name || !address || !phone) {
-      return NextResponse.json(
-        { success: false, error: 'اسم الفرع والعنوان ورقم الهاتف حقول مطلوبة' },
-        { status: 400 }
-      );
+      return apiError('VALIDATION_ERROR', 'اسم الفرع والعنوان ورقم الهاتف حقول مطلوبة', 400);
     }
 
     // Creating a branch backfills zero-qty inventory rows for all products (T12/T15 rule).
@@ -64,9 +62,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, branch }, { status: 201 });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { success: false, error: (err as Error).message || 'فشل إضافة الفرع' },
-      { status: 500 }
-    );
+    return apiError('INTERNAL_ERROR', String((err as Error).message || 'فشل إضافة الفرع'), 500);
   }
 }

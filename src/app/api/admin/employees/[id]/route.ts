@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -22,7 +24,7 @@ export async function PATCH(
     if (body.commissionRate !== undefined) {
       const commissionPercent = Number(body.commissionRate);
       if (!Number.isFinite(commissionPercent) || commissionPercent < 0 || commissionPercent > 100) {
-        return NextResponse.json({ success: false, error: 'Commission must be between 0 and 100 percent' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Commission must be between 0 and 100 percent', 400);
       }
       data.commissionRate = commissionPercent / 100;
     }
@@ -32,8 +34,8 @@ export async function PATCH(
     const employee = await prisma.employee.update({ where: { id }, data });
     return NextResponse.json({ success: true, employee });
   } catch (e) {
-    console.error('Employee update error:', e);
-    return NextResponse.json({ success: false, error: 'فشل في تحديث بيانات الموظف' }, { status: 500 });
+    captureError('api/admin/employees/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في تحديث بيانات الموظف', 500);
   }
 }
 
@@ -50,16 +52,13 @@ export async function DELETE(
     // Don't delete if has payroll items
     const payrollCount = await prisma.payrollItem.count({ where: { employeeId: id } });
     if (payrollCount > 0) {
-      return NextResponse.json(
-        { success: false, error: `لا يمكن حذف الموظف — لديه ${payrollCount} سجل مرتبات` },
-        { status: 409 }
-      );
+      return apiError('CONFLICT', `لا يمكن حذف الموظف — لديه ${payrollCount} سجل مرتبات`, 409);
     }
 
     await prisma.employee.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error('Employee delete error:', e);
-    return NextResponse.json({ success: false, error: 'فشل في حذف الموظف' }, { status: 500 });
+    captureError('api/admin/employees/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في حذف الموظف', 500);
   }
 }

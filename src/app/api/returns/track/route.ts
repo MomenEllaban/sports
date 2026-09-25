@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
     const q = new URL(req.url).searchParams;
     const returnNumber = (q.get('rtn') || '').trim().toUpperCase();
     const phone = (q.get('phone') || '').trim();
-    if (!returnNumber || !phone) return NextResponse.json({ success: false, error: 'rtn + phone required' }, { status: 400 });
+    if (!returnNumber || !phone) return apiError('VALIDATION_ERROR', 'rtn + phone required', 400);
     const r = await prisma.returnRequest.findFirst({
       where: { returnNumber, customerPhone: phone },
       include: {
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
         branch: { select: { name: true } },
       },
     });
-    if (!r) return NextResponse.json({ success: false, error: 'لا يوجد مرتجع مطابق' }, { status: 404 });
+    if (!r) return apiError('NOT_FOUND', 'لا يوجد مرتجع مطابق', 404);
     return NextResponse.json({
       success: true,
       return: {
@@ -37,6 +38,6 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     captureError('returns/track', e);
-    return NextResponse.json({ success: false, error: 'failed' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'failed', 500);
   }
 }

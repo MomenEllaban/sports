@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -25,15 +27,15 @@ export async function POST(req: Request) {
     } = body;
 
     if (!sku || !nameAr || !nameEn || price === undefined || !categoryId) {
-      return NextResponse.json({ success: false, error: 'SKU, names, price and category are required' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'SKU, names, price and category are required', 400);
     }
     if (Number(price) < 0 || Number(costPrice) < 0) {
-      return NextResponse.json({ success: false, error: 'Prices must be non-negative' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Prices must be non-negative', 400);
     }
 
     const branches = await prisma.branch.findMany({ where: { isActive: true } });
     if (branches.length === 0) {
-      return NextResponse.json({ success: false, error: 'No active branch' }, { status: 500 });
+      return apiError('INTERNAL_ERROR', 'No active branch', 500);
     }
 
     const formattedImages = Array.isArray(images)
@@ -89,7 +91,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, product });
   } catch (e) {
-    console.error('Admin product create error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to create product (SKU may already exist)' }, { status: 500 });
+    captureError('api/admin/products', e);
+    return apiError('INTERNAL_ERROR', 'Failed to create product (SKU may already exist)', 500);
   }
 }

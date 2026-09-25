@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -19,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const body = (await req.json().catch(() => ({}))) as { reason?: unknown; amount?: unknown };
     const actorId = (session?.user as { id?: string })?.id;
     const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
-    if (!order) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    if (!order) return apiError('NOT_FOUND', 'Order not found', 404);
     try {
       const { request, replay } = await requestReturn({
         orderId: id,
@@ -48,10 +49,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       });
     } catch (e) {
       const err = e as ReturnError & { status?: number };
-      return NextResponse.json({ success: false, error: err.message }, { status: err.status || 400 });
+      return apiError('REQUEST_FAILED', String(err.message), err.status || 400);
     }
   } catch (e) {
     captureError('admin/orders/[id]/refund', e);
-    return NextResponse.json({ success: false, error: 'تعذر طلب الاسترداد' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر طلب الاسترداد', 500);
   }
 }

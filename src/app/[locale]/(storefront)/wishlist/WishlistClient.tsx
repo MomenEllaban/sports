@@ -3,26 +3,111 @@
 import React, { useEffect, useState } from 'react';
 import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
-import { getWishlist, toggleWishlist } from '@/components/storefront/WishlistButton';
+import { useWishlist } from '@/components/storefront/StorefrontSessionProvider';
 import { SafeImage, EmptyState, Button } from '@/components/ui/foundation';
 import { useCartStore } from '@/store/cartStore';
+import { useToast } from '@/components/Toast';
+import { apiRequest } from '@/lib/client-api';
 
 type Item = { id: string; sku: string; nameAr: string; nameEn: string; price: number; images: string[]; availableStock: number };
 
 export default function WishlistClient() {
-  const router = useRouter(); const addItem = useCartStore((state) => state.addItem); const [ids, setIds] = useState<string[]>([]); const [items, setItems] = useState<Item[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [busy, setBusy] = useState('');
-  const load = async () => {
-    setLoading(true); setError('');
-    let list: string[] = [];
-    try { const response = await fetch('/api/account/wishlist', { cache: 'no-store' }); if (response.ok) { const data = await response.json() as { productIds?: string[] }; list = data.productIds || []; } else list = getWishlist(); } catch { list = getWishlist(); }
-    setIds(list);
-    if (!list.length) { setItems([]); setLoading(false); return; }
-    try { const response = await fetch(`/api/products/by-ids?ids=${encodeURIComponent(list.slice(0, 50).join(','))}`); const data = await response.json(); if (data.success) setItems(data.products || []); } catch { setError('تعذر تحميل المنتجات'); } finally { setLoading(false); }
+  const router = useRouter();
+  const { toast } = useToast();
+  const { wishlist, wishlistLoading, wishlistError, toggle } = useWishlist();
+  const addItem = useCartStore((state) => state.addItem);
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState('');
+
+  useEffect(() => {
+    if (wishlistLoading) return;
+    let cancelled = false;
+    const loadProducts = async () => {
+      setLoading(true);
+      setError('');
+      const ids = wishlist.slice(0, 50);
+      if (ids.length === 0) {
+        if (!cancelled) {
+          setItems([]);
+          setLoading(false);
+        }
+        return;
+      }
+      try {
+        const data = await apiRequest<{ products?: Item[] }>(`/api/products/by-ids?ids=${encodeURIComponent(ids.join(','))}`, {
+          cache: 'no-store',
+          errorKey: 'wishlist:products',
+        });
+        if (!cancelled) setItems(Array.isArray(data.products) ? data.products : []);
+      } catch (loadError) {
+        if (!cancelled) setError(loadError instanceof Error ? loadError.message : 'تعذر تحميل المنتجات');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void loadProducts();
+    return () => { cancelled = true; };
+  }, [wishlist, wishlistLoading]);
+
+  const remove = async (id: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(id);
+    try {
+      await toggle(id);
+      setItems((current) => current.filter((item) => item.id !== id));
+      return true;
+    } catch (removeError) {
+      const message = removeError instanceof Error ? removeError.message : 'تعذر الحذف';
+      setError(message);
+      toast(message, 'error');
+      return false;
+    } finally {
+      setBusy('');
+    }
   };
-  useEffect(() => { void load(); }, []);
-  const remove = async (id: string) => { setBusy(id); try { await toggleWishlist(id); setIds((current) => current.filter((item) => item !== id)); setItems((current) => current.filter((item) => item.id !== id)); } catch { setError('تعذر الحذف'); } finally { setBusy(''); } };
-  const move = (item: Item) => { if (item.availableStock <= 0) return; addItem({ id: item.id, sku: item.sku, nameAr: item.nameAr, nameEn: item.nameEn, price: item.price, image: item.images[0] || '/placeholder-product.svg', availableStock: item.availableStock }); void remove(item.id); router.push('/cart'); };
-  if (loading) return <p className="py-10 text-center text-xs text-slate-500">جاري التحميل...</p>;
-  if (!ids.length || !items.length) return <EmptyState title="قائمة الأمنيات فارغة" hint="اضغط على القلب في أي منتج لحفظه هنا." actionLabel="تصفح الكتالوج" onAction={() => router.push('/catalog')} />;
-  return <div className="space-y-4">{error && <p role="alert" className="status-danger rounded-xl border p-3 text-xs">{error}</p>}<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{items.map((item) => <article key={item.id} className="rounded-2xl bg-slate-900 border border-slate-800 p-3 space-y-2"><Link href={`/catalog/${item.id}`} className="block relative aspect-square rounded-xl overflow-hidden bg-slate-950"><SafeImage src={item.images[0] || '/placeholder-product.svg'} alt={item.nameAr} fill sizes="300px" className="object-cover" /></Link><Link href={`/catalog/${item.id}`} className="block font-bold text-xs line-clamp-1 hover:text-blue-300">{item.nameAr}</Link><span className="flex items-center gap-1 text-xs font-black text-amber-400"><Heart className="w-3.5 h-3.5 fill-rose-400 text-rose-400" />{item.price.toLocaleString()} ج.م</span><div className="flex gap-2"><Button type="button" onClick={() => move(item)} disabled={item.availableStock <= 0 || busy === item.id} className="flex-1 min-h-[44px] px-2 text-[10px]"><ShoppingCart className="w-3.5 h-3.5" />نقل للسلة</Button><button type="button" onClick={() => remove(item.id)} disabled={busy === item.id} aria-label={`حذف ${item.nameAr}`} className="min-h-[44px] min-w-[44px] rounded-xl border border-rose-500/30 text-rose-300"><Trash2 className="w-4 h-4" /></button></div></article>)}</div></div>;
+
+  const move = async (item: Item) => {
+    if (item.availableStock <= 0 || busy) return;
+    if (!await remove(item.id)) return;
+    addItem({
+      id: item.id,
+      sku: item.sku,
+      nameAr: item.nameAr,
+      nameEn: item.nameEn,
+      price: item.price,
+      image: item.images[0] || '/placeholder-product.svg',
+      availableStock: item.availableStock,
+    });
+    router.push('/cart');
+  };
+
+  if (loading || wishlistLoading) return <p className="py-10 text-center text-xs text-slate-500">جاري التحميل...</p>;
+  if (!wishlist.length || !items.length) return <EmptyState title="قائمة الأمنيات فارغة" hint="اضغط على القلب في أي منتج لحفظه هنا." actionLabel="تصفح الكتالوج" onAction={() => router.push('/catalog')} />;
+
+  return (
+    <div className="space-y-4">
+      {(error || wishlistError) && <p role="alert" className="status-danger rounded-xl border p-3 text-xs">{error || wishlistError}</p>}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+        {items.map((item) => (
+          <article key={item.id} className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900 p-3">
+            <Link href={`/catalog/${item.id}`} className="relative block aspect-square overflow-hidden rounded-xl bg-slate-950">
+              <SafeImage src={item.images[0] || '/placeholder-product.svg'} alt={item.nameAr} fill sizes="300px" className="object-cover" />
+            </Link>
+            <Link href={`/catalog/${item.id}`} className="block truncate text-xs font-bold hover:text-blue-300">{item.nameAr}</Link>
+            <span className="flex items-center gap-1 text-xs font-black text-amber-400"><Heart className="h-3.5 w-3.5 fill-rose-400 text-rose-400" />{item.price.toLocaleString()} ج.م</span>
+            <div className="flex gap-2">
+              <Button type="button" onClick={() => void move(item)} disabled={item.availableStock <= 0 || busy === item.id} className="flex-1 min-h-[44px] px-2 text-[10px]">
+                <ShoppingCart className="h-3.5 w-3.5" />نقل للسلة
+              </Button>
+              <button type="button" onClick={() => void remove(item.id)} disabled={busy === item.id} aria-label={`حذف ${item.nameAr}`} className="min-h-[44px] min-w-[44px] rounded-xl border border-rose-500/30 text-rose-300">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 }

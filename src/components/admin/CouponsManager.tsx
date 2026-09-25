@@ -7,6 +7,7 @@ import { Plus, Trash2, Power } from 'lucide-react';
 import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { DataTable, ConfirmDialog, Button } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 interface Coupon {
   id: string;
@@ -37,9 +38,8 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
   const [page, setPage] = useState(1);
 
   const reload = async () => {
-    const res = await fetch('/api/admin/coupons');
-    const data = await res.json();
-    if (data.success) setRows(data.coupons);
+    const data = await apiRequest<{ coupons?: Coupon[] }>('/api/admin/coupons', { errorKey: 'admin:coupons:list' });
+    if (data.coupons) setRows(data.coupons);
     router.refresh();
   };
 

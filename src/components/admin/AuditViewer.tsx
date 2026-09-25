@@ -36,7 +36,7 @@ export default function AuditViewer({ logs }: { logs: AuditRow[] }) {
         aria-label={isAr ? 'بحث في سجل التدقيق' : 'Search audit log'}
         className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-72 focus:outline-none focus:border-blue-500 placeholder:text-slate-500"
       />
-      <div className="overflow-x-auto">
+      <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
         <table className="w-full min-w-[640px] text-xs text-start">
           <thead className="text-slate-400 bg-slate-950 border-b border-slate-800">
             <tr>

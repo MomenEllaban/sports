@@ -50,7 +50,7 @@ export default async function AdminRolesPage() {
 
       <section className="glass-panel mt-5 overflow-hidden rounded-3xl border border-slate-800">
         <div className="border-b border-slate-800 p-5"><h2 className="font-black text-slate-100">مصفوفة الصلاحيات على مستوى المسارات</h2><p className="mt-1 text-xs text-slate-400">كل route مذكور هنا له handler يستدعي requireRole، ويغطيها meta-test في CI.</p></div>
-        <div className="overflow-x-auto">
+        <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
           <table className="w-full min-w-[760px] text-xs text-start">
             <thead className="bg-slate-950 text-slate-400"><tr><th className="p-3">API Route</th><th className="p-3">Methods</th>{roles.map((role) => <th key={role} className="p-3 text-center">{roleLabels[role]}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-800">

@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -14,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { action } = body; // 'approve' | 'reject'
 
     if (action !== 'approve' && action !== 'reject') {
-      return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Invalid action', 400);
     }
 
     const approverId = (session!.user as { id: string }).id;
@@ -25,7 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: { status: 'REJECTED', approvedById: approverId },
       });
       if (claimed.count !== 1) {
-        return NextResponse.json({ success: false, error: 'Transfer already processed' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Transfer already processed', 400);
       }
       const transfer = await prisma.stockTransfer.findUnique({ where: { id } });
       return NextResponse.json({ success: true, transfer });
@@ -36,10 +38,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       include: { items: true },
     });
     if (!transfer) {
-      return NextResponse.json({ success: false, error: 'Transfer not found' }, { status: 404 });
+      return apiError('NOT_FOUND', 'Transfer not found', 404);
     }
     if (transfer.status !== 'PENDING') {
-      return NextResponse.json({ success: false, error: 'Transfer already processed' }, { status: 400 });
+      return apiError('VALIDATION_ERROR', 'Transfer already processed', 400);
     }
 
     // ONE transaction: claim the transfer + move stock + audit logs. The
@@ -85,7 +87,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         );
       }
       if (e instanceof Error && e.message === 'TRANSFER_ALREADY_PROCESSED') {
-        return NextResponse.json({ success: false, error: 'Transfer already processed' }, { status: 400 });
+        return apiError('VALIDATION_ERROR', 'Transfer already processed', 400);
       }
       throw e;
     }
@@ -93,7 +95,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const updated = await prisma.stockTransfer.findUnique({ where: { id } });
     return NextResponse.json({ success: true, transfer: updated });
   } catch (e) {
-    console.error('Admin transfer action error:', e);
-    return NextResponse.json({ success: false, error: 'Failed to process transfer' }, { status: 500 });
+    captureError('api/admin/transfers/[id]', e);
+    return apiError('INTERNAL_ERROR', 'Failed to process transfer', 500);
   }
 }

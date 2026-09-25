@@ -1,3 +1,5 @@
+import { captureError } from '@/lib/monitor';
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
@@ -21,8 +23,8 @@ export async function PATCH(
     });
     return NextResponse.json({ success: true, category });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ success: false, error: 'فشل في تحديث التصنيف' }, { status: 500 });
+    captureError('api/admin/categories/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في تحديث التصنيف', 500);
   }
 }
 
@@ -36,15 +38,12 @@ export async function DELETE(
     const { id } = await params;
     const productCount = await prisma.product.count({ where: { categoryId: id } });
     if (productCount > 0) {
-      return NextResponse.json(
-        { success: false, error: `لا يمكن حذف التصنيف — مرتبط بـ ${productCount} منتج` },
-        { status: 409 }
-      );
+      return apiError('CONFLICT', `لا يمكن حذف التصنيف — مرتبط بـ ${productCount} منتج`, 409);
     }
     await prisma.category.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ success: false, error: 'فشل في حذف التصنيف' }, { status: 500 });
+    captureError('api/admin/categories/[id]', e);
+    return apiError('INTERNAL_ERROR', 'فشل في حذف التصنيف', 500);
   }
 }

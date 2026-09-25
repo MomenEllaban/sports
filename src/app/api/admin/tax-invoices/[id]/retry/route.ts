@@ -1,3 +1,4 @@
+import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
@@ -22,9 +23,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         sale: { include: { items: { include: { product: true } } } },
       },
     });
-    if (!inv) return NextResponse.json({ success: false, error: 'الفاتورة غير موجودة' }, { status: 404 });
+    if (!inv) return apiError('NOT_FOUND', 'الفاتورة غير موجودة', 404);
     if (inv.status !== 'INVALID') {
-      return NextResponse.json({ success: false, error: 'إعادة المحاولة للحالات الفاشلة فقط' }, { status: 409 });
+      return apiError('CONFLICT', 'إعادة المحاولة للحالات الفاشلة فقط', 409);
     }
     const vatRate = await getVatRate();
     const lines = inv.order
@@ -46,7 +47,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
             vatAmount: Math.round(num(i.totalPrice) * vatRate * 100) / 100,
           }))
         : []);
-    if (lines.length === 0) return NextResponse.json({ success: false, error: 'لا أصناف مرتبطة' }, { status: 400 });
+    if (lines.length === 0) return apiError('VALIDATION_ERROR', 'لا أصناف مرتبطة', 400);
     const receipt = await buildEtaReceipt({
       branchId: inv.branchId,
       orderId: inv.orderId || undefined,
@@ -63,6 +64,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ success: true, status: updated.status, message: receipt.message });
   } catch (e) {
     captureError('admin/tax-invoices/[id]/retry', e);
-    return NextResponse.json({ success: false, error: 'تعذر إعادة المحاولة' }, { status: 500 });
+    return apiError('INTERNAL_ERROR', 'تعذر إعادة المحاولة', 500);
   }
 }

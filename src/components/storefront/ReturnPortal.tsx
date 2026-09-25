@@ -15,6 +15,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { DirectionalIcon } from '@/components/ui/foundation';
+import { apiRequest } from '@/lib/client-api';
 
 type EItem = {
   orderItemId: string;
@@ -82,14 +83,13 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/returns/request?${new URLSearchParams({ order: orderNumber, phone })}`)
-      .then((r) => r.json())
+    void apiRequest<Eligibility>(`/api/returns/request?${new URLSearchParams({ order: orderNumber, phone })}`, { errorKey: 'storefront:returns:eligibility' })
       .then((d) => {
         if (!cancelled) {
           setElig(d);
           if (d.items) {
             const init: Record<string, Selected> = {};
-            for (const it of d.items as EItem[]) {
+            for (const it of d.items) {
               if (!it.blocked) init[it.orderItemId] = { quantity: 1, reasonCode: 'SIZE_ISSUE', images: [] };
             }
             setSelected(init);
@@ -113,9 +113,11 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload/receipt', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'upload failed');
+      const data = await apiRequest<{ url: string }>('/api/upload/receipt', {
+        method: 'POST',
+        body: fd,
+        errorKey: 'storefront:returns:upload',
+      });
       const withDefect = Object.fromEntries(
         Object.entries(selected).map(([k, s]) => [k, { ...s, images: s.reasonCode === 'DEFECTIVE' && s.images.length < 3 ? [...s.images, data.url] : s.images }])
       );
@@ -143,9 +145,8 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
         };
       });
     try {
-      const res = await fetch('/api/returns/request', {
+      const data = await apiRequest<{ returnNumber: string; status: string; slaHours: number }>('/api/returns/request', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone,
           orderNumber,
@@ -153,13 +154,9 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
           notes: notes.trim() || undefined,
           clientRequestId: `${orderNumber}-${Date.now()}`,
         }),
+        errorKey: 'storefront:returns:create',
       });
-      const data = await res.json();
-      if (data.success) {
-        setResult({ returnNumber: data.returnNumber, status: data.status, slaHours: data.slaHours });
-      } else {
-        setSubError(data.error || L('تعذر إرسال الطلب', 'Could not submit the request'));
-      }
+      setResult({ returnNumber: data.returnNumber, status: data.status, slaHours: data.slaHours });
     } catch {
       setSubError(L('تعذر الاتصال بالسيرفر', 'Cannot reach the server'));
     } finally {
@@ -412,10 +409,8 @@ export function ReturnTrackerPanel() {
     setErr('');
     setRes(null);
     try {
-      const r = await fetch(`/api/returns/track?${new URLSearchParams({ rtn: rtn.trim().toUpperCase(), phone: phone.trim() })}`);
-      const d: TrackResult = await r.json();
-      if (d.success) setRes(d);
-      else setErr(d.error || L('لا يوجد مرتجع مطابق', 'No matching return found'));
+      const d = await apiRequest<TrackResult>(`/api/returns/track?${new URLSearchParams({ rtn: rtn.trim().toUpperCase(), phone: phone.trim() })}`, { errorKey: 'storefront:returns:track' });
+      setRes(d);
     } catch {
       setErr(L('تعذر الاتصال بالسيرفر', 'Cannot reach the server'));
     } finally {
