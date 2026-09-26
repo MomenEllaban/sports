@@ -64,15 +64,27 @@ enum TransferStatus {
   PENDING
   APPROVED
   REJECTED
-  COMPLETED
   CANCELLED
+  IN_TRANSIT
+  PARTIALLY_RECEIVED
+  COMPLETED
 }
 
+/// Direction is carried by `changeQuantity` (negative = out, positive = in).
+/// RESTOCK/TRANSFER/RETURN are legacy values retained so historical ledger
+/// rows remain valid; new call sites use the precise type below.
 enum InventoryLogType {
   SALE
+  SALE_RETURN
+  PURCHASE
+  PURCHASE_RETURN
+  TRANSFER_OUT
+  TRANSFER_IN
+  ADJUSTMENT
+  CYCLE_COUNT
+  OPENING
   RESTOCK
   TRANSFER
-  ADJUSTMENT
   RETURN
 }
 
@@ -280,22 +292,40 @@ model StockTransfer {
   requestedById  String
   approvedById   String?
   notes          String?
+  cancelReason   String?
+  approvedAt     DateTime?
+  shippedAt      DateTime?
+  receivedAt     DateTime?
+  cancelledAt    DateTime?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   fromBranch Branch              @relation("TransferFromBranch", fields: [fromBranchId], references: [id])
   toBranch   Branch              @relation("TransferToBranch", fields: [toBranchId], references: [id])
   items      StockTransferItem[]
+
+  @@index([status, createdAt])
+  @@index([fromBranchId, createdAt])
+  @@index([toBranchId, createdAt])
+  @@index([requestedById, createdAt])
 }
 
 model StockTransferItem {
-  id         String @id @default(cuid())
-  transferId String
-  productId  String
-  quantity   Int
+  id               String    @id @default(cuid())
+  transferId       String
+  productId        String
+  quantity         Int
+  quantityShipped  Int       @default(0)
+  quantityReceived Int       @default(0)
+  shippedAt        DateTime?
+  receivedAt       DateTime?
 
   transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
   product  Product       @relation(fields: [productId], references: [id])
+
+  @@unique([transferId, productId])
+  @@index([productId])
+  @@index([transferId, quantityReceived])
 }
 
 model User {
@@ -651,6 +681,7 @@ model InventoryLog {
   @@index([branchId, productId, createdAt])
   @@index([referenceId])
   @@index([createdAt])
+  @@index([type, createdAt])
 }
 
 model Supplier {

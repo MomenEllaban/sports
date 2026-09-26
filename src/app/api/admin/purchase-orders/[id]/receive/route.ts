@@ -60,7 +60,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           branchId: po.branchId,
           productId: item.productId,
           quantity: addQty,
-          type: 'RESTOCK',
+          type: 'PURCHASE',
           referenceId: po.poNumber,
           createdById: actorId,
         });

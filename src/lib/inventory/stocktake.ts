@@ -68,8 +68,8 @@ export async function approveStocktake(input: { session: AppSession | null; sess
       const previous = current?.stockQuantity ?? 0;
       if (previous !== line.expectedQuantity) throw new StocktakeError(409, `تغير مخزون ${line.skuSnapshot} أثناء الجرد`);
       const counted = line.countedQuantity!; const change = counted - previous; const variance = counted - line.expectedQuantity; totalVariance += variance;
-      if (change > 0) { await incrementStock(tx, { branchId: session.branchId, productId: line.productId, quantity: change, type: 'ADJUSTMENT', referenceId: session.stocktakeNumber, notes: `جرد: ${line.reasonCode || 'CYCLE_COUNT'}`, createdById: actorId }); adjustmentLogs += 1; }
-      if (change < 0) { await decrementStock(tx, { branchId: session.branchId, productId: line.productId, quantity: Math.abs(change), type: 'ADJUSTMENT', referenceId: session.stocktakeNumber, notes: `جرد: ${line.reasonCode || 'CYCLE_COUNT'}`, createdById: actorId }); adjustmentLogs += 1; }
+      if (change > 0) { await incrementStock(tx, { branchId: session.branchId, productId: line.productId, quantity: change, type: 'CYCLE_COUNT', referenceId: session.stocktakeNumber, notes: `جرد: ${line.reasonCode || 'CYCLE_COUNT'}`, createdById: actorId }); adjustmentLogs += 1; }
+      if (change < 0) { await decrementStock(tx, { branchId: session.branchId, productId: line.productId, quantity: Math.abs(change), type: 'CYCLE_COUNT', referenceId: session.stocktakeNumber, notes: `جرد: ${line.reasonCode || 'CYCLE_COUNT'}`, createdById: actorId }); adjustmentLogs += 1; }
       await tx.stocktakeLine.update({ where: { id: line.id }, data: { previousQuantity: previous, newQuantity: counted, varianceQuantity: variance, status: 'APPLIED', appliedAt: new Date() } });
     }
     await tx.auditLog.create({ data: { actorId, action: 'stocktake.approved', entity: 'StocktakeSession', entityId: session.id, branchId: session.branchId, metadata: JSON.stringify({ stocktakeNumber: session.stocktakeNumber, lineCount: session.lines.length, totalVariance, adjustmentLogs }) } });

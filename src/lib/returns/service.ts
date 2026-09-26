@@ -46,6 +46,29 @@ export interface RequestReturnInput {
   clientRequestId?: string;
   actorId?: string;
   actorRole?: string;
+  /**
+   * Branch ids the actor may act on. `null` means unrestricted (SUPER_ADMIN /
+   * FINANCE); an array restricts the case to those branches. Staff channels
+   * (ONLINE / WHATSAPP) leave it undefined so a customer return is not
+   * rejected for not belonging to a staff branch list.
+   */
+  allowedBranchIds?: string[] | null;
+}
+
+const STAFF_CHANNELS = new Set(['ADMIN', 'POS']);
+
+/**
+ * Branch isolation enforced HERE rather than in each route, so a new caller
+ * cannot forget it. Staff-originated cases must fall inside the actor's
+ * assignment; customer channels are unaffected.
+ */
+function assertBranchAllowed(input: RequestReturnInput, branchId: string): void {
+  if (input.allowedBranchIds === undefined) return;
+  if (!STAFF_CHANNELS.has(input.channel)) return;
+  if (input.allowedBranchIds === null) return;
+  if (!input.allowedBranchIds.includes(branchId)) {
+    throw new ReturnError(403, 'هذا المستند يخص فرعاً خارج نطاق صلاحياتك');
+  }
 }
 
 // ── helpers ──────────────────────────────────────────────
@@ -163,6 +186,7 @@ export async function requestReturn(input: RequestReturnInput) {
   }
 
   const src = await sourceLines(input.orderId, input.saleId);
+  assertBranchAllowed(input, src.branchId);
   if (src.kind === 'order' && !['DELIVERED', 'SHIPPED'].includes(src.status)) {
     throw new ReturnError(400, 'المرتجع متاح بعد التسليم فقط');
   }
@@ -289,7 +313,27 @@ export async function requestReturn(input: RequestReturnInput) {
 
 // ── APPROVE / REJECT / CANCEL ────────────────────────────
 
-export async function approveReturn(id: string, actorId: string | undefined) {
+/**
+ * Branch guard for every state transition on an existing case. Transitions are
+ * reachable from several routes, so the check lives here and is applied by
+ * default (an omitted `allowedBranchIds` means "unrestricted", which is only
+ * reachable from routes that have already checked or from public channels).
+ */
+export async function assertReturnBranchAccess(
+  id: string,
+  allowedBranchIds: string[] | null | undefined,
+): Promise<void> {
+  if (allowedBranchIds === undefined) return;
+  if (allowedBranchIds === null) return;
+  const row = await prisma.returnRequest.findUnique({ where: { id }, select: { branchId: true } });
+  if (!row) throw new ReturnError(404, 'طلب المرتجع غير موجود');
+  if (!allowedBranchIds.includes(row.branchId)) {
+    throw new ReturnError(403, 'هذا الطلب يخص فرعاً خارج نطاق صلاحياتك');
+  }
+}
+
+export async function approveReturn(id: string, actorId: string | undefined, allowedBranchIds?: string[] | null) {
+  await assertReturnBranchAccess(id, allowedBranchIds);
   const updated = await prisma.returnRequest.updateMany({
     where: { id, status: 'REQUESTED' },
     data: { status: 'APPROVED', approvedById: actorId },
@@ -301,7 +345,8 @@ export async function approveReturn(id: string, actorId: string | undefined) {
   return r;
 }
 
-export async function rejectReturn(id: string, actorId: string | undefined, reason?: string) {
+export async function rejectReturn(id: string, actorId: string | undefined, reason?: string, allowedBranchIds?: string[] | null) {
+  await assertReturnBranchAccess(id, allowedBranchIds);
   const updated = await prisma.returnRequest.updateMany({
     where: { id, status: 'REQUESTED' },
     data: { status: 'REJECTED', notes: reason?.slice(0, 500) || undefined },
@@ -313,7 +358,8 @@ export async function rejectReturn(id: string, actorId: string | undefined, reas
   return r;
 }
 
-export async function cancelReturn(id: string, actorId: string | undefined) {
+export async function cancelReturn(id: string, actorId: string | undefined, allowedBranchIds?: string[] | null) {
+  await assertReturnBranchAccess(id, allowedBranchIds);
   const updated = await prisma.returnRequest.updateMany({
     where: { id, status: { in: ['REQUESTED', 'APPROVED'] } },
     data: { status: 'CANCELLED' },
@@ -340,7 +386,7 @@ export async function receiveReturn(
   id: string,
   actorId: string | undefined,
   lines: ReceiveLineInput[],
-  opts?: { refundMethod?: string; exchangeSaleId?: string }
+  opts?: { refundMethod?: string; exchangeSaleId?: string; allowedBranchIds?: string[] | null },
 ) {
   const policy = await getReturnsPolicy();
   const vatRate = await getVatRate();
@@ -349,6 +395,7 @@ export async function receiveReturn(
     include: { items: { include: { product: true } }, order: { include: { items: true } }, sale: { include: { items: true } } },
   });
   if (!full) throw new ReturnError(404, 'طلب المرتجع غير موجود');
+  await assertReturnBranchAccess(id, opts?.allowedBranchIds);
   if (full.status !== 'APPROVED') throw new ReturnError(409, 'الاستلام بعد الاعتماد فقط');
   if (!lines || lines.length !== full.items.length) throw new ReturnError(400, 'افحص كل الأصناف أولاً');
 
@@ -420,7 +467,7 @@ export async function receiveReturn(
           branchId: full.branchId,
           productId: d.ri.productId,
           quantity: d.ri.quantity,
-          type: 'RETURN',
+          type: 'SALE_RETURN',
           referenceId: full.returnNumber,
           notes: `RMA ${d.condition}`,
           createdById: actorId,
@@ -433,7 +480,7 @@ export async function receiveReturn(
           data: {
             branchId: full.branchId,
             productId: d.ri.productId,
-            type: 'RETURN',
+            type: 'SALE_RETURN',
             changeQuantity: 0,
             previousQuantity: prev,
             newQuantity: prev,
@@ -636,8 +683,18 @@ async function isFullReturn(r: { orderId: string | null; saleId: string | null }
 }
 
 /** Manual settlement (proof image + ref) closes a MANUAL_REQUIRED/FAILED refund. */
-export async function recordManualRefund(refundId: string, actorId: string | undefined, gatewayRef: string, proofImage?: string) {
-  const rf = await prisma.refund.findUniqueOrThrow({ where: { id: refundId }, include: { return: true } });
+export async function recordManualRefund(
+  refundId: string,
+  actorId: string | undefined,
+  gatewayRef: string,
+  proofImage?: string,
+  allowedBranchIds?: string[] | null,
+) {
+  const rf = await prisma.refund.findUniqueOrThrow({
+    where: { id: refundId },
+    include: { return: { select: { id: true, branchId: true, orderId: true, saleId: true } } },
+  });
+  await assertReturnBranchAccess(rf.return.id, allowedBranchIds);
   if (!['MANUAL_REQUIRED', 'FAILED'].includes(rf.status)) throw new ReturnError(409, 'لا يحتاج تسوية يدوية');
   if (!gatewayRef.trim()) throw new ReturnError(400, 'المرجع مطلوب');
   const ret = rf.return;
@@ -655,7 +712,13 @@ export async function recordManualRefund(refundId: string, actorId: string | und
  * Exchange = this return + a linked new sale. Price difference settled by
  * method (customer pays extra via POS, or a Refund covers the change).
  */
-export async function linkExchangeSale(returnId: string, saleId: string, actorId: string | undefined) {
+export async function linkExchangeSale(
+  returnId: string,
+  saleId: string,
+  actorId: string | undefined,
+  allowedBranchIds?: string[] | null,
+) {
+  await assertReturnBranchAccess(returnId, allowedBranchIds);
   const updated = await prisma.returnRequest.updateMany({
     where: { id: returnId, type: 'EXCHANGE', status: { in: ['RECEIVED', 'REFUND_PENDING', 'COMPLETED'] } },
     data: { exchangeSaleId: saleId },

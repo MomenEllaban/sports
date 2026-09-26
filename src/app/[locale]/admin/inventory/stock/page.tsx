@@ -1,14 +1,14 @@
 import React from 'react';
 import { getLocale } from 'next-intl/server';
 import { prisma } from '@/lib/db';
-import { History } from 'lucide-react';
+import { Boxes } from 'lucide-react';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { scopedBranchIds } from '@/lib/auth/branch-scope';
 import InventoryTable from '@/components/admin/InventoryTable';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminMovementsPage() {
+export default async function AdminStockPage() {
   const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const allowed = scopedBranchIds(session);
@@ -22,18 +22,18 @@ export default async function AdminMovementsPage() {
     <>
           <div className="border-b border-slate-800 pb-4">
             <h1 className="text-2xl font-black text-slate-100 flex items-center gap-2">
-              <History className="w-6 h-6 text-blue-400" />
-              {isAr ? 'سجل حركات المخزون' : 'Inventory movement ledger'}
+              <Boxes className="w-6 h-6 text-sky-400" />
+              {isAr ? 'أرصدة المخزون' : 'Stock balances'}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               {isAr
-                ? 'كل تغيير في رصيد أي صنف مع الرصيد قبل وبعد وسبب الحركة'
-                : 'Every balance change with its previous and new quantity, type and reference'}
+                ? 'رصيد كل صنف في كل فرع من فروعك، مع قيمة المخزون بالتكلفة'
+                : 'Per-branch balance for every item you own, valued at cost'}
             </p>
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-            <InventoryTable view="movements" branches={branches} />
+            <InventoryTable view="stock" branches={branches} showAdjust />
           </div>
         </>
   );

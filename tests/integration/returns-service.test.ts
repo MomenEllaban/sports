@@ -222,7 +222,7 @@ describe('unified returns service (T-RMA)', () => {
     await receiveReturn(request.id, manager.id, [{ returnItemId: fresh.items[0].id, condition: 'DEFECTIVE', disposition: 'DAMAGED' }], { refundMethod: 'CASH' });
     const after = (await db.branchInventory.findUniqueOrThrow({ where: { branchId_productId: { branchId, productId } } })).stockQuantity;
     expect(after).toBe(before); // no sellable restock
-    const logs = await db.inventoryLog.count({ where: { referenceId: request.returnNumber, type: 'RETURN' } });
+    const logs = await db.inventoryLog.count({ where: { referenceId: request.returnNumber, type: 'SALE_RETURN' } });
     expect(logs).toBe(1); // visible zero-change log
   });
 

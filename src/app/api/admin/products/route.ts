@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         data: {
           branchId: flagship.id,
           productId: product.id,
-          type: 'RESTOCK',
+          type: 'OPENING',
           changeQuantity: qty,
           previousQuantity: 0,
           newQuantity: qty,

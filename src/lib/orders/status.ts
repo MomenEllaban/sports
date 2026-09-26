@@ -96,7 +96,7 @@ export async function transitionOrder(
         branchId: order.branchId,
         productId: item.productId,
         quantity: item.quantity,
-        type: 'RETURN',
+        type: to === 'RETURNED' ? 'SALE_RETURN' : 'RETURN',
         referenceId: order.orderNumber,
         createdById: actingUserId,
       });

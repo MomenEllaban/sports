@@ -2,13 +2,14 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { canAccessBranch, scopedBranchIds } from '@/lib/auth/branch-scope';
 import {
   requestReturn, approveReturn, receiveReturn, executeRefund, ReturnError,
 } from '@/lib/returns/service';
 import { captureError } from '@/lib/monitor';
 
 /**
- * Full-order admin refund (T-RMA single path): builds a complete RMA case
+ * Full-order admin refund: builds a complete RMA case
  * (REQUESTED→APPROVED→RECEIVED→REFUND_PENDING) through the Return Service,
  * then executes the payout. Replaces the legacy direct transition.
  */
@@ -21,6 +22,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const actorId = (session?.user as { id?: string })?.id;
     const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
     if (!order) return apiError('NOT_FOUND', 'Order not found', 404);
+    if (!canAccessBranch(session, order.branchId)) {
+      return apiError('FORBIDDEN', 'This order belongs to a branch outside your assignment', 403);
+    }
+    const allowedBranchIds = scopedBranchIds(session);
     try {
       const { request, replay } = await requestReturn({
         orderId: id,
@@ -31,17 +36,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         clientRequestId: `admin-full-${id}`,
         actorId,
         actorRole: session?.user?.role as string,
+        allowedBranchIds,
       });
       if (!replay) {
-        await approveReturn(request.id, actorId);
+        await approveReturn(request.id, actorId, allowedBranchIds);
         const fresh = await prisma.returnRequest.findUniqueOrThrow({ where: { id: request.id }, include: { items: true } });
-        await receiveReturn(request.id, actorId, fresh.items.map((ri) => ({
-          returnItemId: ri.id, condition: 'GOOD', disposition: 'RESTOCK',
-        })), {});
+        await receiveReturn(
+          request.id,
+          actorId,
+          fresh.items.map((ri) => ({ returnItemId: ri.id, condition: 'GOOD', disposition: 'RESTOCK' })),
+          { allowedBranchIds },
+        );
       }
       const full = await prisma.returnRequest.findUniqueOrThrow({ where: { id: request.id }, include: { refunds: true } });
       const refundRow = full.refunds[0];
-      const result = refundRow ? await executeRefund(refundRow.id).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : 'failed' })) : { ok: false as const, error: 'no refund' };
+      const result = refundRow
+        ? await executeRefund(refundRow.id).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : 'failed' }))
+        : { ok: false as const, error: 'no refund' };
       return NextResponse.json({
         success: true,
         refund: refundRow ? { id: refundRow.id, status: refundRow.status, amount: refundRow.amount } : null,
@@ -53,6 +64,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   } catch (e) {
     captureError('admin/orders/[id]/refund', e);
-    return apiError('INTERNAL_ERROR', 'تعذر طلب الاسترداد', 500);
+    return apiError('INTERNAL_ERROR', 'Failed to raise the refund', 500);
   }
 }

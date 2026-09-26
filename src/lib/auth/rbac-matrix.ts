@@ -16,6 +16,8 @@ const BM: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER'];
 const FIN: Role[] = ['SUPER_ADMIN', 'FINANCE'];
 const ALL: Role[] = ['SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER', 'CASHIER', 'STAFF'];
 const POS: Role[] = ['CASHIER', 'BRANCH_MANAGER', 'SUPER_ADMIN'];
+/** Read-only access to stock balances and the movement ledger. */
+const STOCK_READ: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'];
 
 export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/users': { methods: { GET: SUPER, POST: SUPER } },
@@ -51,11 +53,15 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/customers/[id]': { methods: { PATCH: BM, DELETE: BM } },
   '/api/admin/employees': { methods: { GET: BM, POST: BM } },
   '/api/admin/employees/[id]': { methods: { PATCH: BM, DELETE: BM } },
-  '/api/admin/transfers': { methods: { POST: BM } },
-  '/api/admin/transfers/[id]': { methods: { POST: BM } },
+  '/api/admin/transfers': { methods: { GET: STOCK_READ, POST: BM } },
+  '/api/admin/transfers/[id]': { methods: { GET: STOCK_READ, POST: BM } },
   '/api/admin/purchase-orders': { methods: { POST: BM } },
   '/api/admin/purchase-orders/[id]': { methods: { PATCH: BM } },
   '/api/admin/purchase-orders/[id]/return': { methods: { POST: BM } },
+  '/api/admin/inventory': { methods: { GET: STOCK_READ } },
+  '/api/admin/inventory/stock': { methods: { GET: STOCK_READ } },
+  '/api/admin/inventory/movements': { methods: { GET: STOCK_READ } },
+  '/api/admin/inventory/alerts': { methods: { GET: STOCK_READ } },
   '/api/admin/inventory/adjust': { methods: { POST: BM } },
   '/api/admin/returns': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], POST: BM } },
   '/api/admin/returns/lookup': { methods: { GET: BM } },
