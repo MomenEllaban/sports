@@ -1,6 +1,6 @@
 # Dashboard Test Log — automated flow
 
-> Generated 2026-09-26T14:39:48.423Z · no-browser audit (pages + loaders + security + link integrity).
+> Generated 2026-09-26T15:44:39.106Z · no-browser audit (pages + loaders + security + link integrity).
 
 ## Summary
 
@@ -100,7 +100,7 @@
 | ✅ | /admin/website/carts/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/website/content/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/website/store/page.tsx | loader + error inherited from admin group |
-| ✅ | /admin/accounting/eta/page.tsx | guard: inherited: 'SUPER_ADMIN', 'FINANCE' |
+| ✅ | /admin/accounting/eta/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE' |
 | ✅ | /admin/accounting/expenses/page.tsx | guard: inherited: 'SUPER_ADMIN', 'FINANCE' |
 | ✅ | /admin/accounting/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE' |
 | ✅ | /admin/accounting/pnl/page.tsx | guard: inherited: 'SUPER_ADMIN', 'FINANCE' |
@@ -115,9 +115,9 @@
 | ✅ | /admin/coupons/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/coupons/promos/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/coupons/usage/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/customers/groups/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/customers/ledger/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/customers/loyalty/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/customers/groups/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/customers/ledger/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER' |
+| ✅ | /admin/customers/loyalty/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/customers/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/employees/attendance/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/employees/departments/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
@@ -146,14 +146,14 @@
 | ✅ | /admin/payroll/commissions/page.tsx | guard: inherited: 'SUPER_ADMIN', 'FINANCE' |
 | ✅ | /admin/payroll/history/page.tsx | guard: inherited: 'SUPER_ADMIN', 'FINANCE' |
 | ✅ | /admin/payroll/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE' |
-| ✅ | /admin/products/brands/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/products/categories/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/products/brands/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/products/categories/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/products/media/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/products/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/products/variants/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/purchasing/invoices/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/purchasing/invoices/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER' |
 | ✅ | /admin/purchasing/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/purchasing/receiving/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/purchasing/receiving/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/purchasing/returns/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/purchasing/suppliers/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/reports/branches/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
@@ -188,7 +188,7 @@
 | ✅ | /admin/website/content/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/website/store/page.tsx | guard: 'SUPER_ADMIN' |
 | ✅ | middleware | matches /admin (early auth interception) |
-| ✅ | admin internal links | 20 unique /admin hrefs all resolve |
+| ✅ | admin internal links | 16 unique /admin hrefs all resolve |
 | ✅ | storefront internal links | 10 unique storefront hrefs all resolve |
 
 ## Failures

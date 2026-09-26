@@ -46,23 +46,6 @@ export default async function AdminInventoryPage() {
           <div>
             <h1 className="text-2xl font-black text-slate-100">{L('المخزون والتحويلات بين الفروع', 'Inventory & inter-branch transfers')}</h1>
             <p className="text-xs text-slate-400 mt-0.5">{L('متابعة رصيد الأصناف لكل فرع بشكل منفصل وإنشاء أوامر التحويل الداخلي', 'Track item balances per branch and create internal transfer orders.')}</p>
-            <div className="flex flex-wrap gap-2 mt-3">
-              <Link href="/admin/inventory/stock" className="min-h-[44px] px-4 rounded-xl bg-sky-500/15 border border-sky-500/40 text-sky-300 text-xs font-bold flex items-center">
-                {L('أرصدة المخزون', 'Stock balances')}
-              </Link>
-              <Link href="/admin/inventory/movements" className="min-h-[44px] px-4 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center">
-                {L('سجل الحركات', 'Movement ledger')}
-              </Link>
-              <Link href="/admin/inventory/alerts" className="min-h-[44px] px-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center">
-                {L('تنبيهات إعادة الطلب', 'Reorder alerts')}
-              </Link>
-              <Link href="/admin/inventory/count" className="min-h-[44px] px-4 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center">
-                {L('جرد وتسوية', 'Stocktake & reconcile')}
-              </Link>
-              <Link href="/admin/inventory/labels" className="min-h-[44px] px-4 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 flex items-center">
-                {L('طباعة باركود', 'Print barcodes')}
-              </Link>
-            </div>
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">

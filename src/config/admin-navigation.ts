@@ -107,25 +107,19 @@ const productsTabs: readonly AdminTab[] = [
   { key: 'list', labelAr: 'قائمة المنتجات', labelEn: 'Product list', href: '/admin/products' },
   { key: 'categories', labelAr: 'التصنيفات', labelEn: 'Categories', href: '/admin/products/categories' },
   { key: 'brands', labelAr: 'الماركات', labelEn: 'Brands', href: '/admin/products/brands' },
-  { key: 'variants', labelAr: 'المقاسات والألوان', labelEn: 'Variants', href: '/admin/products/variants' },
-  { key: 'media', labelAr: 'الصور و SEO', labelEn: 'Media & SEO', href: '/admin/products/media' },
 ];
 
 const inventoryTabs: readonly AdminTab[] = [
-  { key: 'balances', labelAr: 'الأرصدة', labelEn: 'Balances', href: '/admin/inventory' },
-  { key: 'movements', labelAr: 'حركة المخزون', labelEn: 'Movements', href: '/admin/inventory/movements' },
-  { key: 'transfers', labelAr: 'التحويلات', labelEn: 'Transfers', href: '/admin/inventory/transfers' },
-  { key: 'count', labelAr: 'الجرد والتسوية', labelEn: 'Stocktake', href: '/admin/inventory/count' },
-  { key: 'labels', labelAr: 'الباركود والطباعة', labelEn: 'Barcode & printing', href: '/admin/inventory/labels' },
-  { key: 'alerts', labelAr: 'تنبيهات النقص', labelEn: 'Low stock', href: '/admin/inventory/alerts' },
+  { key: 'balances', labelAr: 'أرصدة الفروع', labelEn: 'Branch balances', href: '/admin/inventory' },
+  { key: 'movements', labelAr: 'حركة المخزون', labelEn: 'Movements ledger', href: '/admin/inventory/movements' },
+  { key: 'transfers', labelAr: 'التحويلات بين الفروع', labelEn: 'Inter-branch transfers', href: '/admin/inventory/transfers' },
+  { key: 'alerts', labelAr: 'تنبيهات إعادة الطلب', labelEn: 'Reorder alerts', href: '/admin/inventory/alerts' },
 ];
 
 const purchasingTabs: readonly AdminTab[] = [
-  { key: 'orders', labelAr: 'أوامر التوريد', labelEn: 'Purchase orders', href: '/admin/purchasing' },
-  { key: 'receiving', labelAr: 'الاستلام', labelEn: 'Receiving', href: '/admin/purchasing/receiving' },
-  { key: 'invoices', labelAr: 'الفواتير', labelEn: 'Invoices', href: '/admin/purchasing/invoices' },
-  { key: 'suppliers', labelAr: 'الموردون', labelEn: 'Suppliers', href: '/admin/purchasing/suppliers' },
-  { key: 'returns', labelAr: 'مرتجعات الموردين', labelEn: 'Supplier returns', href: '/admin/purchasing/returns' },
+  { key: 'orders', labelAr: 'أوامر التوريد والشراء', labelEn: 'Purchase orders', href: '/admin/purchasing' },
+  { key: 'receiving', labelAr: 'استلام البضائع والفحص', labelEn: 'Goods receiving', href: '/admin/purchasing/receiving' },
+  { key: 'invoices', labelAr: 'فواتير المشتريات ومطابقة الموردين', labelEn: 'Purchase invoices', href: '/admin/purchasing/invoices' },
 ];
 
 const customersTabs: readonly AdminTab[] = [
@@ -257,7 +251,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'shipping', section: 'shipping', labelAr: 'الشحن وشركات التوصيل', labelEn: 'Shipping & couriers',
-        href: '/admin/shipping', icon: 'shipping', allowedRoles: SALES_OPERATIONS, status: 'partial',
+        href: '/admin/shipping', icon: 'shipping', allowedRoles: SALES_OPERATIONS, status: 'live',
       },
     ],
   },
@@ -268,7 +262,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     icon: 'products',
     items: [
       {
-        key: 'products', section: 'products', labelAr: 'المنتجات', labelEn: 'Products',
+        key: 'products', section: 'products', labelAr: 'المنتجات والكتالوج', labelEn: 'Products catalog',
         href: '/admin/products', icon: 'products', allowedRoles: MANAGERS, tabs: tabSet(productsTabs), status: 'live',
       },
       {
@@ -292,7 +286,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     icon: 'purchasing',
     items: [
       {
-        key: 'purchasing', section: 'purchasing', labelAr: 'أوامر التوريد', labelEn: 'Purchase orders',
+        key: 'purchasing', section: 'purchasing', labelAr: 'أوامر التوريد والاستلام', labelEn: 'Purchase orders',
         href: '/admin/purchasing', icon: 'purchasing', allowedRoles: MANAGERS, tabs: tabSet(purchasingTabs), status: 'live',
       },
       {
@@ -300,8 +294,8 @@ export const adminNavigation: readonly AdminNavGroup[] = [
         href: '/admin/purchasing/suppliers', icon: 'suppliers', allowedRoles: MANAGERS, status: 'live',
       },
       {
-        key: 'purchase-invoices', section: 'purchase-invoices', labelAr: 'فواتير شراء ومرتجعات الموردين', labelEn: 'Purchase invoices & returns',
-        href: '/admin/purchasing/invoices', icon: 'invoices', allowedRoles: MANAGERS, status: 'partial',
+        key: 'purchase-returns', section: 'purchase-returns', labelAr: 'مرتجعات الموردين', labelEn: 'Supplier returns',
+        href: '/admin/purchasing/returns', icon: 'returns', allowedRoles: MANAGERS, status: 'live',
       },
     ],
   },
@@ -316,20 +310,16 @@ export const adminNavigation: readonly AdminNavGroup[] = [
         href: '/admin/customers', icon: 'customers', allowedRoles: MANAGERS, tabs: tabSet(customersTabs), status: 'live',
       },
       {
-        key: 'loyalty', section: 'loyalty', labelAr: 'برنامج الولاء', labelEn: 'Loyalty',
-        href: '/admin/customers/loyalty', icon: 'loyalty', allowedRoles: MANAGERS, status: 'partial',
-      },
-      {
-        key: 'reviews', section: 'reviews', labelAr: 'التقييمات', labelEn: 'Reviews',
-        href: '/admin/reviews', icon: 'reviews', allowedRoles: MANAGERS, status: 'live',
-      },
-      {
         key: 'coupons', section: 'coupons', labelAr: 'الكوبونات والعروض', labelEn: 'Coupons & offers',
         href: '/admin/coupons', icon: 'coupons', allowedRoles: MANAGERS, tabs: tabSet(couponsTabs), status: 'live',
       },
       {
         key: 'campaigns', section: 'campaigns', labelAr: 'الحملات والرسائل', labelEn: 'Campaigns & messages',
-        href: '/admin/campaigns', icon: 'campaigns', allowedRoles: MANAGERS, status: 'planned',
+        href: '/admin/campaigns', icon: 'campaigns', allowedRoles: MANAGERS, status: 'live',
+      },
+      {
+        key: 'reviews', section: 'reviews', labelAr: 'التقييمات', labelEn: 'Reviews',
+        href: '/admin/reviews', icon: 'reviews', allowedRoles: MANAGERS, status: 'live',
       },
     ],
   },
@@ -353,7 +343,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'eta', section: 'eta', labelAr: 'ضرائب ETA', labelEn: 'ETA taxes',
-        href: '/admin/accounting/eta', icon: 'tax', allowedRoles: FINANCE, status: 'partial',
+        href: '/admin/accounting/eta', icon: 'tax', allowedRoles: FINANCE, status: 'live',
       },
       {
         key: 'receivables', section: 'receivables', labelAr: 'ذمم العملاء والموردين', labelEn: 'Receivables & payables',
@@ -406,15 +396,15 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     items: [
       {
         key: 'website-content', section: 'website-content', labelAr: 'البنرات والصفحات', labelEn: 'Banners & pages',
-        href: '/admin/website/content', icon: 'content', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER'], tabs: tabSet(websiteTabs), status: 'planned',
+        href: '/admin/website/content', icon: 'content', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER'], tabs: tabSet(websiteTabs), status: 'live',
       },
       {
         key: 'store-settings', section: 'store-settings', labelAr: 'إعدادات المتجر والدفع والشحن', labelEn: 'Store, payment & shipping settings',
-        href: '/admin/website/store', icon: 'store-settings', allowedRoles: ['SUPER_ADMIN'], status: 'partial',
+        href: '/admin/website/store', icon: 'store-settings', allowedRoles: ['SUPER_ADMIN'], status: 'live',
       },
       {
         key: 'abandoned-carts', section: 'abandoned-carts', labelAr: 'السلات المتروكة', labelEn: 'Abandoned carts',
-        href: '/admin/website/carts', icon: 'carts', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER'], status: 'planned',
+        href: '/admin/website/carts', icon: 'carts', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER'], status: 'live',
       },
     ],
   },
@@ -431,7 +421,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'roles', section: 'roles', labelAr: 'الأدوار والصلاحيات', labelEn: 'Roles & permissions',
-        href: '/admin/users/roles', icon: 'roles', allowedRoles: ['SUPER_ADMIN'], status: 'partial',
+        href: '/admin/users/roles', icon: 'roles', allowedRoles: ['SUPER_ADMIN'], status: 'live',
       },
       {
         key: 'branches-settings', section: 'branches-settings', labelAr: 'الفروع', labelEn: 'Branches',
@@ -447,7 +437,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'backup', section: 'backup', labelAr: 'النسخ الاحتياطي', labelEn: 'Backup',
-        href: '/admin/backup', icon: 'backup', allowedRoles: ['SUPER_ADMIN'], status: 'planned',
+        href: '/admin/backup', icon: 'backup', allowedRoles: ['SUPER_ADMIN'], status: 'live',
       },
     ],
   },
