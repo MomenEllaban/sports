@@ -6,11 +6,7 @@ import { useRouter } from '@/i18n/routing';
 import {
   RotateCcw,
   Search,
-  Package,
-  Calendar,
-  AlertCircle,
   Truck,
-  CheckCircle,
 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';

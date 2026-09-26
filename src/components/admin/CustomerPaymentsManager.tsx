@@ -2,16 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
 import {
-  CreditCard,
   Plus,
   Search,
   Printer,
-  Calendar,
-  CheckCircle,
-  Clock,
-  ArrowRight,
 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
@@ -76,7 +70,6 @@ export default function CustomerPaymentsManager({
   initialInvoiceId?: string;
 }) {
   const locale = useLocale();
-  const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);

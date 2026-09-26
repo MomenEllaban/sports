@@ -3,16 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import {
-  CalendarDays,
   Plus,
   CheckCircle,
   XCircle,
-  Search,
-  Filter,
-  Clock,
-  User,
 } from 'lucide-react';
-import { Modal, StatusBadge, apiFetch } from './ui';
+import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';

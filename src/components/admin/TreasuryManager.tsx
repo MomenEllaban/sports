@@ -7,9 +7,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Store,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
 } from 'lucide-react';
 import { StatusBadge } from './ui';
 

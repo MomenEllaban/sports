@@ -9,14 +9,10 @@ import {
   AlertCircle,
   Eye,
   CreditCard,
-  TrendingDown,
-  DollarSign,
-  Clock,
-  ArrowRight,
 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls, Button } from '@/components/ui/foundation';
+import { Button } from '@/components/ui/foundation';
 
 interface BranchOpt {
   id: string;

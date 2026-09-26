@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import {
-  FileText,
   Plus,
   Search,
   Eye,
@@ -12,7 +11,6 @@ import {
   XCircle,
   Printer,
   Trash2,
-  DollarSign,
   AlertCircle,
   CreditCard,
 } from 'lucide-react';

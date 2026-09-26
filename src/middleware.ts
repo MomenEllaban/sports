@@ -43,8 +43,9 @@ export default async function middleware(req: NextRequest) {
       loginUrl.searchParams.set('callbackUrl', cleanCallback);
       return NextResponse.redirect(loginUrl);
     }
-    const role = (token as any).role;
-    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+    const role = typeof token.role === 'string' ? token.role : undefined;
+    const allowedAdminRoles = ['ADMIN', 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE', 'STAFF'];
+    if (!role || !allowedAdminRoles.includes(role)) {
       console.warn(`Forbidden admin access for role ${role} to ${pathname}`);
       const locale = pathname.startsWith('/en') ? 'en' : 'ar';
       const homeUrl = req.nextUrl.clone();

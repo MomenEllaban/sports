@@ -10,12 +10,10 @@ import {
   AlertTriangle,
   Plus,
   Search,
-  Filter,
   Pencil,
   FileSpreadsheet,
-  Download,
 } from 'lucide-react';
-import { Modal, StatusBadge, apiFetch } from './ui';
+import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
 import Pagination from './Pagination';

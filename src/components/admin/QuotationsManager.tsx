@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import {
-  FileText,
   Plus,
   Search,
   Eye,
@@ -115,7 +114,6 @@ export default function QuotationsManager({
 
   // View / Action modal state
   const [activeQuote, setActiveQuote] = useState<QuotationRow | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -142,7 +140,7 @@ export default function QuotationsManager({
         setTotal(res.total || 0);
         setPageCount(res.pageCount || 1);
       }
-    } catch (e) {
+    } catch {
       toast(L('فشل تحميل عروض الأسعار', 'Failed to load quotations'), 'error');
     } finally {
       setLoading(false);
@@ -163,7 +161,6 @@ export default function QuotationsManager({
   }, [search]);
 
   const openQuoteDetail = async (id: string) => {
-    setLoadingDetail(true);
     setShowRejectInput(false);
     setRejectReason('');
     try {
@@ -176,8 +173,6 @@ export default function QuotationsManager({
       }
     } catch {
       toast(L('تعذر تحميل تفاصيل العرض', 'Failed to load quote details'), 'error');
-    } finally {
-      setLoadingDetail(false);
     }
   };
 
