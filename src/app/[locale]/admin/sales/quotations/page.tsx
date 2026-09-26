@@ -3,11 +3,12 @@ import { getLocale } from 'next-intl/server';
 import { prisma } from '@/lib/db';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { scopedBranchIds } from '@/lib/auth/branch-scope';
-import LeaveManager from '@/components/admin/LeaveManager';
+import QuotationsManager from '@/components/admin/QuotationsManager';
+import { num } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminLeavePage() {
+export default async function QuotationsPage() {
   const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
@@ -15,25 +16,22 @@ export default async function AdminLeavePage() {
   const allowedBranches = scopedBranchIds(session);
   const branchWhere = allowedBranches === null ? { isActive: true } : { id: { in: allowedBranches }, isActive: true };
 
-  const [branches, employees] = await Promise.all([
+  const [branches, customers, products] = await Promise.all([
     prisma.branch.findMany({
       where: branchWhere,
       select: { id: true, name: true, nameEn: true },
       orderBy: { name: 'asc' },
     }),
-    prisma.employee.findMany({
-      where: {
-        isActive: true,
-        ...(allowedBranches === null ? {} : { branchId: { in: allowedBranches } }),
-      },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        roleTitle: true,
-        branch: { select: { name: true, nameEn: true } },
-      },
+    prisma.customer.findMany({
+      select: { id: true, name: true, phone: true },
       orderBy: { name: 'asc' },
+      take: 200,
+    }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      select: { id: true, nameAr: true, nameEn: true, sku: true, price: true },
+      orderBy: { nameAr: 'asc' },
+      take: 500,
     }),
   ]);
 
@@ -41,18 +39,25 @@ export default async function AdminLeavePage() {
     <>
       <div className="border-b border-slate-800 pb-4">
         <h1 className="text-2xl font-black text-slate-100">
-          {L('إدارة الإجازات والطلبات (Leave Management)', 'Employee Leave Management')}
+          {L('عروض الأسعار', 'Quotations')}
         </h1>
         <p className="text-xs text-slate-400 mt-0.5">
           {L(
-            'تقديم ومراجعة طلبات الإجازات (السنوية، المرضية، بدون راتب)، واعتمادها وفق الصلاحيات مع احتساب فترات الغياب.',
-            'Submit and review employee leave requests, approve or reject with decision notes.'
+            'إنشاء عروض أسعار رسمية للعملاء، ومتابعة فترات الصلاحية، وتحويلها إلى فواتير مبيعات بنقرة واحدة.',
+            'Create official quotations, track validity periods, and convert accepted quotes to sales invoices.'
           )}
         </p>
       </div>
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 animate-fade-up">
-        <LeaveManager branches={branches} employees={employees} />
+        <QuotationsManager
+          branches={branches}
+          customers={customers}
+          products={products.map((p) => ({
+            ...p,
+            price: num(p.price),
+          }))}
+        />
       </div>
     </>
   );

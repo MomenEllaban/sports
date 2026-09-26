@@ -10,9 +10,10 @@ type SequenceClient = Pick<Prisma.TransactionClient, 'sequence'>;
 /**
  * Prefixes that need a collision-free, human-readable document number.
  * `ORD` orders, `POS` till sales, `RTN` return tickets, `TRF` stock transfers,
- * `EXP` expenses.
+ * `EXP` expenses, `QT` quotations, `INV` customer invoices, `RCP` customer
+ * payment receipts.
  */
-export const DOC_PREFIXES = ['ORD', 'POS', 'RTN', 'TRF', 'EXP'] as const;
+export const DOC_PREFIXES = ['ORD', 'POS', 'RTN', 'TRF', 'EXP', 'QT', 'INV', 'RCP'] as const;
 export type DocPrefix = (typeof DOC_PREFIXES)[number];
 
 export const DOC_WIDTH = 6;
@@ -55,7 +56,6 @@ export async function nextDocumentNumber(
 
 /** `ORD-2026-000123` shape, used to sanity-check user-supplied document numbers. */
 export const DOC_NUMBER_PATTERN = /^[A-Z]{2,3}-\d{4}-[A-Za-z0-9-]{1,16}$/;
-
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,80}$/;
 
 /**

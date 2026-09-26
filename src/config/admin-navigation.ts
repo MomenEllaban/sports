@@ -146,7 +146,8 @@ const accountingTabs: readonly AdminTab[] = [
   { key: 'overview', labelAr: 'نظرة عامة', labelEn: 'Overview', href: '/admin/accounting' },
   { key: 'pnl', labelAr: 'الأرباح والخسائر', labelEn: 'P&L', href: '/admin/accounting/pnl' },
   { key: 'expenses', labelAr: 'المصروفات', labelEn: 'Expenses', href: '/admin/accounting/expenses' },
-  { key: 'treasury', labelAr: 'الخزينة والبنوك', labelEn: 'Treasury & banks', href: '/admin/accounting/treasury' },
+  { key: 'treasury', labelAr: 'الخزينة والسيولة', labelEn: 'Treasury & liquidity', href: '/admin/accounting/treasury' },
+  { key: 'receivables', labelAr: 'ذمم العملاء والتحصيل', labelEn: 'Receivables & collection', href: '/admin/accounting/receivables' },
   { key: 'eta', labelAr: 'ضرائب ETA', labelEn: 'ETA tax', href: '/admin/accounting/eta' },
 ];
 
@@ -199,6 +200,12 @@ const websiteTabs: readonly AdminTab[] = [
   { key: 'carts', labelAr: 'السلات المتروكة', labelEn: 'Abandoned carts', href: '/admin/website/carts' },
 ];
 
+const salesInvoicesTabs: readonly AdminTab[] = [
+  { key: 'quotes', labelAr: 'عروض الأسعار', labelEn: 'Quotations', href: '/admin/sales/quotations' },
+  { key: 'invoices', labelAr: 'فواتير العملاء', labelEn: 'Customer invoices', href: '/admin/sales/invoices' },
+  { key: 'payments', labelAr: 'تحصيل الدفعات', labelEn: 'Payments received', href: '/admin/sales/payments' },
+];
+
 function tabSet(tabs: readonly AdminTab[]) {
   return tabs;
 }
@@ -246,7 +253,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'sales-invoices', section: 'sales-invoices', labelAr: 'عروض الأسعار والفواتير', labelEn: 'Quotes & invoices',
-        href: '/admin/sales/invoices', icon: 'invoices', allowedRoles: SALES_OPERATIONS, status: 'planned',
+        href: '/admin/sales/invoices', icon: 'invoices', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], tabs: tabSet(salesInvoicesTabs), status: 'live',
       },
       {
         key: 'shipping', section: 'shipping', labelAr: 'الشحن وشركات التوصيل', labelEn: 'Shipping & couriers',
@@ -342,7 +349,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'treasury', section: 'treasury', labelAr: 'الخزينة والبنوك', labelEn: 'Treasury & banks',
-        href: '/admin/accounting/treasury', icon: 'treasury', allowedRoles: FINANCE, status: 'planned',
+        href: '/admin/accounting/treasury', icon: 'treasury', allowedRoles: FINANCE, status: 'live',
       },
       {
         key: 'eta', section: 'eta', labelAr: 'ضرائب ETA', labelEn: 'ETA taxes',
@@ -350,7 +357,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'receivables', section: 'receivables', labelAr: 'ذمم العملاء والموردين', labelEn: 'Receivables & payables',
-        href: '/admin/accounting/receivables', icon: 'receivables', allowedRoles: FINANCE, status: 'planned',
+        href: '/admin/accounting/receivables', icon: 'receivables', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], status: 'live',
       },
     ],
   },
@@ -366,7 +373,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'attendance', section: 'attendance', labelAr: 'الحضور والانصراف', labelEn: 'Attendance',
-        href: '/admin/attendance', icon: 'attendance', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], status: 'planned',
+        href: '/admin/attendance', icon: 'attendance', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], status: 'live',
       },
       {
         key: 'payroll', section: 'payroll', labelAr: 'المرتبات والعمولات', labelEn: 'Payroll & commissions',
@@ -374,7 +381,7 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       },
       {
         key: 'leave', section: 'leave', labelAr: 'السلف والجزاءات والإجازات', labelEn: 'Advances, penalties & leave',
-        href: '/admin/leave', icon: 'leave', allowedRoles: ['SUPER_ADMIN', 'FINANCE'], status: 'planned',
+        href: '/admin/leave', icon: 'leave', allowedRoles: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], status: 'live',
       },
     ],
   },
@@ -466,7 +473,7 @@ export function pathMatches(pathname: string, href: string): boolean {
   return current === target || (target !== '/admin' && current.startsWith(`${target}/`));
 }
 
-export function findAdminNavItem(pathname: string): {
+export function findAdminNavItem(pathname: string, role?: AdminRole): {
   group: AdminNavGroup;
   item: AdminNavItem;
   tab?: AdminTab;
@@ -477,6 +484,9 @@ export function findAdminNavItem(pathname: string): {
 
   for (const group of adminNavigation) {
     for (const item of group.items) {
+      // A section the caller's role cannot open must not win the match, or the
+      // breadcrumb would advertise a page the sidebar never offered them.
+      if (!isRoleAllowed(item.allowedRoles, role)) continue;
       const candidates = [item, ...(item.tabs ?? [])];
       for (const candidate of candidates) {
         if (pathMatches(current, candidate.href) && candidate.href.length > bestLength) {
@@ -495,6 +505,16 @@ export function findAdminItemBySection(section: string): { group: AdminNavGroup;
     if (item) return { group, item };
   }
   return null;
+}
+
+/**
+ * Tabs for a section, filtered by role. The section tabs are a second surface
+ * for the same permission decision the sidebar makes, so both must use this.
+ */
+export function getVisibleAdminTabs(section: string, role: AdminRole | undefined): readonly AdminTab[] {
+  const entry = findAdminItemBySection(section);
+  if (!entry || !isRoleAllowed(entry.item.allowedRoles, role)) return [];
+  return entry.item.tabs ?? [];
 }
 
 export function getVisibleAdminGroups(role: AdminRole | undefined): readonly AdminNavGroup[] {

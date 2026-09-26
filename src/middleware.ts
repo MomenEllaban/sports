@@ -9,6 +9,8 @@ const authSecret = requiredSecret('NEXTAUTH_SECRET', 'dev-insecure-nextauth-secr
 
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  // Retrieve auth token once for reuse
+  const token = await getToken({ req, secret: authSecret });
 
   // Arabic is the explicit default entry point. Keep query/hash parameters.
   if (pathname === '/') {
@@ -32,26 +34,32 @@ export default async function middleware(req: NextRequest) {
   const isLoginRoute = pathname.includes('/admin/login');
 
   if (isAdminRoute && !isLoginRoute) {
-    const token = await getToken({ req, secret: authSecret });
     if (!token) {
+      console.warn(`Unauthorized admin access attempt to ${pathname}`);
       const locale = pathname.startsWith('/en') ? 'en' : 'ar';
       const loginUrl = req.nextUrl.clone();
       loginUrl.pathname = locale === 'en' ? '/en/admin/login' : '/admin/login';
-      // Strip any locale prefix so next-intl's router does not double-prefix callbackUrl
       const cleanCallback = pathname.replace(/^\/(?:ar|en)(?=\/|$)/, '') || '/admin';
       loginUrl.searchParams.set('callbackUrl', cleanCallback);
       return NextResponse.redirect(loginUrl);
+    }
+    const role = (token as any).role;
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+      console.warn(`Forbidden admin access for role ${role} to ${pathname}`);
+      const locale = pathname.startsWith('/en') ? 'en' : 'ar';
+      const homeUrl = req.nextUrl.clone();
+      homeUrl.pathname = locale === 'en' ? '/en' : '/';
+      return NextResponse.redirect(homeUrl);
     }
   }
 
   // 3. Protect POS terminal pages: CASHIER, BRANCH_MANAGER, SUPER_ADMIN only (T03).
   const isPosRoute = /^(\/(ar|en))?\/pos(\/|$)/.test(pathname);
   if (isPosRoute) {
-    const token = (await getToken({ req, secret: authSecret })) as {
-      role?: string;
-    } | null;
+    // Token already retrieved earlier; using shared token variable
     const locale = pathname.startsWith('/en') ? 'en' : 'ar';
     if (!token) {
+      console.warn(`Unauthorized POS access attempt to ${pathname}`);
       const loginUrl = req.nextUrl.clone();
       loginUrl.pathname = locale === 'en' ? '/en/admin/login' : '/admin/login';
       const cleanCallback = pathname.replace(/^\/(?:ar|en)(?=\/|$)/, '') || '/pos';
@@ -65,12 +73,29 @@ export default async function middleware(req: NextRequest) {
       return NextResponse.redirect(homeUrl);
     }
   }
+  // 4. Protect POS API routes: enforce same RBAC for /api/pos/* endpoints.
+  const isPosApiRoute = pathname.startsWith('/api/pos');
+  if (isPosApiRoute) {
+    if (!token) {
+      console.warn(`Unauthorized POS API access attempt to ${pathname}`);
+      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    }
+    const role = token.role;
+    if (role !== 'CASHIER' && role !== 'BRANCH_MANAGER' && role !== 'SUPER_ADMIN') {
+      console.warn(`Forbidden POS API access for role ${role} to ${pathname}`);
+      return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
 
   return intlMiddleware(req);
 }
 
 export const config = {
-  // Match all pathnames except API routes and static assets so
-  // prefix-less URLs (default locale) are rewritten with locale
-  matcher: ['/', '/(ar|en)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)'],
+  // Match all relevant pathnames, including POS API routes, while excluding other API routes and static assets.
+  matcher: [
+    '/',
+    '/(ar|en)/:path*',
+    '/api/pos/:path*', // Include POS API endpoints for middleware protection
+    '/((?!api|_next|_vercel|.*\\..*).*)',
+  ],
 };

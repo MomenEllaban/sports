@@ -12,7 +12,7 @@ export function testPrisma(): PrismaClient {
 }
 
 const TABLES = [
-  'WishlistItem', 'InvoiceReprint', 'TaxInvoice', 'StocktakeLine', 'StocktakeSession', 'ReorderRequest', 'Notification', 'Expense', 'PurchaseOrderItem', 'PurchaseOrder', 'Supplier',
+  'WishlistItem', 'PaymentAllocation', 'CustomerPayment', 'CustomerInvoiceLine', 'CustomerInvoice', 'QuotationItem', 'Quotation', 'LeaveRequest', 'AttendanceRecord', 'InvoiceReprint', 'TaxInvoice', 'StocktakeLine', 'StocktakeSession', 'ReorderRequest', 'Notification', 'Expense', 'PurchaseOrderItem', 'PurchaseOrder', 'Supplier',
   'InventoryLog', 'SaleItem', 'Sale', 'Shift', 'CouponUse', 'Coupon', 'Review', 'SupplierPayment', 'ReturnItem', 'Refund', 'ReturnRequest', 'OrderItem', 'Order', 'Address', 'Customer',
   'PayrollItem', 'PayrollRun', 'Employee', 'User', 'StockTransferItem', 'StockTransfer',
   'BranchInventory', 'Product', 'Category', 'Brand', 'Branch',
@@ -89,3 +89,5 @@ export async function openTestShift(branchId: string, cashierId: string, opening
     data: { branchId, cashierId, status: 'OPEN', openingFloat, expectedCash: openingFloat },
   });
 }
+
+

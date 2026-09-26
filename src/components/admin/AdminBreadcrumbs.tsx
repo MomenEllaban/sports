@@ -4,13 +4,23 @@ import React from 'react';
 import { ChevronLeft, Home } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
-import { findAdminNavItem, normalizeAdminPath } from '@/config/admin-navigation';
+import { useSession } from 'next-auth/react';
+import { ADMIN_ROLES, findAdminNavItem, normalizeAdminPath, type AdminRole } from '@/config/admin-navigation';
+
+function isAdminRole(value: unknown): value is AdminRole {
+  return typeof value === 'string' && (ADMIN_ROLES as readonly string[]).includes(value);
+}
 
 export default function AdminBreadcrumbs() {
   const pathname = usePathname() || '/admin';
   const locale = useLocale();
   const isAr = locale === 'ar';
-  const current = findAdminNavItem(pathname);
+  const { data: session } = useSession();
+  const rawRole = (session?.user as { role?: unknown } | undefined)?.role;
+  const role: AdminRole | undefined = isAdminRole(rawRole) ? rawRole : undefined;
+  // The role is part of the lookup: a breadcrumb must not label a page the
+  // signed-in user has no permission to open.
+  const current = session ? findAdminNavItem(pathname, role) : null;
 
   if (!current) {
     return (

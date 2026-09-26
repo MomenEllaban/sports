@@ -18,6 +18,9 @@ const ALL: Role[] = ['SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER', 'CASHIER', 'STA
 const POS: Role[] = ['CASHIER', 'BRANCH_MANAGER', 'SUPER_ADMIN'];
 /** Read-only access to stock balances and the movement ledger. */
 const STOCK_READ: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'];
+// HR registers are written by branch managers; finance can read them because
+// payroll and receivables both need the same day count.
+const HR_READ: Role[] = ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'];
 
 export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/users': { methods: { GET: SUPER, POST: SUPER } },
@@ -38,6 +41,7 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/orders/[id]/edit': { methods: { PATCH: BM } },
   '/api/admin/orders/[id]/ship': { methods: { POST: BM } },
   '/api/admin/orders/[id]/refund': { methods: { POST: BM } },
+  '/api/admin/orders/[id]/cancel': { methods: { POST: BM } },
   '/api/admin/reports/summary': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'] } },
   '/api/admin/reports/[type]/export': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'] } },
   '/api/admin/reports/reorder': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], PATCH: ['SUPER_ADMIN', 'BRANCH_MANAGER'], POST: ['SUPER_ADMIN', 'BRANCH_MANAGER'] } },
@@ -55,6 +59,21 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/employees/[id]': { methods: { PATCH: BM, DELETE: BM } },
   '/api/admin/transfers': { methods: { GET: STOCK_READ, POST: BM } },
   '/api/admin/transfers/[id]': { methods: { GET: STOCK_READ, POST: BM } },
+  // Sales documents: priced offers and the receivables they become. Finance
+  // reads and settles but cannot re-price, which is why PATCH/POST/DELETE are
+  // branch-manager territory.
+  '/api/admin/quotations': { methods: { GET: FIN, POST: BM } },
+  '/api/admin/quotations/[id]': { methods: { GET: FIN, PATCH: BM, POST: BM, DELETE: BM } },
+  '/api/admin/invoices': { methods: { GET: FIN, POST: BM } },
+  '/api/admin/invoices/[id]': { methods: { GET: FIN, PATCH: BM, POST: BM, DELETE: BM } },
+  // Recording money received is a finance task; reversing it is too, since
+  // only finance can put a debt back on the books.
+  '/api/admin/customer-payments': { methods: { GET: FIN, POST: FIN } },
+  '/api/admin/customer-payments/[id]': { methods: { GET: FIN, POST: FIN, DELETE: FIN } },
+  '/api/admin/receivables': { methods: { GET: FIN } },
+  '/api/admin/attendance': { methods: { GET: HR_READ, POST: BM } },
+  '/api/admin/leaves': { methods: { GET: HR_READ, POST: BM } },
+  '/api/admin/leaves/[id]': { methods: { GET: HR_READ, POST: BM } },
   '/api/admin/purchase-orders': { methods: { POST: BM } },
   '/api/admin/purchase-orders/[id]': { methods: { PATCH: BM } },
   '/api/admin/purchase-orders/[id]/return': { methods: { POST: BM } },

@@ -175,20 +175,25 @@ model Branch {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  inventories    BranchInventory[]
-  transfersFrom  StockTransfer[]     @relation("TransferFromBranch")
-  transfersTo    StockTransfer[]     @relation("TransferToBranch")
-  orders         Order[]
-  sales          Sale[]
-  shifts         Shift[]
-  returns        ReturnRequest[]
-  inventoryLogs  InventoryLog[]
+  inventories       BranchInventory[]
+  transfersFrom     StockTransfer[]    @relation("TransferFromBranch")
+  transfersTo       StockTransfer[]    @relation("TransferToBranch")
+  orders            Order[]
+  sales             Sale[]
+  shifts            Shift[]
+  returns           ReturnRequest[]
+  inventoryLogs     InventoryLog[]
   stocktakeSessions StocktakeSession[]
-  purchaseOrders PurchaseOrder[]
-  expenses       Expense[]
-  employees      Employee[]
-  notifications  Notification[]
-  taxInvoices    TaxInvoice[]
+  purchaseOrders    PurchaseOrder[]
+  expenses          Expense[]
+  employees         Employee[]
+  notifications     Notification[]
+  taxInvoices       TaxInvoice[]
+  quotations        Quotation[]
+  customerInvoices  CustomerInvoice[]
+  customerPayments  CustomerPayment[]
+  attendance        AttendanceRecord[]
+  leaveRequests     LeaveRequest[]
 }
 
 model BranchInventory {
@@ -201,29 +206,29 @@ model BranchInventory {
   reorderQuantity   Int      @default(10)
   updatedAt         DateTime @updatedAt
 
-  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branch          Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reorderRequests ReorderRequest[]
 
   @@unique([branchId, productId])
   @@index([stockQuantity])
   @@index([productId])
-  reorderRequests ReorderRequest[]
 }
 
 model ReorderRequest {
-  id               String   @id @default(cuid())
+  id                String    @id @default(cuid())
   branchInventoryId String
-  productId        String
-  supplierId       String?
-  requestedById    String
-  requestedAt      DateTime @default(now())
-  neededAt         DateTime?
-  note             String?
-  quantity         Int
-  unitCost         Decimal? @db.Decimal(12, 2)
-  status           String   @default("REQUESTED")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  productId         String
+  supplierId        String?
+  requestedById     String
+  requestedAt       DateTime  @default(now())
+  neededAt          DateTime?
+  note              String?
+  quantity          Int
+  unitCost          Decimal?  @db.Decimal(12, 2)
+  status            String    @default("REQUESTED")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   branchInventory BranchInventory @relation(fields: [branchInventoryId], references: [id], onDelete: Cascade)
 
@@ -254,26 +259,26 @@ model StocktakeSession {
 }
 
 model StocktakeLine {
-  id                   String              @id @default(cuid())
-  sessionId            String
-  productId            String
-  skuSnapshot          String
-  nameArSnapshot       String
-  nameEnSnapshot       String
-  unitCost             Decimal             @db.Decimal(12, 2) @default(0.0)
-  expectedQuantity     Int
-  countedQuantity      Int?
-  varianceQuantity     Int?
-  previousQuantity     Int?
-  newQuantity          Int?
-  status               StocktakeLineStatus @default(PENDING)
-  reasonCode           StocktakeReason?
-  notes                String?
-  countedById          String?
-  countedAt            DateTime?
-  appliedAt            DateTime?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  id               String              @id @default(cuid())
+  sessionId        String
+  productId        String
+  skuSnapshot      String
+  nameArSnapshot   String
+  nameEnSnapshot   String
+  unitCost         Decimal             @default(0.0) @db.Decimal(12, 2)
+  expectedQuantity Int
+  countedQuantity  Int?
+  varianceQuantity Int?
+  previousQuantity Int?
+  newQuantity      Int?
+  status           StocktakeLineStatus @default(PENDING)
+  reasonCode       StocktakeReason?
+  notes            String?
+  countedById      String?
+  countedAt        DateTime?
+  appliedAt        DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
   session StocktakeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   product Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
@@ -329,22 +334,22 @@ model StockTransferItem {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  phone        String?
-  role         Role     @default(STAFF)
-  branchIds    String[] @default([])
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
+  passwordHash      String
+  phone             String?
+  role              Role      @default(STAFF)
+  branchIds         String[]  @default([])
   // T05: home branch for branch-scoped roles (CASHIER sells only here).
-  branchId     String?
+  branchId          String?
   // T06: manager discount PIN (bcrypt hash) + brute-force protection.
   managerPinHash    String?
   pinFailedAttempts Int       @default(0)
   pinLockedUntil    DateTime?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   employee Employee?
   shifts   Shift[]
@@ -356,7 +361,7 @@ model Employee {
   name           String
   phone          String
   roleTitle      String
-  salary         Decimal @db.Decimal(12, 2)
+  salary         Decimal    @db.Decimal(12, 2)
   salaryType     SalaryType @default(MONTHLY)
   commissionRate Float      @default(0.0)
   branchId       String
@@ -364,9 +369,11 @@ model Employee {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  user         User?         @relation(fields: [userId], references: [id])
-  branch       Branch        @relation(fields: [branchId], references: [id])
-  payrollItems PayrollItem[]
+  user          User?              @relation(fields: [userId], references: [id])
+  branch        Branch             @relation(fields: [branchId], references: [id])
+  payrollItems  PayrollItem[]
+  attendance    AttendanceRecord[]
+  leaveRequests LeaveRequest[]
 }
 
 model PayrollRun {
@@ -374,7 +381,7 @@ model PayrollRun {
   periodMonth Int
   periodYear  Int
   status      PayrollStatus @default(DRAFT)
-  totalAmount Decimal @db.Decimal(12, 2)         @default(0.0)
+  totalAmount Decimal       @default(0.0) @db.Decimal(12, 2)
   createdById String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -386,11 +393,11 @@ model PayrollItem {
   id               String        @id @default(cuid())
   payrollRunId     String
   employeeId       String
-  baseSalary       Decimal @db.Decimal(12, 2)
-  bonus            Decimal @db.Decimal(12, 2)         @default(0.0)
-  deductions       Decimal @db.Decimal(12, 2)         @default(0.0)
-  commissionAmount Decimal @db.Decimal(12, 2)         @default(0.0)
-  netSalary        Decimal @db.Decimal(12, 2)
+  baseSalary       Decimal       @db.Decimal(12, 2)
+  bonus            Decimal       @default(0.0) @db.Decimal(12, 2)
+  deductions       Decimal       @default(0.0) @db.Decimal(12, 2)
+  commissionAmount Decimal       @default(0.0) @db.Decimal(12, 2)
+  netSalary        Decimal       @db.Decimal(12, 2)
   status           PayrollStatus @default(DRAFT)
 
   payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
@@ -407,10 +414,13 @@ model Customer {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  addresses Address[]
-  orders    Order[]
-  sales     Sale[]
+  addresses     Address[]
+  orders        Order[]
+  sales         Sale[]
   wishlistItems WishlistItem[]
+  quotations    Quotation[]
+  invoices      CustomerInvoice[]
+  payments      CustomerPayment[]
 }
 
 model WishlistItem {
@@ -466,8 +476,8 @@ model Product {
   nameEn        String
   descriptionAr String?
   descriptionEn String?
-  price         Decimal @db.Decimal(12, 2)
-  costPrice     Decimal @db.Decimal(12, 2)    @default(0.0)
+  price         Decimal  @db.Decimal(12, 2)
+  costPrice     Decimal  @default(0.0) @db.Decimal(12, 2)
   categoryId    String
   brandId       String?
   size          String?
@@ -482,8 +492,8 @@ model Product {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  category           Category            @relation(fields: [categoryId], references: [id])
-  brand              Brand?              @relation(fields: [brandId], references: [id])
+  category           Category              @relation(fields: [categoryId], references: [id])
+  brand              Brand?                @relation(fields: [brandId], references: [id])
   inventories        BranchInventory[]
   orderItems         OrderItem[]
   saleItems          SaleItem[]
@@ -494,6 +504,8 @@ model Product {
   returnItems        ReturnItem[]
   stocktakeLines     StocktakeLine[]
   wishlistItems      WishlistItem[]
+  quotationItems     QuotationItem[]
+  invoiceLines       CustomerInvoiceLine[]
 
   @@index([isActive, categoryId])
   @@index([groupSlug])
@@ -513,19 +525,19 @@ model Order {
   addressId        String?
   branchId         String
   deliveryZone     String           @default("Alexandria Central")
-  deliveryFee      Decimal @db.Decimal(12, 2)            @default(30.0)
+  deliveryFee      Decimal          @default(30.0) @db.Decimal(12, 2)
   shippingProvider ShippingProvider @default(BOSTA)
   trackingNumber   String?
   paymentMethod    PaymentMethod    @default(COD)
   paymentStatus    PaymentStatus    @default(PENDING)
   orderStatus      OrderStatus      @default(PENDING)
-  subtotal         Decimal @db.Decimal(12, 2)
-  taxAmount        Decimal @db.Decimal(12, 2)            @default(0.0)
-  discountAmount   Decimal @db.Decimal(12, 2)            @default(0.0)
-  totalAmount      Decimal @db.Decimal(12, 2)
+  subtotal         Decimal          @db.Decimal(12, 2)
+  taxAmount        Decimal          @default(0.0) @db.Decimal(12, 2)
+  discountAmount   Decimal          @default(0.0) @db.Decimal(12, 2)
+  totalAmount      Decimal          @db.Decimal(12, 2)
   codReconciled    Boolean          @default(false)
   // 3.3: cash actually remitted by the courier for this COD order.
-  codRemitted      Decimal @db.Decimal(12, 2) @default(0.0)
+  codRemitted      Decimal          @default(0.0) @db.Decimal(12, 2)
   etaReceiptId     String?
   // 2.3: customer-uploaded transfer receipt (InstaPay / Vodafone Cash) for manual review.
   receiptImage     String?
@@ -533,9 +545,9 @@ model Order {
   paymentRef       String?
   // T16: unified discount pipeline attribution.
   couponCode       String?
-  loyaltyRedeemed  Int      @default(0)
-  loyaltyDiscount  Decimal @db.Decimal(12, 2) @default(0.0)
-  couponDiscount   Decimal @db.Decimal(12, 2) @default(0.0)
+  loyaltyRedeemed  Int              @default(0)
+  loyaltyDiscount  Decimal          @default(0.0) @db.Decimal(12, 2)
+  couponDiscount   Decimal          @default(0.0) @db.Decimal(12, 2)
   notes            String?
   // Client-supplied key that makes order creation idempotent. A retried
   // checkout (double tap, network retry, refresh) replays the stored response
@@ -548,13 +560,13 @@ model Order {
   // B02: optimistic version for safe order edits.
   editVersion      Int              @default(0)
 
-  branch     Branch      @relation(fields: [branchId], references: [id])
-  customer   Customer?   @relation(fields: [customerId], references: [id])
-  items      OrderItem[]
-  taxInvoice TaxInvoice?
-  returns    ReturnRequest[]
+  branch       Branch          @relation(fields: [branchId], references: [id])
+  customer     Customer?       @relation(fields: [customerId], references: [id])
+  items        OrderItem[]
+  taxInvoice   TaxInvoice?
+  returns      ReturnRequest[]
   // T-RMA derived status: NONE | PARTIAL | FULL (RETURNED only when FULL).
-  returnStatus String @default("NONE")
+  returnStatus String          @default("NONE")
 
   @@index([orderStatus, createdAt])
   @@index([paymentStatus, createdAt])
@@ -564,7 +576,7 @@ model Order {
 }
 
 model OrderItem {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   orderId    String
   productId  String
   unitPrice  Decimal @db.Decimal(12, 2)
@@ -579,40 +591,40 @@ model OrderItem {
 }
 
 model Sale {
-  id             String        @id @default(cuid())
-  saleNumber     String        @unique
-  branchId       String
-  cashierId      String
-  customerId     String?
-  subtotal       Decimal @db.Decimal(12, 2)
-  taxAmount      Decimal @db.Decimal(12, 2)         @default(0.0)
-  discountAmount Decimal @db.Decimal(12, 2)         @default(0.0)
-  totalAmount    Decimal @db.Decimal(12, 2)
-  paymentMethod  PaymentMethod @default(CASH)
-  paymentStatus  PaymentStatus @default(PAID)
-  status         String        @default("COMPLETED")
-  etaReceiptId   String?
+  id              String        @id @default(cuid())
+  saleNumber      String        @unique
+  branchId        String
+  cashierId       String
+  customerId      String?
+  subtotal        Decimal       @db.Decimal(12, 2)
+  taxAmount       Decimal       @default(0.0) @db.Decimal(12, 2)
+  discountAmount  Decimal       @default(0.0) @db.Decimal(12, 2)
+  totalAmount     Decimal       @db.Decimal(12, 2)
+  paymentMethod   PaymentMethod @default(CASH)
+  paymentStatus   PaymentStatus @default(PAID)
+  status          String        @default("COMPLETED")
+  etaReceiptId    String?
   // T06: who approved a manager discount (manager PIN user or BM/SA session).
-  approvedById   String?
+  approvedById    String?
   // T07: offline-sync idempotency key (nullable unique).
-  clientSaleId   String?  @unique
+  clientSaleId    String?       @unique
   // T05: shift this sale belongs to (set at sale time, incl. offline sync).
-  shiftId        String?
+  shiftId         String?
   // T16: unified discount pipeline attribution.
-  couponCode       String?
-  loyaltyRedeemed  Int      @default(0)
-  loyaltyDiscount  Decimal @db.Decimal(12, 2) @default(0.0)
-  couponDiscount   Decimal @db.Decimal(12, 2) @default(0.0)
-  createdAt      DateTime      @default(now())
+  couponCode      String?
+  loyaltyRedeemed Int           @default(0)
+  loyaltyDiscount Decimal       @default(0.0) @db.Decimal(12, 2)
+  couponDiscount  Decimal       @default(0.0) @db.Decimal(12, 2)
+  createdAt       DateTime      @default(now())
 
-  branch     Branch      @relation(fields: [branchId], references: [id])
-  customer   Customer?   @relation(fields: [customerId], references: [id])
-  shift      Shift?      @relation(fields: [shiftId], references: [id])
-  items      SaleItem[]
-  taxInvoice TaxInvoice?
-  returns    ReturnRequest[]
+  branch       Branch          @relation(fields: [branchId], references: [id])
+  customer     Customer?       @relation(fields: [customerId], references: [id])
+  shift        Shift?          @relation(fields: [shiftId], references: [id])
+  items        SaleItem[]
+  taxInvoice   TaxInvoice?
+  returns      ReturnRequest[]
   // T-RMA derived status: NONE | PARTIAL | FULL.
-  returnStatus String @default("NONE")
+  returnStatus String          @default("NONE")
 
   @@index([branchId, createdAt])
   @@index([cashierId, createdAt])
@@ -628,18 +640,18 @@ model Shift {
   status       ShiftStatus @default(OPEN)
   openedAt     DateTime    @default(now())
   closedAt     DateTime?
-  openingFloat Decimal @db.Decimal(12, 2) @default(0)
-  expectedCash Decimal @db.Decimal(12, 2) @default(0)
-  actualCash   Decimal @db.Decimal(12, 2) @default(0)
-  difference   Decimal @db.Decimal(12, 2) @default(0)
+  openingFloat Decimal     @default(0) @db.Decimal(12, 2)
+  expectedCash Decimal     @default(0) @db.Decimal(12, 2)
+  actualCash   Decimal     @default(0) @db.Decimal(12, 2)
+  difference   Decimal     @default(0) @db.Decimal(12, 2)
   openNote     String?
   closeNote    String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  branch Branch @relation(fields: [branchId], references: [id])
-  cashier User   @relation(fields: [cashierId], references: [id])
-  sales  Sale[]
+  branch  Branch   @relation(fields: [branchId], references: [id])
+  cashier User     @relation(fields: [cashierId], references: [id])
+  sales   Sale[]
   refunds Refund[]
 
   @@index([cashierId, status])
@@ -647,12 +659,12 @@ model Shift {
 }
 
 model SaleItem {
-  id         String @id @default(cuid())
+  id         String  @id @default(cuid())
   saleId     String
   productId  String
   unitPrice  Decimal @db.Decimal(12, 2)
   quantity   Int
-  discount   Decimal @db.Decimal(12, 2)  @default(0.0)
+  discount   Decimal @default(0.0) @db.Decimal(12, 2)
   totalPrice Decimal @db.Decimal(12, 2)
 
   sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -703,7 +715,7 @@ model Supplier {
 model SupplierPayment {
   id          String   @id @default(cuid())
   supplierId  String
-  amount      Decimal @db.Decimal(12, 2)
+  amount      Decimal  @db.Decimal(12, 2)
   method      String   @default("CASH")
   reference   String?
   notes       String?
@@ -721,7 +733,7 @@ model PurchaseOrder {
   supplierId  String
   branchId    String
   status      PurchaseOrderStatus @default(DRAFT)
-  totalAmount Decimal @db.Decimal(12, 2)               @default(0.0)
+  totalAmount Decimal             @default(0.0) @db.Decimal(12, 2)
   notes       String?
   createdById String
   createdAt   DateTime            @default(now())
@@ -733,12 +745,12 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderItem {
-  id               String @id @default(cuid())
+  id               String  @id @default(cuid())
   purchaseOrderId  String
   productId        String
   unitCost         Decimal @db.Decimal(12, 2)
   quantityOrdered  Int
-  quantityReceived Int    @default(0)
+  quantityReceived Int     @default(0)
 
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product       Product       @relation(fields: [productId], references: [id])
@@ -750,7 +762,7 @@ model Expense {
   branchId      String
   category      ExpenseCategory @default(OTHER)
   description   String
-  amount        Decimal @db.Decimal(12, 2)
+  amount        Decimal         @db.Decimal(12, 2)
   receiptImage  String?
   date          DateTime        @default(now())
   createdById   String
@@ -783,22 +795,22 @@ model TaxInvoice {
   orderId         String?          @unique
   saleId          String?          @unique
   branchId        String
-  totalAmount     Decimal @db.Decimal(12, 2)
-  vatAmount       Decimal @db.Decimal(12, 2)
+  totalAmount     Decimal          @db.Decimal(12, 2)
+  vatAmount       Decimal          @db.Decimal(12, 2)
   qrCodeData      String?
   status          TaxInvoiceStatus @default(SUBMITTED)
   etaResponseText String?
   // Immutable presentation snapshot captured at issuance; legacy rows may be null.
-  snapshot         Json?
-  snapshotSource   String           @default("LEGACY_RECONSTRUCTED")
-  reprintCount     Int              @default(0)
-  lastReprintedAt  DateTime?
-  createdAt        DateTime         @default(now())
+  snapshot        Json?
+  snapshotSource  String           @default("LEGACY_RECONSTRUCTED")
+  reprintCount    Int              @default(0)
+  lastReprintedAt DateTime?
+  createdAt       DateTime         @default(now())
 
-  branch   Branch          @relation(fields: [branchId], references: [id])
+  branch   Branch           @relation(fields: [branchId], references: [id])
   reprints InvoiceReprint[]
-  order  Order? @relation(fields: [orderId], references: [id])
-  sale   Sale?  @relation(fields: [saleId], references: [id])
+  order    Order?           @relation(fields: [orderId], references: [id])
+  sale     Sale?            @relation(fields: [saleId], references: [id])
 }
 
 model InvoiceReprint {
@@ -816,14 +828,13 @@ model InvoiceReprint {
   @@index([taxInvoiceId, createdAt])
 }
 
-
 model Coupon {
   id          String    @id @default(cuid())
   code        String    @unique
   kind        String    @default("PERCENT") // PERCENT | FIXED
-  value       Decimal @db.Decimal(12, 2)
-  capAmount   Decimal @db.Decimal(12, 2) @default(0.0)
-  minTotal    Decimal @db.Decimal(12, 2) @default(0.0)
+  value       Decimal   @db.Decimal(12, 2)
+  capAmount   Decimal   @default(0.0) @db.Decimal(12, 2)
+  minTotal    Decimal   @default(0.0) @db.Decimal(12, 2)
   startsAt    DateTime?
   endsAt      DateTime?
   usageLimit  Int?
@@ -842,7 +853,7 @@ model CouponUse {
   orderId    String?
   saleId     String?
   customerId String?
-  amount     Decimal @db.Decimal(12, 2)
+  amount     Decimal  @db.Decimal(12, 2)
   createdAt  DateTime @default(now())
 
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
@@ -869,34 +880,34 @@ model Review {
 // T-RMA: unified returns domain (single path — see docs/RETURNS_AUDIT.md).
 // ReturnRequest: one RMA case (partial or full, return or exchange).
 model ReturnRequest {
-  id             String   @id @default(cuid())
-  returnNumber   String   @unique
-  orderId        String?
-  saleId         String?
-  type           String   @default("RETURN") // RETURN | EXCHANGE
-  channel        String   @default("ADMIN") // POS | ONLINE | WHATSAPP | ADMIN | AUTO_COURIER
-  branchId       String
-  status         String   @default("REQUESTED") // REQUESTED|APPROVED|RECEIVED|REFUND_PENDING|COMPLETED|REJECTED|CANCELLED
-  customerId     String?
-  customerPhone  String?
-  requestedById  String?
-  approvedById   String?
-  receivedById   String?
-  refundedById   String?
-  source         String   @default("NEW") // NEW | LEGACY
-  notes          String?
-  exchangeSaleId String?
+  id              String   @id @default(cuid())
+  returnNumber    String   @unique
+  orderId         String?
+  saleId          String?
+  type            String   @default("RETURN") // RETURN | EXCHANGE
+  channel         String   @default("ADMIN") // POS | ONLINE | WHATSAPP | ADMIN | AUTO_COURIER
+  branchId        String
+  status          String   @default("REQUESTED") // REQUESTED|APPROVED|RECEIVED|REFUND_PENDING|COMPLETED|REJECTED|CANCELLED
+  customerId      String?
+  customerPhone   String?
+  requestedById   String?
+  approvedById    String?
+  receivedById    String?
+  refundedById    String?
+  source          String   @default("NEW") // NEW | LEGACY
+  notes           String?
+  exchangeSaleId  String?
   // T-RMA idempotency for double-submit protection (nullable unique).
   clientRequestId String?  @unique
   // T-RMA ETA credit-note marker: NONE | SENT | PENDING_ETA.
-  etaStatus      String   @default("NONE")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  etaStatus       String   @default("NONE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  order  Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  sale   Sale?   @relation(fields: [saleId], references: [id], onDelete: SetNull)
-  branch Branch  @relation(fields: [branchId], references: [id])
-  items  ReturnItem[]
+  order   Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  sale    Sale?        @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  branch  Branch       @relation(fields: [branchId], references: [id])
+  items   ReturnItem[]
   refunds Refund[]
 
   @@index([status])
@@ -914,7 +925,7 @@ model ReturnItem {
   reasonCode   String   @default("OTHER")
   condition    String   @default("GOOD") // GOOD | DAMAGED | DEFECTIVE
   disposition  String   @default("RESTOCK") // RESTOCK | DAMAGED | INSPECT
-  refundAmount Decimal @db.Decimal(12, 2) @default(0.0)
+  refundAmount Decimal  @default(0.0) @db.Decimal(12, 2)
   notes        String?
   images       String[] @default([])
   createdAt    DateTime @default(now())
@@ -929,7 +940,7 @@ model ReturnItem {
 model Refund {
   id             String   @id @default(cuid())
   returnId       String
-  amount         Decimal @db.Decimal(12, 2)
+  amount         Decimal  @db.Decimal(12, 2)
   method         String   @default("ORIGINAL_GATEWAY") // CASH|ORIGINAL_GATEWAY|INSTAPAY|VODAFONE|BANK_TRANSFER
   status         String   @default("PENDING") // PENDING|PROCESSING|DONE|FAILED|MANUAL_REQUIRED
   gatewayRef     String?
@@ -942,10 +953,11 @@ model Refund {
   updatedAt      DateTime @updatedAt
 
   return ReturnRequest @relation(fields: [returnId], references: [id], onDelete: Cascade)
-  shift  Shift?         @relation(fields: [shiftId], references: [id])
+  shift  Shift?        @relation(fields: [shiftId], references: [id])
 
   @@index([status])
 }
+
 // T02: generic key/value store for all configurable business values (T12 builds service + UI).
 // Values are JSON-encoded strings; seed fills defaults, admins edit them.
 model Setting {
@@ -967,6 +979,232 @@ model AuditLog {
 
   @@index([createdAt, entity])
   @@index([entityId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sales documents: quotations and customer (accounts receivable) invoices.
+// A quotation is a priced offer; an invoice is a receivable. The money side of
+// an invoice is settled by CustomerPayment rows allocated through
+// PaymentAllocation, never by editing the invoice total.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+model Quotation {
+  id                 String          @id @default(cuid())
+  quotationNumber    String          @unique
+  customerId         String
+  customerName       String?
+  branchId           String
+  status             QuotationStatus @default(DRAFT)
+  subtotal           Decimal         @default(0.0) @db.Decimal(12, 2)
+  discount           Decimal         @default(0.0) @db.Decimal(12, 2)
+  vat                Decimal         @default(0.0) @db.Decimal(12, 2)
+  total              Decimal         @default(0.0) @db.Decimal(12, 2)
+  validUntil         DateTime
+  notes              String?
+  convertedInvoiceId String?         @unique
+  createdById        String
+  sentAt             DateTime?
+  decidedAt          DateTime?
+  cancelReason       String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  customer Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branch   Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  invoice  CustomerInvoice? @relation("QuotationInvoice", fields: [convertedInvoiceId], references: [id])
+  items    QuotationItem[]
+
+  @@index([branchId, status, createdAt])
+  @@index([customerId, createdAt])
+}
+
+model QuotationItem {
+  id          String  @id @default(cuid())
+  quotationId String
+  productId   String?
+  description String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(12, 2)
+  lineTotal   Decimal @db.Decimal(12, 2)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([quotationId])
+}
+
+enum CustomerInvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+model CustomerInvoice {
+  id            String                @id @default(cuid())
+  invoiceNumber String                @unique
+  customerId    String
+  branchId      String
+  status        CustomerInvoiceStatus @default(DRAFT)
+  subtotal      Decimal               @default(0.0) @db.Decimal(12, 2)
+  discount      Decimal               @default(0.0) @db.Decimal(12, 2)
+  vat           Decimal               @default(0.0) @db.Decimal(12, 2)
+  total         Decimal               @default(0.0) @db.Decimal(12, 2)
+  // Denormalised settlement total. Maintained ONLY by the allocation service so
+  // the outstanding balance can be read without aggregating allocations.
+  paidAmount    Decimal               @default(0.0) @db.Decimal(12, 2)
+  dueDate       DateTime?
+  issuedAt      DateTime?
+  voidReason    String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  customer    Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branch      Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  quotation   Quotation?            @relation("QuotationInvoice")
+  lines       CustomerInvoiceLine[]
+  allocations PaymentAllocation[]
+
+  @@index([branchId, status, createdAt])
+  @@index([customerId, status])
+}
+
+model CustomerInvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  productId   String?
+  description String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(12, 2)
+  lineTotal   Decimal @db.Decimal(12, 2)
+
+  invoice CustomerInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+}
+
+model CustomerPayment {
+  id              String   @id @default(cuid())
+  receiptNumber   String   @unique
+  customerId      String
+  branchId        String
+  amount          Decimal  @db.Decimal(12, 2)
+  // How much of `amount` is already applied to invoices. Kept equal to the sum
+  // of its allocations by the same transaction that writes them.
+  allocatedAmount Decimal  @default(0.0) @db.Decimal(12, 2)
+  method          String   @default("CASH")
+  reference       String?
+  paidAt          DateTime @default(now())
+  notes           String?
+  createdById     String
+  createdAt       DateTime @default(now())
+
+  customer    Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  branch      Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  allocations PaymentAllocation[]
+
+  @@index([customerId, paidAt])
+  @@index([branchId, paidAt])
+}
+
+model PaymentAllocation {
+  id        String   @id @default(cuid())
+  paymentId String
+  invoiceId String
+  amount    Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+
+  payment CustomerPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice CustomerInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentId, invoiceId])
+  @@index([invoiceId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Human resources: daily attendance and leave. Both are branch scoped, because
+// an employee belongs to exactly one branch.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  LEAVE
+}
+
+model AttendanceRecord {
+  id           String           @id @default(cuid())
+  employeeId   String
+  branchId     String
+  date         DateTime
+  checkIn      DateTime?
+  checkOut     DateTime?
+  status       AttendanceStatus @default(PRESENT)
+  notes        String?
+  recordedById String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  // One row per employee per day: the ledger is corrected by updating the row,
+  // never by inserting a second one.
+  @@unique([employeeId, date])
+  @@index([branchId, date])
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  UNPAID
+  MARRIAGE
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeaveRequest {
+  id           String      @id @default(cuid())
+  employeeId   String
+  branchId     String
+  type         LeaveType   @default(ANNUAL)
+  startDate    DateTime
+  endDate      DateTime
+  days         Int
+  reason       String?
+  status       LeaveStatus @default(PENDING)
+  decidedById  String?
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, status, startDate])
+  @@index([employeeId, startDate])
 }
 
 // Per-prefix, per-year counter backing the document numbers printed on

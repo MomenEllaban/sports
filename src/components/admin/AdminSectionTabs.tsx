@@ -2,21 +2,31 @@
 
 import React from 'react';
 import { useLocale } from 'next-intl';
+import { useSession } from 'next-auth/react';
 import { Link, usePathname } from '@/i18n/routing';
-import { findAdminItemBySection, pathMatches } from '@/config/admin-navigation';
+import { ADMIN_ROLES, getVisibleAdminTabs, pathMatches, type AdminRole } from '@/config/admin-navigation';
+
+function isAdminRole(value: unknown): value is AdminRole {
+  return typeof value === 'string' && (ADMIN_ROLES as readonly string[]).includes(value);
+}
 
 export default function AdminSectionTabs({ section, className = '' }: { section: string; className?: string }) {
   const pathname = usePathname() || '/admin';
   const locale = useLocale();
   const isAr = locale === 'ar';
-  const entry = findAdminItemBySection(section);
-  const tabs = entry?.item.tabs ?? [];
+  const { data: session } = useSession();
+  const rawRole = (session?.user as { role?: unknown } | undefined)?.role;
+  const role: AdminRole | undefined = isAdminRole(rawRole) ? rawRole : undefined;
+  // Until the session resolves there is no role, so no tabs: showing them
+  // first and hiding them a moment later would flash links the user may not be
+  // allowed to open.
+  const tabs = session ? getVisibleAdminTabs(section, role) : [];
 
   const activeHref = tabs
     .filter((tab) => pathMatches(pathname, tab.href))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? tabs[0]?.href;
 
-  if (!entry || tabs.length === 0) return null;
+  if (tabs.length === 0) return null;
 
   return (
     <nav

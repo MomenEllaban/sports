@@ -1,10 +1,10 @@
 # Dashboard Test Log — automated flow
 
-> Generated 2026-09-25T20:05:06.600Z · no-browser audit (pages + loaders + security + link integrity).
+> Generated 2026-09-26T14:39:48.423Z · no-browser audit (pages + loaders + security + link integrity).
 
 ## Summary
 
-- **Passed:** 173
+- **Passed:** 179
 - **Failed:** 0
 
 ## Checks
@@ -42,6 +42,7 @@
 | ✅ | /admin/inventory/labels/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/inventory/movements/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/inventory/page.tsx | loader + error inherited from admin group |
+| ✅ | /admin/inventory/stock/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/inventory/transfers/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/leave/page.tsx | loader + error inherited from admin group |
 | ✅ | login page | auto-redirects; no data loader needed |
@@ -81,6 +82,8 @@
 | ✅ | /admin/returns/policies/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/reviews/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/sales/invoices/page.tsx | loader + error inherited from admin group |
+| ✅ | /admin/sales/payments/page.tsx | loader + error inherited from admin group |
+| ✅ | /admin/sales/quotations/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/settings/branches/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/settings/notifications/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/settings/page.tsx | loader + error inherited from admin group |
@@ -121,13 +124,14 @@
 | ✅ | /admin/employees/documents/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/employees/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/expenses/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE' |
-| ✅ | /admin/inventory/alerts/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/inventory/alerts/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/inventory/count/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/inventory/labels/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/inventory/movements/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/inventory/movements/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/inventory/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/inventory/transfers/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/leave/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE' |
+| ✅ | /admin/inventory/stock/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/inventory/transfers/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
+| ✅ | /admin/leave/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/login/page.tsx | public login, redirects to /admin/dashboard when already signed in |
 | ✅ | /admin/notifications/page.tsx | guard: 'SUPER_ADMIN', 'FINANCE', 'BRANCH_MANAGER', 'CASHIER', 'STAFF' |
 | ✅ | /admin/orders/cancelled/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
@@ -165,6 +169,8 @@
 | ✅ | /admin/returns/policies/page.tsx | guard: inherited: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/reviews/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/sales/invoices/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/sales/payments/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/sales/quotations/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/settings/branches/page.tsx | guard: inherited: 'SUPER_ADMIN' |
 | ✅ | /admin/settings/notifications/page.tsx | guard: inherited: 'SUPER_ADMIN' |
 | ✅ | /admin/settings/page.tsx | guard: 'SUPER_ADMIN' |
@@ -182,7 +188,7 @@
 | ✅ | /admin/website/content/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/website/store/page.tsx | guard: 'SUPER_ADMIN' |
 | ✅ | middleware | matches /admin (early auth interception) |
-| ✅ | admin internal links | 17 unique /admin hrefs all resolve |
+| ✅ | admin internal links | 20 unique /admin hrefs all resolve |
 | ✅ | storefront internal links | 10 unique storefront hrefs all resolve |
 
 ## Failures
