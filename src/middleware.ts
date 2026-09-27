@@ -88,15 +88,29 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
+  // 5. Never hand an API path to next-intl.
+  //
+  // `localePrefix: 'always'` makes the intl middleware rewrite any unprefixed
+  // path to `/{locale}{path}`, so `/api/pos/products` became
+  // `/ar/api/pos/products` — a URL with no route behind it, which is why every
+  // POS endpoint answered 404 while `/api/admin/*` worked. The RBAC checks
+  // above have already run, so returning the request untouched both preserves
+  // them and leaves routing to the real route handler.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   return intlMiddleware(req);
 }
 
 export const config = {
-  // Match all relevant pathnames, including POS API routes, while excluding other API routes and static assets.
+  // `/api/pos/:path*` must stay in the matcher: those endpoints are protected
+  // here rather than in the route, and the handler returns the request
+  // untouched (step 5) so next-intl never rewrites an API URL.
   matcher: [
     '/',
     '/(ar|en)/:path*',
-    '/api/pos/:path*', // Include POS API endpoints for middleware protection
+    '/api/pos/:path*',
     '/((?!api|_next|_vercel|.*\\..*).*)',
   ],
 };

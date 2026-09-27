@@ -46,7 +46,7 @@ export default async function BranchesPage({
                 <h2 className="font-extrabold text-lg">{isAr ? 'فرع الإبراهيمية الرئيسي' : 'Main Ibrahimeyah branch'}</h2>
                 <p className="text-xs text-slate-400">{isAr ? '92 شارع عمر لطفى، الإبراهيمية بحري، سيدي جابر، باب شرقي، الإسكندرية' : '92 Omar Lotfy St, Ibrahimeyah Bahri, Sidi Gaber, Bab Sharqi, Alexandria'}</p>
                 <div className="flex items-center justify-center gap-3 pt-1">
-                  <a href="tel:035926908" className="text-xs text-slate-300 hover:text-white font-bold tabular-nums" dir="ltr">03 5926908</a>
+                  <a href="tel:035926908" className="text-xs text-slate-300 hover:text-slate-100 font-bold tabular-nums" dir="ltr">03 5926908</a>
                   <span className="text-slate-600">|</span>
                   <a
                     href="https://wa.me/201224226876"

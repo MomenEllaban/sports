@@ -188,7 +188,7 @@ export default async function StorefrontHomePage({
                   <MapPin className="w-4 h-4 text-amber-400" />
                   <span>{isAr ? 'الإبراهيمية بحري، سيدي جابر، باب شرقي' : 'Ibrahimeyah Bahri, Sidi Gaber, Bab Sharqi'}</span>
                 </div>
-                <a href="tel:035926908" className="flex items-center gap-1.5 hover:text-white transition-colors">
+                <a href="tel:035926908" className="flex items-center gap-1.5 hover:text-slate-100 transition-colors">
                   <Phone className="w-4 h-4 text-blue-400" />
                   <span dir="ltr" className="tabular-nums font-bold">03 5926908</span>
                 </a>

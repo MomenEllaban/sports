@@ -276,7 +276,7 @@ function SidebarLink({ item, pathname, collapsed, isAr, onNavigate }: { item: Ad
         // Active leaf: solid blue gradient — crisp and modern
         active
           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-md shadow-blue-600/25 border border-blue-400/30'
-          : 'text-slate-300 hover:bg-slate-800/70 hover:text-white',
+          : 'text-slate-300 hover:bg-slate-800/70 hover:text-slate-100',
       ].join(' ')}
     >
       <AdminIcon

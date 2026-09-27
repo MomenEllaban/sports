@@ -301,7 +301,7 @@ export default function WebsiteContentManager({
                   </span>
                 )}
                 <h4 className="text-lg font-black">{isAr ? b.titleAr : b.titleEn}</h4>
-                <p className="text-xs text-slate-300 mt-1 max-w-lg line-clamp-2">
+                <p className="text-xs text-white/80 mt-1 max-w-lg line-clamp-2">
                   {isAr ? b.subtitleAr : b.subtitleEn}
                 </p>
                 <div className="mt-3">

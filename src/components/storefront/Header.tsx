@@ -62,7 +62,7 @@ export default function Header() {
             <span className="hidden md:inline-block text-slate-600">|</span>
             <a
               href="tel:035926908"
-              className="hidden md:flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors shrink-0"
+              className="hidden md:flex items-center gap-1.5 text-slate-300 hover:text-slate-100 transition-colors shrink-0"
               title={isAr ? 'اتصل بفرع الإبراهيمية: 03 5926908' : 'Call store: 03 5926908'}
             >
               <Phone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
@@ -247,7 +247,7 @@ export default function Header() {
               </a>
               <a
                 href="tel:035926908"
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-bold"
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-slate-100 font-bold"
               >
                 <span className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-blue-400" />
