@@ -18,8 +18,8 @@ export default async function LabelsPage() {
         </h1>
         <p className="text-xs text-slate-400 mt-0.5">
           {isAr
-            ? 'يتم استخدام كود GS1 إن وجد، وإلا الباركود المسجل. EAN-13 للأرقام 13 خانة وCODE128 لغيرها.'
-            : 'Uses the GS1 code when present, otherwise the stored barcode. EAN-13 for 13 digits, CODE128 otherwise.'}
+            ? 'يتم استخدام كود GS1 إن وجد، وإلا الباركود المسجل. EAN-8 وEAN-13 للأرقام الطويلة، وCODE128 لبقية الأكواد غير الرقمية.'
+            : 'Uses the GS1 code when present, otherwise the stored barcode. EAN-8/EAN-13 for retail digit codes, CODE128 for anything else (including GTIN-14 and alphanumeric codes).'}
         </p>
       </div>
       <LabelsClient />

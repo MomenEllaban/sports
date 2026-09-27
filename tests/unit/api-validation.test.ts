@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   GTIN_LENGTHS,
   finiteNumber,
+  integerValue,
   normalizeGtin,
   optionalText,
   requiredText,
@@ -36,6 +37,25 @@ describe('finiteNumber', () => {
     expect(finiteNumber(Number.POSITIVE_INFINITY)).toBeNull();
     expect(finiteNumber('12.5')).toBe(12.5);
     expect(finiteNumber(0)).toBe(0);
+  });
+});
+
+describe('integerValue', () => {
+  it('rejects a fractional stock count instead of silently flooring it', () => {
+    expect(integerValue('3.7')).toBeNull();
+    expect(integerValue(2.5)).toBeNull();
+  });
+
+  it('accepts whole numbers, including the negative side used by adjustments', () => {
+    expect(integerValue('0')).toBe(0);
+    expect(integerValue(7)).toBe(7);
+    expect(integerValue('-4')).toBe(-4);
+  });
+
+  it('rejects unsafe integers and unparseable input', () => {
+    expect(integerValue('abc')).toBeNull();
+    expect(integerValue('')).toBeNull();
+    expect(integerValue(Number.MAX_SAFE_INTEGER + 2)).toBeNull();
   });
 });
 

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
@@ -26,6 +26,27 @@ interface ProductRow {
   category: { id: string; nameAr: string; nameEn: string };
   brand: { id: string; nameAr: string; nameEn: string } | null;
   inventories: Array<{ stockQuantity: number; branch: { name: string; nameEn?: string } }>;
+}
+
+/**
+ * The subset of a product the CSV needs. The export endpoint returns this
+ * shape (with a pre-aggregated `stock`) so the file can cover the whole
+ * filtered set rather than the page on screen.
+ */
+type ExportRow = Pick<
+  ProductRow,
+  'id' | 'sku' | 'barcode' | 'gs1Code' | 'nameAr' | 'nameEn' | 'size' | 'color' | 'price' | 'costPrice' | 'isActive'
+> & {
+  category: { nameAr: string; nameEn: string };
+  brand: { nameAr: string; nameEn: string } | null;
+  stock?: number;
+  inventories?: Array<{ stockQuantity: number }>;
+};
+
+/** Total stock for the branches this user can see, from either row shape. */
+function stockOf(row: ExportRow): number {
+  if (typeof row.stock === 'number') return row.stock;
+  return (row.inventories ?? []).reduce((acc, i) => acc + i.stockQuantity, 0);
 }
 
 const EMPTY_PRODUCT = {
@@ -85,6 +106,8 @@ export default function ProductsManager({
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const [page, setPage] = useState(initialPage);
   // Kept in step with the server's page size by products/page.tsx.
@@ -161,33 +184,62 @@ export default function ProductsManager({
     return `"${safe.replace(/"/g, '""')}"`;
   };
 
-  const exportCsv = () => {
-    const header = [
-      'sku', 'barcode', 'nameAr', 'nameEn', 'size', 'color',
-      'price', 'costPrice', 'category', 'brand', 'isActive', 'stock',
-    ].join(',');
-    const lines = products.map((p) =>
-      [
-        p.sku, p.barcode, p.nameAr, p.nameEn, p.size, p.color,
-        p.price, p.costPrice,
-        isAr ? p.category.nameAr : p.category.nameEn,
-        p.brand ? (isAr ? p.brand.nameAr : p.brand.nameEn) : '',
-        p.isActive ? 'yes' : 'no',
-        p.inventories.reduce((acc, i) => acc + i.stockQuantity, 0),
-      ].map(csvCell).join(','),
-    );
-    const blob = new Blob(['\ufeff' + header + '\n' + lines.join('\n')], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = isAr ? 'المنتجات.csv' : 'products.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    // Revoking synchronously can cancel the download in some browsers.
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const exportCsv = async () => {
+    setExporting(true);
+    setActionError('');
+    try {
+      // In server mode the table only holds the current page, so exporting
+      // `products` directly produced a file of 8 rows for a filtered set of
+      // 300. The endpoint reuses the same filter builder as the page.
+      const params = new URLSearchParams();
+      if (search.trim()) params.set('query', search.trim());
+      if (categoryFilter) params.set('categoryId', categoryFilter);
+      if (brandFilter) params.set('brandId', brandFilter);
+      if (statusFilter) params.set('status', statusFilter);
+
+      let rows: ExportRow[];
+      if (serverSide) {
+        const qs = params.toString();
+        const data = (await apiRequest<{ products: ExportRow[] }>(
+          `/api/admin/products/export${qs ? `?${qs}` : ''}`,
+        )) as { products: ExportRow[] };
+        rows = data.products;
+      } else {
+        rows = filtered as ExportRow[];
+      }
+
+      const header = [
+        'sku', 'gs1Code', 'barcode', 'nameAr', 'nameEn', 'size', 'color',
+        'price', 'costPrice', 'category', 'brand', 'isActive', 'stock',
+      ].join(',');
+      const lines = rows.map((p) =>
+        [
+          p.sku, p.gs1Code, p.barcode, p.nameAr, p.nameEn, p.size, p.color,
+          p.price, p.costPrice,
+          p.category.nameAr, p.category.nameEn,
+          p.brand ? p.brand.nameAr : '',
+          p.brand ? p.brand.nameEn : '',
+          p.isActive ? 'yes' : 'no',
+          stockOf(p),
+        ].map(csvCell).join(','),
+      );
+      const blob = new Blob(['\ufeff' + header + '\n' + lines.join('\n')], {
+        type: 'text/csv;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = isAr ? 'المنتجات.csv' : 'products.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Revoking synchronously can cancel the download in some browsers.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setActionError(getClientErrorMessage(err, isAr ? 'تعذر تصدير المنتجات' : 'Could not export products'));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
@@ -703,11 +755,20 @@ export default function ProductsManager({
             </div>}
             <div className="flex items-center gap-2">
               <button
-                onClick={exportCsv}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-2 border border-slate-700 transition-all"
+                onClick={() => void exportCsv()}
+                disabled={exporting}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 font-bold text-xs flex items-center gap-2 border border-slate-700 transition-all"
               >
-                <Download className="w-4 h-4 text-blue-400" />
-                {isAr ? 'تصدير CSV' : 'Export CSV'}
+                {exporting ? (
+                  <Loader2 className="w-4 h-4 text-blue-400 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Download className="w-4 h-4 text-blue-400" aria-hidden="true" />
+                )}
+                {exporting
+                  ? L('جار التصدير...', 'Exporting...')
+                  : serverSide
+                    ? L(`تصدير ${resultCount} منتج CSV`, `Export ${resultCount} products as CSV`)
+                    : isAr ? 'تصدير CSV' : 'Export CSV'}
               </button>
               <Button
                 onClick={() => {
@@ -821,6 +882,15 @@ export default function ProductsManager({
               </div>
             )}
           </div>
+
+          {actionError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-300"
+            >
+              {actionError}
+            </div>
+          )}
 
           {resultCount > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">

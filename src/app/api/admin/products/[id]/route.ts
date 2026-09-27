@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { num } from '@/lib/pricing';
-import { normalizeGtin, optionalText } from '@/lib/api-validation';
+import { normalizeGtin, optionalText, finiteNumber } from '@/lib/api-validation';
 
 // PATCH: full update of a product
 export async function PATCH(
@@ -23,8 +23,20 @@ export async function PATCH(
     if (body.sku !== undefined) data.sku = String(body.sku).trim();
     if (body.nameAr !== undefined) data.nameAr = String(body.nameAr).trim();
     if (body.nameEn !== undefined) data.nameEn = String(body.nameEn).trim();
-    if (body.price !== undefined) data.price = Number(body.price);
-    if (body.costPrice !== undefined) data.costPrice = Number(body.costPrice);
+    if (body.price !== undefined) {
+      const price = finiteNumber(body.price);
+      if (price === null || price < 0) {
+        return apiError('VALIDATION_ERROR', 'Selling price must be a non-negative number', 400);
+      }
+      data.price = price;
+    }
+    if (body.costPrice !== undefined) {
+      const costPrice = finiteNumber(body.costPrice);
+      if (costPrice === null || costPrice < 0) {
+        return apiError('VALIDATION_ERROR', 'Cost price must be a non-negative number', 400);
+      }
+      data.costPrice = costPrice;
+    }
     if (body.categoryId !== undefined) data.categoryId = body.categoryId;
     if (body.brandId !== undefined) data.brandId = body.brandId || null;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);

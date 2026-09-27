@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { apiFetch } from './ui';
-import { Button } from '@/components/ui/foundation';
+import { Button, ConfirmDialog } from '@/components/ui/foundation';
 import Pagination from './Pagination';
 
 type NamedRef = { id: string; nameAr: string; nameEn: string };
@@ -71,6 +71,7 @@ export default function StocktakeClient({
   const L = (ar: string, en: string) => (isAr ? ar : en);
 
   const [sessions, setSessions] = useState(initialSessions);
+  const [confirmApprove, setConfirmApprove] = useState(false);
   const [branchId, setBranchId] = useState(branches[0]?.id || '');
   const [selectedId, setSelectedId] = useState(initialSessions[0]?.id || '');
   const [report, setReport] = useState<Report | null>(null);
@@ -111,6 +112,10 @@ export default function StocktakeClient({
       setReport(data);
       setLines(data.lines);
       setNotes(data.session.notes || '');
+      // The report carries the authoritative session row, so keep the picker in
+      // step with it: counting does not change status, but approving does, and
+      // the line count only grows if the session is re-scoped server-side.
+      setSessions((current) => current.map((row) => (row.id === data.session.id ? data.session : row)));
       setDirty({});
       setPage(1);
     } catch (err) {
@@ -217,7 +222,8 @@ export default function StocktakeClient({
   };
 
   const uncountedCount = lines.filter((line) => line.countedQuantity === null).length;
-  const approve = async () => {
+  /** Guard rails only; the confirmation itself is the shared dialog below. */
+  const requestApprove = () => {
     if (!selectedId) return;
     if (dirtyCount > 0) {
       setError(L('احفظ المسودة أولًا قبل الاعتماد', 'Save the draft before approving'));
@@ -227,14 +233,17 @@ export default function StocktakeClient({
       setError(
         L(
           `تبقى ${uncountedCount} صنف دون عد. اضبط العد على "الفعلي" أو استخدم تصفية "غير المعدود" للوصول إليه.`,
-          `${uncountedCount} items are still uncounted. Set a counted quantity or use the "uncounted" filter to reach them.`,
+          `${uncountedCount} items are still uncounted. Set a counted quantity or use the "uncounted" filter to reach it.`,
         ),
       );
       return;
     }
-    if (!window.confirm(L('سيتم اعتماد الجرد وتطبيق كل الفروقات على المخزون. هل تريد المتابعة؟', 'Approving applies every variance to stock. Continue?'))) {
-      return;
-    }
+    setConfirmApprove(true);
+  };
+
+  const approve = async () => {
+    if (!selectedId) return;
+    setConfirmApprove(false);
     setBusy(true);
     setError('');
     try {
@@ -505,7 +514,7 @@ export default function StocktakeClient({
                         dirtyCount > 0 ? `Save ${dirtyCount} change${dirtyCount === 1 ? '' : 's'}` : 'Save draft',
                       )}
                 </Button>
-                <Button onClick={approve} disabled={busy || lines.length === 0} variant="primary">
+                <Button onClick={requestApprove} disabled={busy || lines.length === 0} variant="primary">
                   {L('اعتماد وتطبيق الفروقات', 'Approve & apply')}
                 </Button>
               </div>
@@ -706,6 +715,19 @@ export default function StocktakeClient({
           )}
         </>
       )}
+
+      <ConfirmDialog
+        open={confirmApprove}
+        busy={busy}
+        title={L('اعتماد الجرد', 'Approve stocktake')}
+        impact={L(
+          `سيتم اعتماد الجرد وتطبيق كل الفروقات (${report?.summary.varianceLineCount ?? 0} صنف) على المخزون. بعد الاعتماد تصبح الجلسة مقفلة ولا يمكن تعديلها.`,
+          `This applies every variance (${report?.summary.varianceLineCount ?? 0} line${report?.summary.varianceLineCount === 1 ? '' : 's'}) to stock. The session is then locked and cannot be edited.`,
+        )}
+        confirmLabel={L('اعتماد وتطبيق', 'Approve & apply')}
+        onConfirm={() => void approve()}
+        onClose={() => setConfirmApprove(false)}
+      />
     </div>
   );
 }

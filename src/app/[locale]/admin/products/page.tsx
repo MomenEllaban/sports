@@ -4,8 +4,7 @@ import ProductsManager from '@/components/admin/ProductsManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
-import { scopedBranchIds } from '@/lib/auth/branch-scope';
-import type { Prisma } from '@prisma/client';
+import { productWhere, scopedInventoryWhere } from '@/lib/products/query';
 
 export const dynamic = 'force-dynamic';
 type SearchParams = Promise<{ query?: string; categoryId?: string; brandId?: string; status?: string; page?: string }>;
@@ -17,29 +16,18 @@ export default async function AdminProductsPage({ searchParams }: { searchParams
   const pageSize = 8;
   const page = Math.max(1, Number(sp.page || 1) || 1);
 
+  // Shared with the CSV export endpoint so an export can never cover a
+  // different set of rows than the table.
+  const where = productWhere({
+    query: sp.query,
+    categoryId: sp.categoryId,
+    brandId: sp.brandId,
+    status: sp.status,
+  });
+
   // A BRANCH_MANAGER must not be able to read stock numbers for branches they
   // were not assigned. `null` means "every branch" (SUPER_ADMIN / FINANCE).
-  const allowedBranchIds = scopedBranchIds(session);
-
-  const where: Prisma.ProductWhereInput = {
-    ...(sp.query
-      ? {
-          OR: [
-            { nameAr: { contains: sp.query, mode: 'insensitive' } },
-            { nameEn: { contains: sp.query, mode: 'insensitive' } },
-            { sku: { contains: sp.query, mode: 'insensitive' } },
-            { barcode: { contains: sp.query, mode: 'insensitive' } },
-            { gs1Code: { contains: sp.query, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
-    ...(sp.categoryId ? { categoryId: sp.categoryId } : {}),
-    ...(sp.brandId ? { brandId: sp.brandId } : {}),
-    ...(sp.status === 'active' ? { isActive: true } : sp.status === 'inactive' ? { isActive: false } : {}),
-  };
-
-  const inventoryWhere: Prisma.BranchInventoryWhereInput =
-    allowedBranchIds === null ? {} : { branchId: { in: allowedBranchIds } };
+  const inventoryWhere = scopedInventoryWhere(session);
 
   const [products, total, categories, brands] = await Promise.all([
     prisma.product.findMany({

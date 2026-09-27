@@ -30,6 +30,17 @@ export function finiteNumber(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Like `finiteNumber`, but only accepts whole numbers. Stock quantities are
+ * physical counts, so a fractional opening balance is always a client bug and
+ * must be rejected instead of being silently floored.
+ */
+export function integerValue(value: unknown): number | null {
+  const n = finiteNumber(value);
+  if (n === null || !Number.isSafeInteger(n)) return null;
+  return n;
+}
+
 /** Lengths accepted for a GTIN: EAN-8, UPC-A, EAN-13 and GS1-14. */
 export const GTIN_LENGTHS = [8, 12, 13, 14] as const;
 

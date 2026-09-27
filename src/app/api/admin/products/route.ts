@@ -5,7 +5,8 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { num } from '@/lib/pricing';
-import { normalizeGtin, optionalText } from '@/lib/api-validation';
+import { normalizeGtin, optionalText, finiteNumber, integerValue } from '@/lib/api-validation';
+import { branchWhere } from '@/lib/auth/branch-scope';
 
 export async function POST(req: Request) {
   try {
@@ -32,8 +33,14 @@ export async function POST(req: Request) {
     if (!sku || !nameAr || !nameEn || price === undefined || !categoryId) {
       return apiError('VALIDATION_ERROR', 'SKU, names, price and category are required', 400);
     }
+    if (!finiteNumber(price) || !finiteNumber(costPrice)) {
+      return apiError('VALIDATION_ERROR', 'Prices must be numbers', 400);
+    }
     if (Number(price) < 0 || Number(costPrice) < 0) {
       return apiError('VALIDATION_ERROR', 'Prices must be non-negative', 400);
+    }
+    if (!integerValue(initialStock)) {
+      return apiError('VALIDATION_ERROR', 'Opening stock must be a whole number', 400);
     }
 
     // Same rule as PATCH, so a product is never created with a GTIN that the
@@ -43,9 +50,28 @@ export async function POST(req: Request) {
       return apiError('VALIDATION_ERROR', 'GS1 code must be 8/12/13/14 digits', 400);
     }
 
-    const branches = await prisma.branch.findMany({ where: { isActive: true } });
+    // A Branch Manager may only seed stock inside their own branches. Creating
+    // rows for every active branch both leaked the branch list and could place
+    // the opening quantity in a branch the actor cannot even see.
+    const branches = await prisma.branch.findMany({
+      where: { isActive: true, ...branchWhere(session) },
+      select: { id: true },
+      orderBy: { name: 'asc' },
+    });
     if (branches.length === 0) {
-      return apiError('INTERNAL_ERROR', 'No active branch', 500);
+      return apiError('FORBIDDEN', 'You have no active branch to stock this product in', 403);
+    }
+
+    const qty = Math.max(0, Math.floor(Number(initialStock) || 0));
+    // The opening quantity belongs to one branch. Accept an explicit choice and
+    // otherwise fall back to the actor's first branch, which is what a
+    // SUPER_ADMIN saw before (the alphabetically first active branch).
+    const requestedBranchId = typeof body.branchId === 'string' ? body.branchId.trim() : '';
+    const openingBranch =
+      branches.find((b) => b.id === requestedBranchId) ??
+      (requestedBranchId && qty > 0 ? null : branches[0]);
+    if (!openingBranch) {
+      return apiError('VALIDATION_ERROR', 'Opening stock branch is not one of your branches', 400);
     }
 
     const formattedImages = Array.isArray(images)
@@ -72,14 +98,13 @@ export async function POST(req: Request) {
       },
     });
 
-    const qty = Math.max(0, Math.floor(Number(initialStock) || 0));
-    // 2.2: init inventory rows for ALL active branches (first branch holds opening stock).
-    const flagship = branches[0];
+    // Seed a zero row for each branch the actor can see, so downstream stock
+    // reads do not have to special-case "not stocked here yet".
     await prisma.branchInventory.createMany({
       data: branches.map((b) => ({
         branchId: b.id,
         productId: product.id,
-        stockQuantity: b.id === flagship.id ? qty : 0,
+        stockQuantity: b.id === openingBranch.id ? qty : 0,
         lowStockThreshold: 5,
       })),
       skipDuplicates: true,
@@ -88,7 +113,7 @@ export async function POST(req: Request) {
     if (qty > 0) {
       await prisma.inventoryLog.create({
         data: {
-          branchId: flagship.id,
+          branchId: openingBranch.id,
           productId: product.id,
           type: 'OPENING',
           changeQuantity: qty,

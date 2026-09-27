@@ -46,6 +46,7 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/reports/[type]/export': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'] } },
   '/api/admin/reports/reorder': { methods: { GET: ['SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE'], PATCH: ['SUPER_ADMIN', 'BRANCH_MANAGER'], POST: ['SUPER_ADMIN', 'BRANCH_MANAGER'] } },
   '/api/admin/products': { methods: { POST: BM } },
+  '/api/admin/products/export': { methods: { GET: BM } },
   '/api/admin/products/[id]': { methods: { PATCH: BM, DELETE: BM } },
   '/api/admin/categories': { methods: { GET: BM, POST: BM } },
   '/api/admin/categories/[id]': { methods: { PATCH: BM, DELETE: BM } },

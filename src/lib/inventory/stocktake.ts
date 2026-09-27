@@ -111,7 +111,7 @@ export async function createStocktake(
           })),
         },
       },
-      include: { lines: true, branch: true },
+      include: { _count: { select: { lines: true } }, branch: { select: { id: true, name: true, nameEn: true } } },
     });
     await tx.auditLog.create({
       data: {

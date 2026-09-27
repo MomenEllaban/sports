@@ -5,6 +5,7 @@ import JsBarcode from 'jsbarcode';
 import { NumberField } from '@/components/ui/foundation';
 import { useLocale } from 'next-intl';
 import { apiFetch } from './ui';
+import { isPrintableCode, printCode, rawCode, symbologyOf } from '@/lib/labels/symbology';
 
 type Product = {
   id: string;
@@ -15,20 +16,6 @@ type Product = {
   gs1Code: string | null;
   price: number;
 };
-
-/**
- * The code that will actually be printed. `gs1Code` is a GTIN and is the
- * preferred identifier for ETA production, so it wins over the legacy
- * `barcode` field. Both are normalised to digits for the EAN-13 check.
- */
-function printCode(p: Product): string {
-  return (p.gs1Code || p.barcode || '').replace(/\D/g, '');
-}
-
-/** EAN-13 needs 13 digits; 12-digit UPC-A is zero-padded to 13. */
-function isPrintableCode(p: Product): boolean {
-  return printCode(p).length === 12 || printCode(p).length === 13;
-}
 
 const MAX_COPIES = 100;
 
@@ -89,30 +76,22 @@ export default function LabelsClient() {
   }, [query, L]);
 
   useEffect(() => {
-    // Render EAN-13 where possible, CODE128 for other digit lengths.
+    // Encode each label with the symbology its stored code actually supports.
     for (const p of selected) {
+      const symbology = symbologyOf(p);
       const code = printCode(p);
+      if (!symbology || !code) continue;
       for (let i = 0; i < copies; i++) {
         const el = refs.current.get(`${p.id}-${i}`);
-        if (!el || !code) continue;
+        if (!el) continue;
         try {
-          if (code.length === 12 || code.length === 13) {
-            JsBarcode(el, code, {
-              format: 'EAN13',
-              width: 2,
-              height: 60,
-              displayValue: true,
-              fontSize: 14,
-            });
-          } else {
-            JsBarcode(el, code, {
-              format: 'CODE128',
-              width: 2,
-              height: 60,
-              displayValue: true,
-              fontSize: 14,
-            });
-          }
+          JsBarcode(el, code, {
+            format: symbology,
+            width: 2,
+            height: 60,
+            displayValue: true,
+            fontSize: 14,
+          });
         } catch {
           /* leave blank on an invalid value rather than printing a broken label */
         }
@@ -175,7 +154,7 @@ export default function LabelsClient() {
                 <li className="px-3 py-2 text-xs text-slate-500">{L('جاري البحث...', 'Searching...')}</li>
               )}
               {matches.map((p) => {
-                const code = printCode(p);
+                const code = rawCode(p);
                 const already = selected.some((x) => x.id === p.id);
                 return (
                   <li key={p.id} role="option" aria-selected={already}>
@@ -276,7 +255,7 @@ export default function LabelsClient() {
 
           <div className="labels-sheet grid grid-cols-2 gap-2 sm:grid-cols-3">
             {selected.flatMap((p) => {
-              const code = printCode(p);
+              const code = rawCode(p);
               return Array.from({ length: copies }, (_, i) => (
                 <div
                   key={`${p.id}-${i}`}
