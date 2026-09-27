@@ -7,6 +7,7 @@ import { apiRequest } from '@/lib/client-api';
 import { useSession } from 'next-auth/react';
 import { useLocale } from 'next-intl';
 import { LocaleSwitcher, Stepper, Button, DialogFrame } from '@/components/ui/foundation';
+import ThemeToggle from '@/components/admin/ThemeToggle';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import PosPaymentModal from '@/components/pos/PosPaymentModal';
 import PosReceiptModal, { type PosReceiptData } from '@/components/pos/PosReceiptModal';
@@ -557,7 +558,14 @@ export default function PosTerminalPage() {
 
         {/* Cashier Info */}
         <div className="flex items-center gap-3 text-xs">
-          <LocaleSwitcher />
+          {/* Language and theme are separate controls: the globe button changes
+              the interface language, the amber sun/moon button changes light vs
+              dark. A divider keeps them from reading as one switch. */}
+          <div className="flex items-center gap-1.5">
+            <LocaleSwitcher />
+            <span aria-hidden="true" className="h-6 w-px bg-slate-700" />
+            <ThemeToggle variant="icon" />
+          </div>
           <button
             onClick={() => setShowReturnWizard(true)}
             className="min-h-[44px] px-3 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 font-bold flex items-center gap-1"

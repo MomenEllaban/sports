@@ -104,6 +104,7 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/pos/shifts/[id]': { methods: { GET: POS, POST: POS } },
   '/api/pos/customer': { methods: { GET: POS, POST: POS } },
   '/api/admin/audit': { methods: { GET: SUPER } },
+  '/api/admin/backup/export': { methods: { GET: SUPER } },
   '/api/admin/settings': { methods: { GET: SUPER, PUT: SUPER } },
   '/api/admin/settings/status': { methods: { GET: SUPER } },
   '/api/upload/receipt': { methods: { POST: 'public' } },
