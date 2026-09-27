@@ -8,27 +8,149 @@ export class StocktakeError extends Error { constructor(public status: number, m
 
 function assertActor(session: AppSession | null): string { const id = session?.user?.id; if (!id) throw new StocktakeError(401, 'جلسة غير صالحة'); return id; }
 
-export async function createStocktake(input: { session: AppSession | null; branchId: string; productIds: string[]; notes?: string }) {
+export type StocktakeScope = {
+  /**
+   * Restricts the session to these products. Omit it (or pass an empty array)
+   * to count everything the branch currently carries, which is the normal flow
+   * and avoids the browser having to post the whole catalogue.
+   */
+  productIds?: string[];
+  categoryId?: string;
+  brandId?: string;
+  /** When set with no explicit productIds, only items with stock are counted. */
+  onlyStockedItems?: boolean;
+};
+
+export async function createStocktake(
+  input: { session: AppSession | null; branchId: string; notes?: string } & StocktakeScope,
+) {
   const actorId = assertActor(input.session);
-  if (!input.branchId || !Array.isArray(input.productIds) || input.productIds.length === 0) throw new StocktakeError(400, 'اختر الفرع والأصناف');
-  const productIds = [...new Set(input.productIds)];
-  if (productIds.length !== input.productIds.length) throw new StocktakeError(400, 'لا يمكن تكرار الصنف');
+  if (!input.branchId) throw new StocktakeError(400, 'اختر الفرع');
   if (!canAccessBranch(input.session, input.branchId)) throw new StocktakeError(403, 'الفرع خارج نطاقك');
+
+  const explicitIds = Array.isArray(input.productIds) ? input.productIds.filter((id) => typeof id === 'string' && id) : [];
+  const uniqueIds = [...new Set(explicitIds)];
+  if (uniqueIds.length !== explicitIds.length) throw new StocktakeError(400, 'لا يمكن تكرار الصنف');
+
   return prisma.$transaction(async (tx) => {
     const branch = await tx.branch.findFirst({ where: { id: input.branchId, isActive: true }, select: { id: true } });
     if (!branch) throw new StocktakeError(400, 'الفرع غير صالح');
-    const products = await tx.product.findMany({ where: { id: { in: productIds }, isActive: true }, select: { id: true, sku: true, nameAr: true, nameEn: true, costPrice: true } });
-    if (products.length !== productIds.length) throw new StocktakeError(400, 'أحد الأصناف غير موجود أو موقوف');
-    for (const product of products) {
-      await tx.branchInventory.upsert({ where: { branchId_productId: { branchId: input.branchId, productId: product.id } }, create: { branchId: input.branchId, productId: product.id, stockQuantity: 0, lowStockThreshold: 5, reorderPoint: 5, reorderQuantity: 10 }, update: {} });
+
+    // A stocktake counts what the branch holds, so the default scope is the
+    // branch's own BranchInventory rows rather than the global catalogue.
+    const productWhere = {
+      isActive: true,
+      ...(uniqueIds.length ? { id: { in: uniqueIds } } : {}),
+      ...(input.categoryId ? { categoryId: input.categoryId } : {}),
+      ...(input.brandId ? { brandId: input.brandId } : {}),
+    };
+
+    const products = await tx.product.findMany({
+      where: productWhere,
+      select: { id: true, sku: true, nameAr: true, nameEn: true, costPrice: true },
+      orderBy: { nameAr: 'asc' },
+    });
+    if (uniqueIds.length && products.length !== uniqueIds.length) {
+      throw new StocktakeError(400, 'أحد الأصناف غير موجود أو موقوف');
     }
-    const inventories = await tx.branchInventory.findMany({ where: { branchId: input.branchId, productId: { in: productIds } }, select: { productId: true, stockQuantity: true } });
+    if (products.length === 0) throw new StocktakeError(400, 'لا توجد أصناف مطابقة لنطاق الجرد');
+
+    const productIds = products.map((product) => product.id);
+
+    // Seed missing inventory rows in one statement. The previous version ran a
+    // sequential upsert per product inside the transaction, which made a
+    // full-catalogue session take minutes and hold locks for that long.
+    const existing = await tx.branchInventory.findMany({
+      where: { branchId: input.branchId, productId: { in: productIds } },
+      select: { productId: true, stockQuantity: true },
+    });
+    const existingByProduct = new Map(existing.map((row) => [row.productId, row.stockQuantity]));
+    const missing = productIds.filter((id) => !existingByProduct.has(id));
+    if (missing.length) {
+      await tx.branchInventory.createMany({
+        data: missing.map((productId) => ({
+          branchId: input.branchId,
+          productId,
+          stockQuantity: 0,
+          lowStockThreshold: 5,
+          reorderPoint: 5,
+          reorderQuantity: 10,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    // Re-read so a row created in this transaction is included, and so a
+    // brand-new row is treated as quantity 0 rather than missing.
+    const inventories = await tx.branchInventory.findMany({
+      where: { branchId: input.branchId, productId: { in: productIds } },
+      select: { productId: true, stockQuantity: true },
+    });
     const inventoryByProduct = new Map(inventories.map((row) => [row.productId, row.stockQuantity]));
+
+    const scoped = input.onlyStockedItems
+      ? products.filter((product) => (inventoryByProduct.get(product.id) || 0) !== 0)
+      : products;
+    if (scoped.length === 0) throw new StocktakeError(400, 'لا توجد أصناف مخزونة في هذا الفرع');
+
     const stocktakeNumber = `STK-${new Date().getUTCFullYear()}-${Date.now().toString(36).toUpperCase()}`;
-    const session = await tx.stocktakeSession.create({ data: { stocktakeNumber, branchId: input.branchId, createdById: actorId, notes: input.notes?.trim().slice(0, 1000) || null, lines: { create: products.map((product) => ({ productId: product.id, skuSnapshot: product.sku, nameArSnapshot: product.nameAr, nameEnSnapshot: product.nameEn, unitCost: product.costPrice, expectedQuantity: inventoryByProduct.get(product.id) || 0 })) } }, include: { lines: true, branch: true } });
-    await tx.auditLog.create({ data: { actorId, action: 'stocktake.created', entity: 'StocktakeSession', entityId: session.id, branchId: input.branchId, metadata: JSON.stringify({ stocktakeNumber, lineCount: products.length }) } });
+    const session = await tx.stocktakeSession.create({
+      data: {
+        stocktakeNumber,
+        branchId: input.branchId,
+        createdById: actorId,
+        notes: input.notes?.trim().slice(0, 1000) || null,
+        lines: {
+          create: scoped.map((product) => ({
+            productId: product.id,
+            skuSnapshot: product.sku,
+            nameArSnapshot: product.nameAr,
+            nameEnSnapshot: product.nameEn,
+            unitCost: product.costPrice,
+            expectedQuantity: inventoryByProduct.get(product.id) || 0,
+          })),
+        },
+      },
+      include: { lines: true, branch: true },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId,
+        action: 'stocktake.created',
+        entity: 'StocktakeSession',
+        entityId: session.id,
+        branchId: input.branchId,
+        metadata: JSON.stringify({
+          stocktakeNumber,
+          lineCount: scoped.length,
+          categoryId: input.categoryId || null,
+          brandId: input.brandId || null,
+          onlyStockedItems: Boolean(input.onlyStockedItems),
+        }),
+      },
+    });
     return session;
-  }, { maxWait: 10000, timeout: 30000 });
+  }, { maxWait: 10000, timeout: 60000 });
+}
+
+/** Counts the lines a new session would produce, so the UI can warn before creating. */
+export async function countStocktakeCandidates(
+  session: AppSession | null,
+  scope: { branchId: string } & StocktakeScope,
+) {
+  if (!scope.branchId || !canAccessBranch(session, scope.branchId)) {
+    throw new StocktakeError(403, 'الفرع خارج نطاقك');
+  }
+  const uniqueIds = Array.isArray(scope.productIds) ? [...new Set(scope.productIds.filter(Boolean))] : [];
+  return prisma.product.count({
+    where: {
+      isActive: true,
+      ...(uniqueIds.length ? { id: { in: uniqueIds } } : {}),
+      ...(scope.categoryId ? { categoryId: scope.categoryId } : {}),
+      ...(scope.brandId ? { brandId: scope.brandId } : {}),
+      ...(scope.onlyStockedItems ? { inventories: { some: { branchId: scope.branchId, stockQuantity: { gt: 0 } } } } : {}),
+    },
+  });
 }
 
 export async function saveStocktakeLines(input: { session: AppSession | null; sessionId: string; lines: Array<{ id: string; countedQuantity?: number | null; reasonCode?: string | null; notes?: string | null }> }) {
@@ -59,7 +181,13 @@ export async function approveStocktake(input: { session: AppSession | null; sess
     if (!session) throw new StocktakeError(404, 'جلسة الجرد غير موجودة');
     if (!canAccessBranch(input.session, session.branchId)) throw new StocktakeError(403, 'الجلسة خارج نطاق فروعك');
     if (session.status !== 'DRAFT') throw new StocktakeError(409, 'تم اعتماد هذه الجلسة مسبقًا');
-    if (session.lines.length === 0 || session.lines.some((line) => line.countedQuantity === null)) throw new StocktakeError(422, 'يجب عد كل الأصناف قبل الاعتماد');
+    const uncounted = session.lines.filter((line) => line.countedQuantity === null).length;
+    if (session.lines.length === 0) throw new StocktakeError(422, 'لا توجد أصناف في هذه الجلسة');
+    // Every line must be counted: an uncounted line is not "no change", it is
+    // an unknown, and approving would silently freeze the current quantity.
+    if (uncounted > 0) {
+      throw new StocktakeError(422, `تبقى ${uncounted} صنف دون عد من أصل ${session.lines.length}. يجب عد كل الأصناف قبل الاعتماد`);
+    }
     const claimed = await tx.stocktakeSession.updateMany({ where: { id: session.id, status: 'DRAFT' }, data: { status: 'APPROVED', approvedById: actorId, approvedAt: new Date() } });
     if (claimed.count !== 1) throw new StocktakeError(409, 'تم اعتماد الجلسة من جهاز آخر');
     let totalVariance = 0; let adjustmentLogs = 0;
@@ -78,9 +206,33 @@ export async function approveStocktake(input: { session: AppSession | null; sess
 }
 
 export async function getStocktakeReport(id: string, session: AppSession | null) {
-  const row = await prisma.stocktakeSession.findUnique({ where: { id }, include: { branch: true, lines: { include: { product: true }, orderBy: { productId: 'asc' } } } });
+  const row = await prisma.stocktakeSession.findUnique({
+    where: { id },
+    include: {
+      branch: { select: { id: true, name: true, nameEn: true } },
+      lines: {
+        orderBy: { productId: 'asc' },
+        include: {
+          product: {
+            select: {
+              id: true,
+              category: { select: { id: true, nameAr: true, nameEn: true } },
+              brand: { select: { id: true, nameAr: true, nameEn: true } },
+            },
+          },
+        },
+      },
+    },
+  });
   if (!row) throw new StocktakeError(404, 'جلسة الجرد غير موجودة');
   if (!canAccessBranch(session, row.branchId)) throw new StocktakeError(403, 'الجلسة خارج نطاق فروعك');
-  const lines = row.lines.map((line) => ({ ...line, unitCost: num(line.unitCost), varianceValue: (line.varianceQuantity || 0) * num(line.unitCost) }));
+  // `product` is included only so the table can group and filter; everything
+  // displayed about the counted values comes from the immutable snapshots.
+  const lines = row.lines.map(({ product, ...line }) => ({
+    ...line,
+    unitCost: num(line.unitCost),
+    varianceValue: (line.varianceQuantity || 0) * num(line.unitCost),
+    product,
+  }));
   return { session: { ...row, createdAt: row.createdAt.toISOString(), startedAt: row.startedAt.toISOString(), approvedAt: row.approvedAt?.toISOString() || null }, lines, summary: { lineCount: lines.length, countedLineCount: lines.filter((line) => line.countedQuantity !== null).length, varianceLineCount: lines.filter((line) => (line.varianceQuantity || 0) !== 0).length, expectedQuantity: lines.reduce((sum, line) => sum + line.expectedQuantity, 0), countedQuantity: lines.reduce((sum, line) => sum + (line.countedQuantity || 0), 0), varianceQuantity: lines.reduce((sum, line) => sum + (line.varianceQuantity || 0), 0), varianceValue: lines.reduce((sum, line) => sum + line.varianceValue, 0) } };
 }

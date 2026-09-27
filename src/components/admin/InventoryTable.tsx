@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { getClientErrorMessage } from '@/lib/client-api';
 import { apiFetch } from './ui';
-import { inputCls, Pagination, Button } from '@/components/ui/foundation';
+import { inputCls, Pagination } from '@/components/ui/foundation';
+import { Link } from '@/i18n/routing';
 
 type View = 'stock' | 'movements' | 'alerts';
 
@@ -278,9 +279,9 @@ export default function InventoryTable({
           </>
         )}
         {showAdjust && (
-          <Button variant="ghost" onClick={() => window.location.assign('/admin/inventory/count')}>
+          <Link href="/admin/inventory/count" className="inline-flex min-h-[44px] items-center rounded-xl px-3 text-xs">
             {L('جرد وتسوية', 'Stocktake & reconcile')}
-          </Button>
+          </Link>
         )}
       </div>
 

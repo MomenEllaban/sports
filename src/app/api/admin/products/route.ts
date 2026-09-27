@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { num } from '@/lib/pricing';
+import { normalizeGtin, optionalText } from '@/lib/api-validation';
 
 export async function POST(req: Request) {
   try {
@@ -35,6 +36,13 @@ export async function POST(req: Request) {
       return apiError('VALIDATION_ERROR', 'Prices must be non-negative', 400);
     }
 
+    // Same rule as PATCH, so a product is never created with a GTIN that the
+    // update route would later refuse to save.
+    const gtin = normalizeGtin(gs1Code);
+    if (gtin.invalid) {
+      return apiError('VALIDATION_ERROR', 'GS1 code must be 8/12/13/14 digits', 400);
+    }
+
     const branches = await prisma.branch.findMany({ where: { isActive: true } });
     if (branches.length === 0) {
       return apiError('INTERNAL_ERROR', 'No active branch', 500);
@@ -56,9 +64,9 @@ export async function POST(req: Request) {
         categoryId,
         brandId: brandId || null,
         barcode: barcode ? String(barcode).trim() : null,
-        gs1Code: gs1Code ? String(gs1Code).trim().replace(/\D/g, '') || null : null,
-        size: size ? String(size).trim() : null,
-        color: color ? String(color).trim() : null,
+        gs1Code: gtin.value,
+        size: optionalText(size, 100),
+        color: optionalText(color, 100),
         isActive: true,
         images: formattedImages,
       },

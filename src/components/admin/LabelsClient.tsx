@@ -1,96 +1,308 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { NumberField } from '@/components/ui/foundation';
 import { useLocale } from 'next-intl';
+import { apiFetch } from './ui';
 
-/** Printable EAN-13 label sheet (T13): search product → copies → print. */
-export default function LabelsClient({ products }: {
-  products: Array<{ id: string; nameAr: string; nameEn: string; sku: string; barcode: string | null; price: number }>;
-}) {
+type Product = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  sku: string;
+  barcode: string | null;
+  gs1Code: string | null;
+  price: number;
+};
+
+/**
+ * The code that will actually be printed. `gs1Code` is a GTIN and is the
+ * preferred identifier for ETA production, so it wins over the legacy
+ * `barcode` field. Both are normalised to digits for the EAN-13 check.
+ */
+function printCode(p: Product): string {
+  return (p.gs1Code || p.barcode || '').replace(/\D/g, '');
+}
+
+/** EAN-13 needs 13 digits; 12-digit UPC-A is zero-padded to 13. */
+function isPrintableCode(p: Product): boolean {
+  return printCode(p).length === 12 || printCode(p).length === 13;
+}
+
+const MAX_COPIES = 100;
+
+export default function LabelsClient() {
   const isAr = useLocale() === 'ar';
-  const L = (ar: string, en: string) => (isAr ? ar : en);
+  // Memoised so it can sit in the typeahead effect's dependency list without
+  // re-triggering the search on every render.
+  const L = useCallback((ar: string, en: string) => (isAr ? ar : en), [isAr]);
+
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<typeof products>([]);
+  const [matches, setMatches] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<Product[]>([]);
   const [copies, setCopies] = useState(12);
+  const [searchError, setSearchError] = useState('');
+  const [showList, setShowList] = useState(false);
   const refs = useRef(new Map<string, SVGSVGElement>());
 
-  const matches = query.trim()
-    ? products.filter((p) => (isAr ? p.nameAr : p.nameEn).includes(query.trim()) || p.sku.toLowerCase().includes(query.trim().toLowerCase()) || (p.barcode || '').includes(query.trim())).slice(0, 8)
-    : [];
+  // Server-side typeahead. Debounced and abortable so a fast typist does not
+  // race several in-flight searches. The locale is in the dependency list so
+  // an error message is re-labelled when the user switches language.
+  useEffect(() => {
+    const term = query.trim();
+    if (term.length < 2) {
+      setMatches([]);
+      setSearching(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setSearching(true);
+      void (async () => {
+        try {
+          const data = (await apiFetch(
+            `/api/admin/labels/search?q=${encodeURIComponent(term)}`,
+            'GET',
+          )) as { products: Product[] };
+          if (!controller.signal.aborted) {
+            setMatches(data.products);
+            setSearchError('');
+          }
+        } catch (err) {
+          if (!controller.signal.aborted) {
+            setSearchError(
+              err instanceof Error ? err.message : L('تعذر البحث', 'Search failed'),
+            );
+            setMatches([]);
+          }
+        } finally {
+          if (!controller.signal.aborted) setSearching(false);
+        }
+      })();
+    }, 250);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query, L]);
 
   useEffect(() => {
-    // Render EAN-13 (fallback to CODE128 when the value isn't 12/13 digits).
+    // Render EAN-13 where possible, CODE128 for other digit lengths.
     for (const p of selected) {
+      const code = printCode(p);
       for (let i = 0; i < copies; i++) {
         const el = refs.current.get(`${p.id}-${i}`);
-        if (!el || !p.barcode) continue;
+        if (!el || !code) continue;
         try {
-          const digits = p.barcode.replace(/\D/g, '');
-          if (digits.length === 12 || digits.length === 13) {
-            JsBarcode(el, digits, { format: 'EAN13', width: 2, height: 60, displayValue: true, fontSize: 14 });
+          if (code.length === 12 || code.length === 13) {
+            JsBarcode(el, code, {
+              format: 'EAN13',
+              width: 2,
+              height: 60,
+              displayValue: true,
+              fontSize: 14,
+            });
           } else {
-            JsBarcode(el, p.barcode, { format: 'CODE128', width: 2, height: 60, displayValue: true, fontSize: 14 });
+            JsBarcode(el, code, {
+              format: 'CODE128',
+              width: 2,
+              height: 60,
+              displayValue: true,
+              fontSize: 14,
+            });
           }
         } catch {
-          /* leave blank on invalid value */
+          /* leave blank on an invalid value rather than printing a broken label */
         }
       }
     }
   }, [selected, copies]);
 
-  const toggle = (p: (typeof products)[number]) => {
-    setSelected((s) => (s.some((x) => x.id === p.id) ? s.filter((x) => x.id !== p.id) : [...s, p]));
+  const add = (p: Product) => {
+    if (!isPrintableCode(p)) {
+      setSearchError(
+        L(
+          'هذا الصنف بلا باركود صالح. أضف كود GS1 أو باركود من صفحة المنتج أولًا.',
+          'This item has no printable barcode. Add a GS1 code or barcode on the product page first.',
+        ),
+      );
+      return;
+    }
+    setSelected((current) => (current.some((x) => x.id === p.id) ? current : [...current, p]));
+    setQuery('');
+    setMatches([]);
+    setSearchError('');
   };
+
+  const remove = (id: string) => setSelected((current) => current.filter((x) => x.id !== id));
+
+  const totalLabels = selected.length * copies;
+  const listId = 'lb-results';
 
   return (
     <div className="space-y-4">
-      <div className="grid sm:grid-cols-[1fr_120px_auto] gap-2 text-xs print:hidden">
+      <div className="grid gap-2 text-xs print:hidden sm:grid-cols-[1fr_120px_auto]">
         <div className="relative">
-          <label htmlFor="lb-search" className="block font-bold text-slate-300 mb-1">{L('بحث بالاسم / SKU / باركود', 'Search by name / SKU / barcode')}</label>
-          <input id="lb-search" value={query} onChange={(e) => setQuery(e.target.value)} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
-          {matches.length > 0 && (
-            <ul className="app-scrollbar absolute z-10 mt-1 w-full rounded-xl bg-slate-900 border border-slate-700 max-h-48 overflow-y-auto">
-              {matches.map((p) => (
-                <li key={p.id}>
-                  <button onClick={() => { toggle(p); setQuery(''); }} className="w-full min-h-[44px] text-start px-3 py-2 hover:bg-slate-800 text-xs">
-                    <span className="font-bold">{isAr ? p.nameAr : p.nameEn}</span> <span className="text-slate-500 font-mono">{p.sku}</span>
-                  </button>
-                </li>
-              ))}
+          <label htmlFor="lb-search" className="mb-1 block font-bold text-slate-300">
+            {L('بحث بالاسم / SKU / باركود', 'Search by name / SKU / barcode')}
+          </label>
+          <input
+            id="lb-search"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowList(true);
+            }}
+            onFocus={() => setShowList(true)}
+            onBlur={() => setTimeout(() => setShowList(false), 150)}
+            role="combobox"
+            aria-expanded={showList && matches.length > 0}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            autoComplete="off"
+            placeholder={L('اكتب حرفين على الأقل...', 'Type at least two characters...')}
+            className="min-h-[44px] w-full rounded-xl border border-slate-700 bg-slate-900 p-2.5"
+          />
+          {showList && (matches.length > 0 || searching) && (
+            <ul
+              id={listId}
+              role="listbox"
+              className="app-scrollbar absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-slate-700 bg-slate-900"
+            >
+              {searching && matches.length === 0 && (
+                <li className="px-3 py-2 text-xs text-slate-500">{L('جاري البحث...', 'Searching...')}</li>
+              )}
+              {matches.map((p) => {
+                const code = printCode(p);
+                const already = selected.some((x) => x.id === p.id);
+                return (
+                  <li key={p.id} role="option" aria-selected={already}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => add(p)}
+                      disabled={already}
+                      className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2 text-start text-xs hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      <span>
+                        <span className="font-bold">{isAr ? p.nameAr : p.nameEn}</span>{' '}
+                        <span className="font-mono text-slate-500">{p.sku}</span>
+                      </span>
+                      {code ? (
+                        <span className="font-mono text-[10px] text-emerald-400">
+                          {p.gs1Code ? `GS1 ${code}` : code}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-rose-400">
+                          {L('بلا باركود', 'No barcode')}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
         <div>
-          <label htmlFor="lb-copies" className="block font-bold text-slate-300 mb-1">{L('نسخ/صنف', 'Copies/item')}</label>
-          <NumberField id="lb-copies" min={1} max={100} step={1} value={copies} onChange={setCopies} inputClassName="w-full text-center" />
+          <label htmlFor="lb-copies" className="mb-1 block font-bold text-slate-300">
+            {L('نسخ/صنف', 'Copies/item')}
+          </label>
+          <NumberField
+            id="lb-copies"
+            min={1}
+            max={MAX_COPIES}
+            step={1}
+            value={copies}
+            onChange={setCopies}
+            inputClassName="w-full text-center"
+          />
         </div>
         <div className="flex items-end">
-          <button onClick={() => window.print()} disabled={selected.length === 0} className="w-full min-h-[44px] px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold">
-            {L('طباعة', 'Print')} ({selected.length})
+          <button
+            onClick={() => window.print()}
+            disabled={selected.length === 0}
+            className="min-h-[44px] w-full rounded-xl bg-blue-600 px-4 font-bold text-white hover:bg-blue-500 disabled:opacity-50 print:hidden"
+          >
+            {L('طباعة', 'Print')}
+            {selected.length > 0 && ` (${totalLabels})`}
           </button>
         </div>
       </div>
 
+      {searchError && (
+        <p role="alert" className="status-danger print:hidden rounded-xl border p-3 text-xs font-bold">
+          {searchError}
+        </p>
+      )}
+
       {selected.length === 0 ? (
-        <p className="text-xs text-slate-500 print:hidden">{L('اختر أصنافاً لمعاينة الملصقات ثم اطبع.', 'Select items to preview labels, then print.')}</p>
-      ) : (
-        <div className="labels-sheet grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {selected.flatMap((p) =>
-            Array.from({ length: copies }, (_, i) => (
-              <div key={`${p.id}-${i}`} className="label-cell rounded-xl border border-slate-700 bg-white text-slate-900 p-2 text-center">
-                <p className="text-[10px] font-bold truncate">{isAr ? p.nameAr : p.nameEn}</p>
-                {p.barcode ? (
-                  <svg ref={(el) => { if (el) refs.current.set(`${p.id}-${i}`, el); }} className="mx-auto" />
-                ) : (
-                  <p className="text-[10px] text-rose-600 font-bold">{L('بلا باركود', 'No barcode')}</p>
-                )}
-                <p className="text-[11px] font-black">{p.price.toLocaleString()} {L('ج.م', 'EGP')}</p>
-              </div>
-            ))
+        <p className="text-xs text-slate-500 print:hidden">
+          {L(
+            'ابحث عن صنف وأضفه لمعاينة الملصقات ثم اطبع. الأصناف بلا باركود لا يمكن طباعتها.',
+            'Search for an item and add it to preview labels, then print. Items without a barcode cannot be printed.',
           )}
-        </div>
+        </p>
+      ) : (
+        <>
+          {/* Selection summary stays on screen; only the label sheet is printed. */}
+          <div className="flex flex-wrap items-center gap-2 print:hidden">
+            <span className="text-xs font-bold text-slate-300">
+              {L(
+                `${selected.length} صنف · ${totalLabels} ملصق`,
+                `${selected.length} item${selected.length === 1 ? '' : 's'} · ${totalLabels} label${totalLabels === 1 ? '' : 's'}`,
+              )}
+            </span>
+            {selected.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => remove(p.id)}
+                className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900 px-3 text-[11px] font-bold text-slate-300 hover:border-rose-500/40 hover:text-rose-400"
+                aria-label={`${L('إزالة', 'Remove')} ${isAr ? p.nameAr : p.nameEn}`}
+              >
+                {p.sku}
+                <span aria-hidden="true">×</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setSelected([])}
+              className="min-h-[36px] rounded-full border border-slate-700 px-3 text-[11px] font-bold text-slate-400 hover:text-slate-200"
+            >
+              {L('مسح الكل', 'Clear all')}
+            </button>
+          </div>
+
+          <div className="labels-sheet grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {selected.flatMap((p) => {
+              const code = printCode(p);
+              return Array.from({ length: copies }, (_, i) => (
+                <div
+                  key={`${p.id}-${i}`}
+                  className="label-cell rounded-xl border border-slate-700 bg-white p-2 text-center text-slate-900"
+                >
+                  <p className="truncate text-[10px] font-bold">{isAr ? p.nameAr : p.nameEn}</p>
+                  <p className="font-mono text-[9px] text-slate-500">{p.sku}</p>
+                  <svg
+                    ref={(el) => {
+                      if (el) refs.current.set(`${p.id}-${i}`, el);
+                    }}
+                    className="mx-auto"
+                  />
+                  <p className="text-[11px] font-black">
+                    {p.price.toLocaleString()} {L('ج.م', 'EGP')}
+                  </p>
+                  {code ? null : (
+                    <p className="text-[10px] font-bold text-rose-600">
+                      {L('بلا باركود', 'No barcode')}
+                    </p>
+                  )}
+                </div>
+              ));
+            })}
+          </div>
+        </>
       )}
       <style>{`@media print { body * { visibility: hidden; } .labels-sheet, .labels-sheet * { visibility: visible; } .labels-sheet { position: absolute; inset: 0; background: #fff; } .label-cell { break-inside: avoid; } }`}</style>
     </div>

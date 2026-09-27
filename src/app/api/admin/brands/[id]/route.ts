@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { optionalText } from '@/lib/api-validation';
 
 export async function PATCH(
   req: Request,
@@ -12,12 +13,17 @@ export async function PATCH(
     const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
     const { id } = await params;
-    const { nameAr, nameEn } = await req.json();
+    const { nameAr, nameEn, logo, description } = await req.json();
     const brand = await prisma.brand.update({
       where: { id },
       data: {
         ...(nameAr && { nameAr: String(nameAr).trim() }),
         ...(nameEn && { nameEn: String(nameEn).trim() }),
+        // `logo` and `description` are owned by this form, so clearing them in
+        // the UI must clear them here. Before this, both were dropped and the
+        // saved values reappeared on the next page load.
+        ...(logo !== undefined && { logo: optionalText(logo) }),
+        ...(description !== undefined && { description: optionalText(description) }),
       },
     });
     return NextResponse.json({ success: true, brand });

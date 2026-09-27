@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, usePathname, Link } from '@/i18n/routing';
-import { Plus, Download, Pencil, Trash2, Tag, Bookmark, Search, Package, Upload, Image as ImageIcon, Loader2, Cloud, Star } from 'lucide-react';
+import { Plus, Download, Pencil, Trash2, Search, Upload, Image as ImageIcon, Loader2, Cloud, Star } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
 import { inputCls, Button, SafeImage } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import Pagination from './Pagination';
-import { apiRequest } from '@/lib/client-api';
+import { apiRequest, getClientErrorMessage } from '@/lib/client-api';
 
 interface ProductRow {
   id: string;
@@ -44,16 +44,9 @@ const EMPTY_PRODUCT = {
   images: [] as string[],
 };
 
-const EMPTY_CAT = { nameAr: '', nameEn: '', description: '' };
-const EMPTY_BRAND = { nameAr: '', nameEn: '' };
-
-type ActiveTab = 'products' | 'categories' | 'brands';
-
-function tabFromPath(pathname: string): ActiveTab {
-  if (pathname.endsWith('/categories')) return 'categories';
-  if (pathname.endsWith('/brands')) return 'brands';
-  return 'products';
-}
+// Categories and brands are managed on their own pages (/admin/products/categories
+// and /admin/products/brands). This component only ever renders the product
+// list, so it carries no tab state and no second copy of those editors.
 
 export default function ProductsManager({
   products,
@@ -86,7 +79,6 @@ export default function ProductsManager({
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>(() => tabFromPath(pathname));
   const [search, setSearch] = useState(initialSearch);
   const [categoryFilter, setCategoryFilter] = useState(initialCategoryId);
   const [brandFilter, setBrandFilter] = useState(initialBrandId);
@@ -95,7 +87,9 @@ export default function ProductsManager({
   const [formError, setFormError] = useState('');
 
   const [page, setPage] = useState(initialPage);
+  // Kept in step with the server's page size by products/page.tsx.
   const PAGE_SIZE = 8;
+  const [pendingId, setPendingId] = useState('');
 
   // Product modals
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -108,74 +102,79 @@ export default function ProductsManager({
   const [imageUploadError, setImageUploadError] = useState('');
   const [imageUrlInput, setImageUrlInput] = useState('');
 
-  // Category modals
-  const [showAddCat, setShowAddCat] = useState(false);
-  const [catForm, setCatForm] = useState(EMPTY_CAT);
-  const [rowError, setRowError] = useState('');
-
-  // Brand modals
-  const [showAddBrand, setShowAddBrand] = useState(false);
-  const [brandForm, setBrandForm] = useState(EMPTY_BRAND);
-
-  useEffect(() => {
-    setActiveTab(tabFromPath(pathname));
-  }, [pathname]);
-
   const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
 
-  const stockOf = (p: ProductRow, frag: string) =>
-    p.inventories.find((i) => `${i.branch.name} ${i.branch.nameEn || ''}`.toLowerCase().includes(frag.toLowerCase()))?.stockQuantity ?? 0;
-
-  const filtered = serverSide ? products : products.filter(
-    (p) => p.nameAr.includes(search) || p.nameEn.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()) || (p.barcode || '').includes(search),
-  );
-  const totalPages = Math.max(1, Math.ceil((serverSide ? totalCount || products.length : filtered.length) / PAGE_SIZE));
+  const filtered = serverSide
+    ? products
+    : products.filter(
+        (p) =>
+          p.nameAr.includes(search) ||
+          p.nameEn.toLowerCase().includes(search.toLowerCase()) ||
+          p.sku.toLowerCase().includes(search.toLowerCase()) ||
+          (p.barcode || '').includes(search) ||
+          (p.gs1Code || '').includes(search),
+      );
+  const resultCount = serverSide ? totalCount || products.length : filtered.length;
+  const totalPages = Math.max(1, Math.ceil(resultCount / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedRows = serverSide ? products : filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   useEffect(() => {
     if (!serverSide) setPage(1);
-  }, [search, activeTab, serverSide]);
+  }, [search, serverSide]);
 
   useEffect(() => {
     if (serverSide) { setPage(initialPage); setSearch(initialSearch); setCategoryFilter(initialCategoryId); setBrandFilter(initialBrandId); setStatusFilter(initialStatus); }
   }, [initialPage, initialSearch, initialCategoryId, initialBrandId, initialStatus, serverSide]);
 
-  const submitSearch = () => {
-    if (!serverSide) return;
+  /**
+   * One builder for every navigation in this component. Rebuilding the query
+   * string from scratch inside `changePage` used to drop the active filters, so
+   * page 2 silently showed unfiltered rows while the filter boxes still looked
+   * applied.
+   */
+  const buildUrl = (nextPage: number) => {
     const params = new URLSearchParams();
     if (search.trim()) params.set('query', search.trim());
     if (categoryFilter) params.set('categoryId', categoryFilter);
     if (brandFilter) params.set('brandId', brandFilter);
     if (statusFilter) params.set('status', statusFilter);
-    params.set('page', '1');
-    router.push(`${pathname}?${params.toString()}`);
+    if (nextPage > 1) params.set('page', String(nextPage));
+    const qs = params.toString();
+    return qs ? `${pathname}?${qs}` : pathname;
+  };
+
+  const submitSearch = () => {
+    if (!serverSide) return;
+    router.push(buildUrl(1));
   };
 
   const changePage = (nextPage: number) => {
     setPage(nextPage);
-    if (serverSide) {
-      const params = new URLSearchParams();
-      if (search.trim()) params.set('query', search.trim());
-      params.set('page', String(nextPage));
-      router.push(`${pathname}?${params.toString()}`);
-    }
+    if (serverSide) router.push(buildUrl(nextPage));
+  };
+
+  /** Quotes every field and neutralises spreadsheet formula injection. */
+  const csvCell = (value: unknown) => {
+    const raw = value === null || value === undefined ? '' : String(value);
+    const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+    return `"${safe.replace(/"/g, '""')}"`;
   };
 
   const exportCsv = () => {
-    const header = 'sku,barcode,nameAr,nameEn,price,costPrice,category,brand,isActive';
+    const header = [
+      'sku', 'barcode', 'nameAr', 'nameEn', 'size', 'color',
+      'price', 'costPrice', 'category', 'brand', 'isActive', 'stock',
+    ].join(',');
     const lines = products.map((p) =>
       [
-        p.sku,
-        p.barcode || '',
-        `"${p.nameAr}"`,
-        `"${p.nameEn}"`,
-        p.price,
-        p.costPrice,
+        p.sku, p.barcode, p.nameAr, p.nameEn, p.size, p.color,
+        p.price, p.costPrice,
         isAr ? p.category.nameAr : p.category.nameEn,
         p.brand ? (isAr ? p.brand.nameAr : p.brand.nameEn) : '',
-        p.isActive,
-      ].join(',')
+        p.isActive ? 'yes' : 'no',
+        p.inventories.reduce((acc, i) => acc + i.stockQuantity, 0),
+      ].map(csvCell).join(','),
     );
     const blob = new Blob(['\ufeff' + header + '\n' + lines.join('\n')], {
       type: 'text/csv;charset=utf-8',
@@ -183,16 +182,24 @@ export default function ProductsManager({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'products.csv';
+    a.download = isAr ? 'المنتجات.csv' : 'products.csv';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    // Revoking synchronously can cancel the download in some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
+    setPendingId(id);
     try {
       await apiFetch(`/api/admin/products/${id}`, 'PATCH', { isActive });
       router.refresh();
-    } catch { /* silently fail */ }
+    } catch (err) {
+      toast(getClientErrorMessage(err, L('تعذر تغيير حالة المنتج', 'Could not change the product status')), 'error');
+    } finally {
+      setPendingId('');
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -341,9 +348,13 @@ export default function ProductsManager({
     if (!editProduct) return;
     setSaving(true);
     setFormError('');
+    // Opening stock is create-only (it seeds BranchInventory rows), so it is
+    // dropped from the PATCH body rather than being sent and ignored.
+    const editable = { ...productForm };
+    delete (editable as { initialStock?: string }).initialStock;
     try {
       await apiFetch(`/api/admin/products/${editProduct.id}`, 'PATCH', {
-        ...productForm,
+        ...editable,
         price: Number(productForm.price),
         costPrice: Number(productForm.costPrice) || 0,
         brandId: productForm.brandId || null,
@@ -383,73 +394,7 @@ export default function ProductsManager({
     }
   };
 
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError('');
-    try {
-      await apiFetch('/api/admin/categories', 'POST', catForm);
-      setShowAddCat(false);
-      setCatForm(EMPTY_CAT);
-      toast(okMsg, 'success');
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : L('فشل في إضافة التصنيف', 'Could not add the category');
-      setFormError(msg);
-      toast(msg, 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCreateBrand = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError('');
-    try {
-      await apiFetch('/api/admin/brands', 'POST', brandForm);
-      setShowAddBrand(false);
-      setBrandForm(EMPTY_BRAND);
-      toast(okMsg, 'success');
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : L('فشل في إضافة الماركة', 'Could not add the brand');
-      setFormError(msg);
-      toast(msg, 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm(isAr ? 'هل تريد حذف هذا التصنيف؟' : 'Delete this category?')) return;
-    setRowError('');
-    try {
-      await apiFetch(`/api/admin/categories/${id}`, 'DELETE');
-      toast(okMsg, 'success');
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : L('فشل الحذف', 'Could not delete');
-      setRowError(msg);
-      toast(msg, 'error');
-    }
-  };
-
-  const handleDeleteBrand = async (id: string) => {
-    if (!window.confirm(isAr ? 'هل تريد حذف هذه الماركة؟' : 'Delete this brand?')) return;
-    setRowError('');
-    try {
-      await apiFetch(`/api/admin/brands/${id}`, 'DELETE');
-      toast(okMsg, 'success');
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : L('فشل الحذف', 'Could not delete');
-      setRowError(msg);
-      toast(msg, 'error');
-    }
-  };
-
-  const ProductFormFields = () => (
+  const ProductFormFields = ({ isEdit = false }: { isEdit?: boolean }) => (
     <>
       {formError && (
         <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold">
@@ -514,6 +459,7 @@ export default function ProductsManager({
             required
             type="number"
             min="0"
+            step="0.01"
             placeholder="0.00"
             value={productForm.price}
             onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
@@ -526,6 +472,7 @@ export default function ProductsManager({
           <input
             type="number"
             min="0"
+            step="0.01"
             placeholder="0.00"
             value={productForm.costPrice}
             onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
@@ -533,18 +480,30 @@ export default function ProductsManager({
             dir="ltr"
           />
         </div>
-        <div>
-          <label className={labelCls}>{isAr ? 'مخزون افتتاحي' : 'Opening Stock'}</label>
-          <input
-            type="number"
-            min="0"
-            placeholder="0"
-            value={productForm.initialStock}
-            onChange={(e) => setProductForm({ ...productForm, initialStock: e.target.value })}
-            className={inputCls}
-            dir="ltr"
-          />
-        </div>
+        {/* Opening stock is a create-time field. It writes BranchInventory rows,
+            which the update route deliberately does not touch — quantities are
+            changed through stocktakes, transfers or sales instead. Showing it
+            while editing would imply a value that is silently discarded. */}
+        {!isEdit && (
+          <div>
+            <label className={labelCls}>{isAr ? 'مخزون افتتاحي' : 'Opening Stock'}</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              placeholder="0"
+              value={productForm.initialStock}
+              onChange={(e) => setProductForm({ ...productForm, initialStock: e.target.value })}
+              className={inputCls}
+              dir="ltr"
+            />
+            <p className="mt-1 text-[10px] text-slate-500">
+              {isAr
+                ? 'يُسجَّل في أول فرع نشط فقط. لتغيير الكميات لاحقًا استخدم الجرد أو التحويل.'
+                : 'Recorded in the first active branch only. Change quantities later via stocktake or transfers.'}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -724,38 +683,7 @@ export default function ProductsManager({
 
   return (
     <div className="space-y-4">
-      {rowError && (
-        <div role="alert" className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold animate-fade-in">
-          {rowError}
-        </div>
-      )}
-      {/* Tab Navigation */}
-      <div className="flex gap-1 bg-slate-950 p-1 rounded-2xl w-fit">
-        {[
-          { key: 'products' as ActiveTab, href: '/admin/products', label: isAr ? 'المنتجات' : 'Products', icon: <Package className="w-3.5 h-3.5" /> },
-          { key: 'categories' as ActiveTab, href: '/admin/products/categories', label: isAr ? 'التصنيفات' : 'Categories', icon: <Tag className="w-3.5 h-3.5" /> },
-          { key: 'brands' as ActiveTab, href: '/admin/products/brands', label: isAr ? 'الماركات' : 'Brands', icon: <Bookmark className="w-3.5 h-3.5" /> },
-        ].map((tab) => (
-          <Link
-            key={tab.key}
-            href={tab.href}
-            onClick={() => setActiveTab(tab.key)}
-            aria-current={activeTab === tab.key ? 'page' : undefined}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === tab.key
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* ===== PRODUCTS TAB ===== */}
-      {activeTab === 'products' && (
-        <div className="space-y-4">
+      <div className="space-y-4">
           <div className="flex flex-wrap justify-between items-center gap-3">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
@@ -806,8 +734,7 @@ export default function ProductsManager({
                   <th className="p-3">{isAr ? 'اسم المنتج' : 'Product'}</th>
                   <th className="p-3">{isAr ? 'التصنيف' : 'Category'}</th>
                   <th className="p-3">{isAr ? 'سعر البيع' : 'Price'}</th>
-                  <th className="p-3">{isAr ? 'مخزن الإبراهيمية' : 'Ibrahimeyah'}</th>
-                  <th className="p-3">{isAr ? 'مخزن سموحة' : 'Smouha'}</th>
+                  <th className="p-3">{isAr ? 'المخزون' : 'Stock'}</th>
                   <th className="p-3">{isAr ? 'الحالة' : 'Active'}</th>
                   <th className="p-3">{isAr ? 'إجراءات' : 'Actions'}</th>
                 </tr>
@@ -847,21 +774,23 @@ export default function ProductsManager({
                     <td className="p-3 text-slate-300">{isAr ? prod.category.nameAr : prod.category.nameEn}</td>
                     <td className="p-3 font-black text-emerald-400">{prod.price.toLocaleString()} {isAr ? 'ج.م' : 'EGP'}</td>
                     <td className="p-3 font-bold text-blue-400">
+                      {/* Per-branch balances belong to /admin/inventory. Here we only
+                          surface the total the viewer is allowed to see, which the
+                          page query already limits to their scoped branches. */}
                       <Link href="/admin/inventory" title={isAr ? 'عرض في المخزون' : 'View in inventory'} className="hover:underline">
-                        {stockOf(prod, isAr ? 'الإبراهيمية' : 'Ibrahimeyah')}
-                      </Link>
-                    </td>
-                    <td className="p-3 font-bold text-purple-400">
-                      <Link href="/admin/inventory" title={isAr ? 'عرض في المخزون' : 'View in inventory'} className="hover:underline">
-                        {stockOf(prod, isAr ? 'سموحة' : 'Smouha')}
+                        {prod.inventories.reduce((acc, i) => acc + i.stockQuantity, 0)}
                       </Link>
                     </td>
                     <td className="p-3">
                       <button
                         onClick={() => toggleActive(prod.id, !prod.isActive)}
-                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${prod.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
+                        disabled={pendingId === prod.id}
+                        aria-busy={pendingId === prod.id}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all disabled:opacity-60 ${prod.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-slate-800 text-slate-400 border-slate-700'}`}
                       >
-                        {prod.isActive ? (isAr ? 'نشط' : 'Active') : (isAr ? 'موقوف' : 'Inactive')}
+                        {pendingId === prod.id
+                          ? (isAr ? '...جارٍ' : '...')
+                          : prod.isActive ? (isAr ? 'نعم' : 'Active') : (isAr ? 'موقوف' : 'Inactive')}
                       </button>
                     </td>
                     <td className="p-3">
@@ -886,101 +815,30 @@ export default function ProductsManager({
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && (
+            {(serverSide ? totalCount === 0 : filtered.length === 0) && (
               <div className="text-center text-xs text-slate-500 py-12">
                 {search ? (isAr ? 'لا توجد نتائج' : 'No results') : (isAr ? 'لا توجد منتجات' : 'No products')}
               </div>
             )}
           </div>
 
-          {filtered.length > 0 && (
+          {resultCount > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <span className="text-[11px] font-bold text-slate-400">
-                {isAr ? `${filtered.length} منتج` : `${filtered.length} products`}
+                {/* In server mode `products` is one page, so the visible count is
+                    not the catalogue size. `totalCount` is the real total. */}
+                {isAr ? `${resultCount} منتج` : `${resultCount} products`}
               </span>
               <Pagination page={safePage} totalPages={totalPages} onPageChange={changePage} />
             </div>
           )}
-        </div>
-      )}
-
-      {/* ===== CATEGORIES TAB ===== */}
-      {activeTab === 'categories' && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              onClick={() => { setCatForm(EMPTY_CAT); setFormError(''); setShowAddCat(true); }}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              {isAr ? 'إضافة تصنيف' : 'Add Category'}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {categories.map((cat) => (
-              <div key={cat.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex justify-between items-center">
-                <div>
-                  <div className="font-bold text-slate-100 text-xs">{cat.nameAr}</div>
-                  <div className="text-[11px] text-slate-400">{cat.nameEn}</div>
-                </div>
-                <button
-                  onClick={() => handleDeleteCategory(cat.id)}
-                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-            {categories.length === 0 && (
-              <div className="text-xs text-slate-500 py-6 text-center col-span-3">
-                {isAr ? 'لا توجد تصنيفات' : 'No categories'}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ===== BRANDS TAB ===== */}
-      {activeTab === 'brands' && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              onClick={() => { setBrandForm(EMPTY_BRAND); setFormError(''); setShowAddBrand(true); }}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              {isAr ? 'إضافة ماركة' : 'Add Brand'}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {brands.map((brand) => (
-              <div key={brand.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex justify-between items-center">
-                <div>
-                  <div className="font-bold text-slate-100 text-xs">{brand.nameAr}</div>
-                  <div className="text-[11px] text-slate-400">{brand.nameEn}</div>
-                </div>
-                <button
-                  onClick={() => handleDeleteBrand(brand.id)}
-                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-            {brands.length === 0 && (
-              <div className="text-xs text-slate-500 py-6 text-center col-span-3">
-                {isAr ? 'لا توجد ماركات' : 'No brands'}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Add Product Modal */}
       {showAddProduct && (
         <Modal title={isAr ? 'إضافة منتج جديد' : 'Add New Product'} onClose={() => setShowAddProduct(false)}>
           <form onSubmit={handleCreateProduct} className="space-y-3 text-xs">
-            {ProductFormFields()}
+            {ProductFormFields({})}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة المنتج' : 'Create Product')}
             </button>
@@ -992,7 +850,7 @@ export default function ProductsManager({
       {editProduct && (
         <Modal title={isAr ? `تعديل: ${editProduct.nameAr}` : `Edit: ${editProduct.nameEn}`} onClose={() => setEditProduct(null)}>
           <form onSubmit={handleEditProduct} className="space-y-3 text-xs">
-            {ProductFormFields()}
+            {ProductFormFields({ isEdit: true })}
             <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </button>
@@ -1023,50 +881,6 @@ export default function ProductsManager({
               </button>
             </div>
           </div>
-        </Modal>
-      )}
-
-      {/* Add Category Modal */}
-      {showAddCat && (
-        <Modal title={isAr ? 'إضافة تصنيف جديد' : 'Add New Category'} onClose={() => setShowAddCat(false)}>
-          <form onSubmit={handleCreateCategory} className="space-y-3 text-xs">
-            {formError && <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold">{formError}</div>}
-            <div>
-              <label className={labelCls}>{isAr ? 'الاسم بالعربي *' : 'Name in Arabic *'}</label>
-              <input required placeholder="مثال: أحذية رياضية" value={catForm.nameAr} onChange={(e) => setCatForm({ ...catForm, nameAr: e.target.value })} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>{isAr ? 'الاسم بالإنجليزي *' : 'Name in English *'}</label>
-              <input required placeholder="e.g. Sports Shoes" value={catForm.nameEn} onChange={(e) => setCatForm({ ...catForm, nameEn: e.target.value })} className={inputCls} dir="ltr" />
-            </div>
-            <div>
-              <label className={labelCls}>{isAr ? 'وصف (اختياري)' : 'Description (optional)'}</label>
-              <input placeholder={isAr ? 'وصف مختصر للتصنيف' : 'Short description'} value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} className={inputCls} />
-            </div>
-            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
-              {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة' : 'Add Category')}
-            </button>
-          </form>
-        </Modal>
-      )}
-
-      {/* Add Brand Modal */}
-      {showAddBrand && (
-        <Modal title={isAr ? 'إضافة ماركة جديدة' : 'Add New Brand'} onClose={() => setShowAddBrand(false)}>
-          <form onSubmit={handleCreateBrand} className="space-y-3 text-xs">
-            {formError && <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold">{formError}</div>}
-            <div>
-              <label className={labelCls}>{isAr ? 'الاسم بالعربي *' : 'Name in Arabic *'}</label>
-              <input required placeholder="مثال: نايك" value={brandForm.nameAr} onChange={(e) => setBrandForm({ ...brandForm, nameAr: e.target.value })} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>{isAr ? 'الاسم بالإنجليزي *' : 'Name in English *'}</label>
-              <input required placeholder="e.g. Nike" value={brandForm.nameEn} onChange={(e) => setBrandForm({ ...brandForm, nameEn: e.target.value })} className={inputCls} dir="ltr" />
-            </div>
-            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all">
-              {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة' : 'Add Brand')}
-            </button>
-          </form>
         </Modal>
       )}
     </div>

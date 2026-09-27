@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
 import { writeAudit } from '@/lib/audit';
 import { num } from '@/lib/pricing';
+import { normalizeGtin, optionalText } from '@/lib/api-validation';
 
 // PATCH: full update of a product
 export async function PATCH(
@@ -27,16 +28,17 @@ export async function PATCH(
     if (body.categoryId !== undefined) data.categoryId = body.categoryId;
     if (body.brandId !== undefined) data.brandId = body.brandId || null;
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
-    if (body.size !== undefined) data.size = body.size || null;
-    if (body.color !== undefined) data.color = body.color || null;
-    if (body.barcode !== undefined) data.barcode = body.barcode || null;
-    // T14: GS1 GTIN for ETA production (digits only, 8/12/13/14).
+    if (body.size !== undefined) data.size = optionalText(body.size, 100);
+    if (body.color !== undefined) data.color = optionalText(body.color, 100);
+    if (body.barcode !== undefined) data.barcode = optionalText(body.barcode, 100);
+    // T14: GS1 GTIN for ETA production (digits only, 8/12/13/14). Shared with
+    // POST so the create and update contracts cannot drift apart.
     if (body.gs1Code !== undefined) {
-      const gs1 = String(body.gs1Code).trim().replace(/\D/g, '');
-      if (gs1 && ![8, 12, 13, 14].includes(gs1.length)) {
+      const gtin = normalizeGtin(body.gs1Code);
+      if (gtin.invalid) {
         return apiError('VALIDATION_ERROR', 'GS1 code must be 8/12/13/14 digits', 400);
       }
-      data.gs1Code = gs1 || null;
+      data.gs1Code = gtin.value;
     }
     if (body.images !== undefined) {
       data.images = Array.isArray(body.images)

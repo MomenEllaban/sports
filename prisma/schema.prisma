@@ -460,12 +460,13 @@ model Category {
 }
 
 model Brand {
-  id       String    @id @default(cuid())
-  slug     String    @unique
-  nameAr   String
-  nameEn   String
-  logo     String?
-  products Product[]
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  nameAr      String
+  nameEn      String
+  logo        String?
+  description String?
+  products    Product[]
 }
 
 model Product {

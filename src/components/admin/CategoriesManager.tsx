@@ -9,12 +9,12 @@ import {
   Package,
   Edit2,
   Trash2,
-  X,
   Check,
   Tag,
 } from 'lucide-react';
-import { Button } from '@/components/ui/foundation';
+import { Button, ConfirmDialog, Modal, inputCls } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
+import { getClientErrorMessage } from '@/lib/client-api';
 import { apiFetch } from './ui';
 
 export interface CategoryItem {
@@ -44,6 +44,8 @@ export default function CategoriesManager({
   const [nameEn, setNameEn] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<CategoryItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -125,30 +127,44 @@ export default function CategoriesManager({
       }
 
       setIsModalOpen(false);
-    } catch {
-      toast(L('فشلت العملية، يرجى المحاولة لاحقاً', 'Operation failed, try again'), 'error');
+    } catch (err) {
+      toast(
+        getClientErrorMessage(err, L('فشلت العملية، يرجى المحاولة لاحقاً', 'Operation failed, try again')),
+        'error',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string, name: string, count: number) => {
-    if (count > 0) {
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    const { id, productsCount } = pendingDelete;
+    if (productsCount > 0) {
       toast(
-        L(`لا يمكن حذف التصنيف لأنه يحتوي على ${count} منتج`, `Cannot delete: category has ${count} products`),
-        'error'
+        L(
+          `لا يمكن حذف التصنيف لأنه يحتوي على ${productsCount} منتج`,
+          `Cannot delete: category has ${productsCount} products`,
+        ),
+        'error',
       );
+      setPendingDelete(null);
       return;
     }
-
-    if (!confirm(L(`هل أنت متأكد من حذف التصنيف "${name}"؟`, `Delete category "${name}"?`))) return;
-
+    setIsDeleting(true);
     try {
       await apiFetch(`/api/admin/categories/${id}`, 'DELETE');
       setCategories((prev) => prev.filter((c) => c.id !== id));
       toast(L('تم حذف التصنيف', 'Category deleted'), 'success');
-    } catch {
-      toast(L('فشل حذف التصنيف', 'Failed to delete category'), 'error');
+      setPendingDelete(null);
+    } catch (err) {
+      // Surface the server reason (FK guard, etc.) instead of a generic failure.
+      toast(
+        getClientErrorMessage(err, L('فشل حذف التصنيف', 'Failed to delete category')),
+        'error',
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -209,7 +225,15 @@ export default function CategoriesManager({
       </div>
 
       {/* Categories Grid / Table */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {categories.length > filtered.length && (
+        <p className="-mb-2 text-[11px] font-bold text-slate-500">
+          {L(
+            `عرض ${filtered.length} من ${categories.length} تصنيف`,
+            `Showing ${filtered.length} of ${categories.length} categories`,
+          )}
+        </p>
+      )}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filtered.length === 0 ? (
           <div className="col-span-full p-8 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl">
             {L('لا توجد تصنيفات مطابقة للبحث', 'No matching categories found')}
@@ -257,9 +281,14 @@ export default function CategoriesManager({
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => handleDelete(cat.id, cat.nameAr, cat.productsCount)}
-                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs transition-colors"
-                  title={L('حذف', 'Delete')}
+                  onClick={() => setPendingDelete(cat)}
+                  disabled={cat.productsCount > 0}
+                  title={
+                    cat.productsCount > 0
+                      ? L('لا يمكن الحذف لارتباطه بمنتجات', 'Linked to products, cannot delete')
+                      : L('حذف', 'Delete')
+                  }
+                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -269,82 +298,84 @@ export default function CategoriesManager({
         )}
       </div>
 
-      {/* Category Modal (Create / Edit) */}
+      {/* Shared Modal/ConfirmDialog primitives carry the focus trap, the
+          backdrop and the escape handling that the hand-rolled markup lacked. */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-5 end-5 p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                <FolderTree className="w-5 h-5" />
-              </div>
-              <h3 className="font-extrabold text-slate-100 text-sm">
-                {editingId ? L('تعديل التصنيف', 'Edit Category') : L('إضافة تصنيف جديد', 'Add New Category')}
-              </h3>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4 mt-5">
-              <div>
-                <label className="text-xs text-slate-300 font-semibold block mb-1">
-                  {L('اسم التصنيف (بالعربي)', 'Category Name (Arabic)')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={nameAr}
-                  onChange={(e) => setNameAr(e.target.value)}
-                  placeholder="مثال: أحذية كرة قدم، ملابس تدريب"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-300 font-semibold block mb-1">
-                  {L('اسم التصنيف (بالإنجليزي)', 'Category Name (English)')} *
-                </label>
-                <input
-                  type="text"
-                  required
-                  dir="ltr"
-                  value={nameEn}
-                  onChange={(e) => setNameEn(e.target.value)}
-                  placeholder="e.g. Football Shoes, Training Apparel"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-slate-300 font-semibold block mb-1">
-                  {L('الوصف (اختياري)', 'Description (Optional)')}
-                </label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={L('وصف موجز يظهر في المتجر وصفحات الـ SEO', 'Brief description for catalog & SEO')}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-                <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
-                  {L('إلغاء', 'Cancel')}
-                </Button>
-                <Button type="submit" variant="primary" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-500">
-                  <Check className="w-3.5 h-3.5" />
-                  {isSubmitting ? L('جارٍ الحفظ...', 'Saving...') : L('حفظ التصنيف', 'Save Category')}
-                </Button>
-              </div>
-            </form>
+        <Modal
+          title={editingId ? L('تعديل التصنيف', 'Edit Category') : L('إضافة تصنيف جديد', 'Add New Category')}
+          onClose={() => setIsModalOpen(false)}
+        >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="cat-name-ar" className="mb-1 block text-xs font-semibold text-slate-300">
+              {L('اسم التصنيف (بالعربي)', 'Category Name (Arabic)')} *
+            </label>
+            <input
+              id="cat-name-ar"
+              type="text"
+              required
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              placeholder="مثال: أحذية كرة قدم، ملابس تدريب"
+              className={inputCls}
+            />
           </div>
-        </div>
+
+          <div>
+            <label htmlFor="cat-name-en" className="mb-1 block text-xs font-semibold text-slate-300">
+              {L('اسم التصنيف (بالإنجليزي)', 'Category Name (English)')} *
+            </label>
+            <input
+              id="cat-name-en"
+              type="text"
+              required
+              dir="ltr"
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              placeholder="e.g. Football Shoes, Training Apparel"
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="cat-description" className="mb-1 block text-xs font-semibold text-slate-300">
+              {L('الوصف (اختياري)', 'Description (Optional)')}
+            </label>
+            <textarea
+              id="cat-description"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={L('وصف موجز يظهر في المتجر وصفحات الـ SEO', 'Brief description for catalog & SEO')}
+              className={inputCls}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
+            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
+              {L('إلغاء', 'Cancel')}
+            </Button>
+            <Button type="submit" variant="primary" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-500">
+              <Check className="w-3.5 h-3.5" />
+              {isSubmitting ? L('جارٍ الحفظ...', 'Saving...') : L('حفظ التصنيف', 'Save Category')}
+            </Button>
+          </div>
+        </form>
+        </Modal>
       )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={L('حذف التصنيف', 'Delete category')}
+        impact={L(
+          `سيتم حذف التصنيف "${pendingDelete?.nameAr ?? ''}" نهائيًا. لا يمكن التراجع.`,
+          `Category "${pendingDelete?.nameAr ?? ''}" will be permanently removed. This cannot be undone.`,
+        )}
+        confirmLabel={L('حذف', 'Delete')}
+        busy={isDeleting}
+        onConfirm={handleDelete}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { apiError } from '@/lib/api-response';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireRole } from '@/lib/auth/guards';
+import { optionalText } from '@/lib/api-validation';
 
 export async function GET() {
   try {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
     const { error } = await requireRole('SUPER_ADMIN', 'BRANCH_MANAGER');
     if (error) return error;
 
-    const { nameAr, nameEn } = await req.json();
+    const { nameAr, nameEn, logo, description } = await req.json();
     if (!nameAr || !nameEn) {
       return apiError('VALIDATION_ERROR', 'الاسم بالعربي والإنجليزي مطلوبان', 400);
     }
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
         slug: `${slug}-${Date.now()}`,
         nameAr: String(nameAr).trim(),
         nameEn: String(nameEn).trim(),
+        logo: optionalText(logo),
+        description: optionalText(description),
       },
     });
 

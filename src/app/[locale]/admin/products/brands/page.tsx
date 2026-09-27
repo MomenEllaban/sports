@@ -23,9 +23,9 @@ export default async function AdminProductBrandsPage() {
     id: b.id,
     nameAr: b.nameAr,
     nameEn: b.nameEn,
-    slug: (b as unknown as { slug?: string }).slug || null,
-    description: (b as unknown as { description?: string }).description || null,
-    logo: (b as unknown as { logo?: string }).logo || null,
+    slug: b.slug,
+    description: b.description,
+    logo: b.logo,
     productsCount: b._count.products,
   }));
 

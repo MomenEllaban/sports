@@ -42,7 +42,7 @@
 | ✅ | /admin/inventory/labels/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/inventory/movements/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/inventory/page.tsx | loader + error inherited from admin group |
-| ✅ | /admin/inventory/stock/page.tsx | loader + error inherited from admin group |
+| ✅ | /admin/inventory/stock/page.tsx | alias that redirects to /admin/inventory (duplicate removed) |
 | ✅ | /admin/inventory/transfers/page.tsx | loader + error inherited from admin group |
 | ✅ | /admin/leave/page.tsx | loader + error inherited from admin group |
 | ✅ | login page | auto-redirects; no data loader needed |
@@ -129,7 +129,7 @@
 | ✅ | /admin/inventory/labels/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/inventory/movements/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/inventory/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
-| ✅ | /admin/inventory/stock/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
+| ✅ | /admin/inventory/stock/page.tsx | alias → /admin/inventory, guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/inventory/transfers/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER' |
 | ✅ | /admin/leave/page.tsx | guard: 'SUPER_ADMIN', 'BRANCH_MANAGER', 'FINANCE' |
 | ✅ | /admin/login/page.tsx | public login, redirects to /admin/dashboard when already signed in |
