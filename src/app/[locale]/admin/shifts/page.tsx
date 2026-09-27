@@ -48,5 +48,5 @@ export default async function AdminShiftsPage() {
     salesCount: s._count.sales,
   }));
 
-  return <ShiftsManager initialShifts={initialShifts} branches={branches} />;
+  return <ShiftsManager initialShifts={initialShifts} branches={branches} initialMode="current" />;
 }

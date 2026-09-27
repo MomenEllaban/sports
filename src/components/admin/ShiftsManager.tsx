@@ -40,9 +40,11 @@ export interface ShiftRow {
 export default function ShiftsManager({
   initialShifts,
   branches,
+  initialMode = 'all',
 }: {
   initialShifts: ShiftRow[];
   branches: Array<{ id: string; name: string; nameEn?: string }>;
+  initialMode?: 'all' | 'current' | 'history' | 'differences';
 }) {
   const locale = useLocale();
   const router = useRouter();
@@ -51,7 +53,10 @@ export default function ShiftsManager({
   const currencyLabel = L('ج.م', 'EGP');
 
   const [shifts, setShifts] = useState<ShiftRow[]>(initialShifts);
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>(
+    initialMode === 'current' ? 'OPEN' : initialMode === 'history' ? 'CLOSED' : 'ALL'
+  );
+  const onlyDifferences = initialMode === 'differences';
   const [branchFilter, setBranchFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedShift, setSelectedShift] = useState<ShiftRow | null>(null);
@@ -77,6 +82,7 @@ export default function ShiftsManager({
 
   // Filtered rows
   const filteredRows = shifts.filter((s) => {
+    if (onlyDifferences && Math.abs(s.difference) < 0.01) return false;
     if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
     if (branchFilter !== 'ALL' && s.branchId !== branchFilter) return false;
     if (searchQuery.trim()) {

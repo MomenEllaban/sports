@@ -49,7 +49,7 @@ export default async function AdminShippingPage() {
               <span className={`rounded-full border px-2.5 py-1 ${config.ready ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-300'}`}>
                 {config.ready ? L('● مفعّل', '● Enabled') : L('○ يدوي مؤقت', '○ Manual fallback')}
               </span>
-              {config.mock && <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-rose-300">{L('وضع Mock — غير صالح للإنتاج', 'Mock mode — not production ready')}</span>}
+              {config.mock && <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-amber-300">{L('وضع تجريبي (Sandbox)', 'Sandbox mode')}</span>}
             </div>
             <p className="mt-4 text-xs leading-6 text-slate-500">{L('عند عدم توفر التكامل يحفظ النظام رقم', 'When an integration is unavailable, the system stores a')} <span dir="ltr" className="font-mono">MANUAL-*</span> {L('ولا يمنع الطلب، ثم تتم المتابعة من شاشة الطلبات.', 'number, does not block the order, and follow-up continues from Orders.')}</p>
           </section>

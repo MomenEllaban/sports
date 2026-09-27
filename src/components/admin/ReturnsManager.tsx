@@ -35,17 +35,20 @@ const statusLabels: Record<string, { ar: string; en: string }> = {
   CANCELLED: { ar: 'ملغي', en: 'Cancelled' },
 };
 
-export default function ReturnsManager({ initial, branches, counts }: {
+export default function ReturnsManager({ initial, branches, counts, filterType = 'ALL' }: {
   initial: ReturnRow[];
   branches: Array<{ id: string; name: string; nameEn?: string }>;
   counts: Record<string, number>;
+  filterType?: 'ALL' | 'RETURN' | 'EXCHANGE';
 }) {
   const locale = useLocale();
   const router = useRouter();
   const isAr = locale === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const statusLabel = (value: string) => statusLabels[value]?.[isAr ? 'ar' : 'en'] || value;
-  const [rows, setRows] = useState(initial);
+  const [rows, setRows] = useState(
+    filterType === 'ALL' ? initial : initial.filter((r) => r.type === filterType)
+  );
   const [status, setStatus] = useState('');
   const [channel, setChannel] = useState('');
   const [branch, setBranch] = useState('');
