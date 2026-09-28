@@ -187,123 +187,209 @@ export default async function SuppliersPage({
   };
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* Page Title & Context */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-100">{L('دليل الموردين وكشف الحساب', 'Supplier directory & account statement')}</h1>
-          <p className="text-xs text-slate-400 mt-0.5">{L('إدارة بيانات الموردين وأوامر التوريد وملخص الالتزامات والمدفوعات لكل مورد.', 'Manage supplier records, purchase orders, commitments, and payments per supplier.')}</p>
+          <p className="text-xs text-slate-400 mt-1">{L('إدارة بيانات الموردين وأوامر التوريد وملخص الالتزامات والمدفوعات لكل مورد.', 'Manage supplier records, purchase orders, commitments, and payments per supplier.')}</p>
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">{L('بيانات الموردين', 'Supplier records')}</h2>
-        {/* This list is the only place a supplier is picked. It used to be
-            repeated as a second row of chips above the statement, so the same
-            names appeared twice on one page and neither copy carried the
-            selection state. */}
-        <SuppliersManager suppliers={suppliers} selectedId={selectedId} />
-      </div>
-
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-          <h2 className="font-extrabold text-sm text-slate-100">
-            {selected ? L(`كشف حساب: ${selected.name}`, `Statement: ${selected.name}`) : L('كشف الحساب', 'Account statement')}
-          </h2>
-          {selected && (
-            <Link
-              href="/admin/purchasing/suppliers"
-              className="min-h-[44px] inline-flex items-center rounded-xl border border-slate-700 bg-slate-800/60 px-3 text-xs font-bold text-slate-200 hover:bg-slate-700"
-            >
-              {L('إغلاق الكشف', 'Close statement')}
-            </Link>
-          )}
-        </div>
-        {selected ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
-                <div className="text-[11px] text-slate-400">{L('إجمالي المستحق (أوامر مفتوحة)', 'Total committed (open orders)')}</div>
-                <div className="mt-1 text-xl font-black text-slate-100">{committed.toLocaleString()} {currencyLabel}</div>
+      {/* When a supplier IS selected: Place the Statement & Dossier at the top for maximum ergonomics */}
+      {selected && (
+        <div className="glass-panel p-6 rounded-3xl border border-blue-500/40 bg-slate-900/90 shadow-xl shadow-blue-950/20 space-y-5 animate-fade-up">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-black text-base">
+                {selected.name.slice(0, 1).toUpperCase()}
               </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
-                <div className="text-[11px] text-slate-400">{L('المسدد لأوامر التوريد', 'Paid against orders')}</div>
-                <div className="mt-1 text-xl font-black text-emerald-300">{paid.toLocaleString()} {currencyLabel}</div>
-              </div>
-              <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4">
-                <div className="text-[11px] text-slate-400">{L('الرصيد', 'Balance')}</div>
-                <div className={`mt-1 text-xl font-black ${balance > 0 ? 'text-amber-300' : 'text-emerald-300'}`}>{balance.toLocaleString()} {currencyLabel}</div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-black text-lg text-slate-100">
+                    {L(`كشف حساب: ${selected.name}`, `Statement: ${selected.name}`)}
+                  </h2>
+                  <span className="font-mono text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md">
+                    {selected.code}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400 mt-1">
+                  {selected.contactPerson && <span>{L('المسؤول', 'Contact')}: <strong className="text-slate-200">{selected.contactPerson}</strong></span>}
+                  {selected.phone && <span dir="ltr">📞 {selected.phone}</span>}
+                  {selected.taxNumber && <span>{L('الرقم الضريبي', 'Tax')}: <strong className="text-slate-300 font-mono">{selected.taxNumber}</strong></span>}
+                </div>
               </div>
             </div>
-            {unattributedTotal > 0 && (
-              <p className="text-[11px] text-amber-300/90">
+            <Link
+              href="/admin/purchasing/suppliers"
+              className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 text-xs font-bold text-slate-200 hover:bg-slate-700 hover:text-white transition-colors"
+            >
+              <span>✕</span>
+              <span>{L('إغلاق الكشف', 'Close statement')}</span>
+            </Link>
+          </div>
+
+          {/* Statement Financial Metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <div className="text-[11px] font-bold text-slate-400">{L('إجمالي المستحق (أوامر مفتوحة)', 'Total committed (open orders)')}</div>
+              <div className="mt-1 text-2xl font-black text-slate-100">{committed.toLocaleString()} <span className="text-xs font-bold text-slate-400">{currencyLabel}</span></div>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <div className="text-[11px] font-bold text-slate-400">{L('المسدد لأوامر التوريد', 'Paid against orders')}</div>
+              <div className="mt-1 text-2xl font-black text-emerald-300">{paid.toLocaleString()} <span className="text-xs font-bold text-slate-400">{currencyLabel}</span></div>
+            </div>
+            <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+              <div className="text-[11px] font-bold text-slate-400">{L('الرصيد', 'Balance')}</div>
+              <div className={`mt-1 text-2xl font-black ${balance > 0 ? 'text-amber-300' : 'text-emerald-300'}`}>{balance.toLocaleString()} <span className="text-xs font-bold text-slate-400">{currencyLabel}</span></div>
+            </div>
+          </div>
+
+          {unattributedTotal > 0 && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2 font-medium">
+              <span>⚠️</span>
+              <span>
                 {L(
                   `تشمل الدفعات ${unattributedTotal.toLocaleString()} ${currencyLabel} غير مخصصة لأمر محدد (دفعة مقدمة)، فلا تُخصم من أي فاتورة.`,
                   `Payments include ${unattributedTotal.toLocaleString()} ${currencyLabel} not tied to a specific order (an advance), so it is not deducted from any invoice.`,
                 )}
-              </p>
-            )}
-            {openOrders.length >= SCAN_LIMIT && (
-              <p role="alert" className="text-[11px] font-bold text-amber-300">
-                {L(
-                  `عدد الأوامر المفتوحة أكبر من الحد(${SCAN_LIMIT})، فالأرقام أعلاه حد أدنى وليست كاملة.`,
-                  `This supplier has more than ${SCAN_LIMIT} open orders, so the totals above are a lower bound rather than complete.`,
-                )}
-              </p>
-            )}
-            <p className="text-[11px] text-slate-500">
+              </span>
+            </div>
+          )}
+
+          {openOrders.length >= SCAN_LIMIT && (
+            <p role="alert" className="text-xs font-bold text-amber-300">
               {L(
-                'الملخص يغطي كل أوامر المورد المفتوحة، ويحتسب قيمة الأصناف المستلمة فعليًا؛ الجدول أدناه صفحة واحدة من السجل، استخدم التصفحات للوصول للأوامر الأقدم.',
-                'The totals cover every open order for this supplier and value only goods actually received. The table below is one page of the history; use the pager to reach older orders.',
+                `عدد الأوامر المفتوحة أكبر من الحد(${SCAN_LIMIT})، فالأرقام أعلاه حد أدنى وليست كاملة.`,
+                `This supplier has more than ${SCAN_LIMIT} open orders, so the totals above are a lower bound rather than complete.`,
               )}
             </p>
-            <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto">
+          )}
+
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            {L(
+              'الملخص يغطي كل أوامر المورد المفتوحة، ويحتسب قيمة الأصناف المستلمة فعليًا؛ الجدول أدناه صفحة واحدة من السجل، استخدم التصفحات للوصول للأوامر الأقدم.',
+              'The totals cover every open order for this supplier and value only goods actually received. The table below is one page of the history; use the pager to reach older orders.',
+            )}
+          </p>
+
+          {/* Orders History Table */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">{L('سجل أوامر الشراء للمورد', 'Purchase orders history')}</h3>
+            <div className="app-scrollbar app-scrollbar-horizontal overflow-x-auto rounded-2xl border border-slate-800">
               <table className="w-full min-w-[680px] text-xs text-start">
-                <thead className="bg-slate-950 text-slate-400">
-                  <tr><th className="p-3">PO</th><th className="p-3">{L('الفرع', 'Branch')}</th><th className="p-3">{L('الحالة', 'Status')}</th><th className="p-3">{L('التاريخ', 'Date')}</th><th className="p-3">{L('الإجمالي', 'Total')}</th></tr>
+                <thead className="bg-slate-950 text-slate-400 font-bold border-b border-slate-800">
+                  <tr>
+                    <th className="p-3.5 text-start">PO</th>
+                    <th className="p-3.5 text-start">{L('الفرع', 'Branch')}</th>
+                    <th className="p-3.5 text-start">{L('الحالة', 'Status')}</th>
+                    <th className="p-3.5 text-start">{L('التاريخ', 'Date')}</th>
+                    <th className="p-3.5 text-start">{L('الإجمالي', 'Total')}</th>
+                  </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-slate-800/80 bg-slate-900/50">
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-500">
+                        {L('لا توجد أوامر توريد مسجلة لهذا المورد', 'No purchase orders recorded for this supplier')}
+                      </td>
+                    </tr>
+                  )}
                   {rows.map((po) => (
-                    <tr key={po.id}>
-                      <td className="p-3 font-mono text-blue-300">{po.poNumber}</td>
-                      <td className="p-3">{isAr ? po.branch?.name || '—' : po.branch?.nameEn || '—'}</td>
-                      <td className="p-3">{po.status}</td>
-                      <td className="p-3">{po.createdAt.toLocaleDateString(isAr ? 'ar-EG' : 'en-GB')}</td>
-                      <td className="p-3 font-bold text-slate-100">{num(po.totalAmount).toLocaleString()} {currencyLabel}</td>
+                    <tr key={po.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="p-3.5 font-mono font-bold text-amber-400">{po.poNumber}</td>
+                      <td className="p-3.5">{isAr ? po.branch?.name || '—' : po.branch?.nameEn || '—'}</td>
+                      <td className="p-3.5">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+                          {po.status}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-slate-400">{po.createdAt.toLocaleDateString(isAr ? 'ar-EG' : 'en-GB')}</td>
+                      <td className="p-3.5 font-bold text-slate-100">{num(po.totalAmount).toLocaleString()} {currencyLabel}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+
             {totalPages > 1 && (
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
                 <span className="text-[11px] font-bold text-slate-400">
                   {L(`${orderTotal} أمر توريد`, `${orderTotal} purchase orders`)}
                 </span>
                 <ServerPagination page={safePage} totalPages={totalPages} hrefFor={pageHref} />
               </div>
             )}
-          </>
-        ) : <div className="rounded-2xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">{L('اختر موردًا من القائمة لعرض كشف حسابه وأوامره ومدفوعاته.', 'Select a supplier to view their statement, orders, and payments.')}</div>}
+          </div>
+
+          {/* Supplier Specific Payments */}
+          <div className="pt-4 border-t border-slate-800 space-y-3">
+            <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">{L(`مدفوعات ${selected.name}`, `${selected.name} payments`)}</h3>
+            <SupplierPayments
+              suppliers={suppliers}
+              initial={payments.map((payment) => ({
+                id: payment.id,
+                supplierId: payment.supplierId,
+                amount: num(payment.amount),
+                method: payment.method,
+                reference: payment.reference,
+                notes: payment.notes,
+                createdAt: payment.createdAt.toISOString(),
+                supplier: payment.supplier,
+              }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Main Supplier Directory */}
+      <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <h2 className="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+            <span>📋</span>
+            <span>{L('بيانات وسجل الموردين', 'Supplier records')}</span>
+          </h2>
+          {selected && (
+            <span className="text-xs text-blue-400 font-bold">
+              {L(`المورد المحدد: ${selected.name}`, `Selected: ${selected.name}`)}
+            </span>
+          )}
+        </div>
+        <SuppliersManager suppliers={suppliers} selectedId={selectedId} />
       </div>
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">
-          {selected ? L(`مدفوعات ${selected.name}`, `${selected.name} payments`) : L('المدفوعات', 'Payments')}
-        </h2>
-        <SupplierPayments
-          suppliers={suppliers}
-          initial={payments.map((payment) => ({
-            id: payment.id,
-            supplierId: payment.supplierId,
-            amount: num(payment.amount),
-            method: payment.method,
-            reference: payment.reference,
-            notes: payment.notes,
-            createdAt: payment.createdAt.toISOString(),
-            supplier: payment.supplier,
-          }))}
-        />
-      </div>
-    </>
+      {/* Empty State Callout when no supplier is selected */}
+      {!selected && (
+        <div className="rounded-2xl border border-dashed border-slate-700/80 p-8 text-center text-sm text-slate-400 bg-slate-950/20 space-y-1">
+          <div className="text-lg">📁</div>
+          <p className="font-medium text-slate-300">
+            {L('اختر موردًا من القائمة لعرض كشف حسابه وأوامره ومدفوعاته.', 'Select a supplier to view their statement, orders, and payments.')}
+          </p>
+        </div>
+      )}
+
+      {/* Global Payments Section when no specific supplier is chosen */}
+      {!selected && payments.length > 0 && (
+        <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+          <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3 flex items-center gap-2">
+            <span>💳</span>
+            <span>{L('سجل أحدث المدفوعات للموردين', 'Recent Supplier Payments')}</span>
+          </h2>
+          <SupplierPayments
+            suppliers={suppliers}
+            initial={payments.map((payment) => ({
+              id: payment.id,
+              supplierId: payment.supplierId,
+              amount: num(payment.amount),
+              method: payment.method,
+              reference: payment.reference,
+              notes: payment.notes,
+              createdAt: payment.createdAt.toISOString(),
+              supplier: payment.supplier,
+            }))}
+          />
+        </div>
+      )}
+    </div>
   );
 }

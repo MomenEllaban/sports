@@ -148,10 +148,11 @@ const inventoryTabs: readonly AdminTab[] = [
 ];
 
 const purchasingTabs: readonly AdminTab[] = [
-  { key: 'orders',    labelAr: 'أوامر الشراء',               labelEn: 'Purchase orders',   href: '/admin/purchasing' },
-  { key: 'receiving', labelAr: 'استلام البضائع (GRN)',       labelEn: 'Goods receiving',   href: '/admin/purchasing/receiving' },
-  { key: 'invoices',  labelAr: 'فواتير الموردين',           labelEn: 'Supplier invoices', href: '/admin/purchasing/invoices' },
-  { key: 'returns',   labelAr: 'مرتجعات الموردين',         labelEn: 'Supplier returns',  href: '/admin/purchasing/returns' },
+  { key: 'orders',    labelAr: 'أوامر الشراء',               labelEn: 'Purchase orders',       href: '/admin/purchasing' },
+  { key: 'receiving', labelAr: 'استلام البضائع (GRN)',       labelEn: 'Goods receiving',       href: '/admin/purchasing/receiving' },
+  { key: 'invoices',  labelAr: 'فواتير الموردين',           labelEn: 'Supplier invoices',     href: '/admin/purchasing/invoices' },
+  { key: 'returns',   labelAr: 'مرتجعات الموردين',         labelEn: 'Supplier returns',      href: '/admin/purchasing/returns' },
+  { key: 'suppliers', labelAr: 'دليل الموردين وكشف الحساب', labelEn: 'Suppliers & statements', href: '/admin/purchasing/suppliers' },
 ];
 
 const customersTabs: readonly AdminTab[] = [
@@ -329,16 +330,10 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     items: [
       {
         key: 'purchasing', section: 'purchasing',
-        labelAr: 'أوامر التوريد', labelEn: 'Purchase orders',
-        descriptionAr: 'أوامر الشراء والاستلام وفواتير الموردين', descriptionEn: 'POs, receiving & supplier invoices',
+        labelAr: 'المشتريات والموردون', labelEn: 'Purchasing & suppliers',
+        descriptionAr: 'أوامر الشراء والاستلام وفواتير ومرتجعات الموردين وكشوف الحساب', descriptionEn: 'POs, receiving, invoices, returns & supplier statements',
         href: '/admin/purchasing', icon: 'purchasing',
         allowedRoles: MANAGERS, tabs: tabSet(purchasingTabs), status: 'live',
-      },
-      {
-        key: 'suppliers', section: 'suppliers',
-        labelAr: 'الموردون', labelEn: 'Suppliers',
-        href: '/admin/purchasing/suppliers', icon: 'suppliers',
-        allowedRoles: MANAGERS, status: 'live',
       },
     ],
   },

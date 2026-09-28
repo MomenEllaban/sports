@@ -238,7 +238,7 @@ export default function SuppliersManager({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap justify-between items-center gap-2">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <span className="text-xs font-bold text-slate-300">
           {query.trim()
             ? L(`${filtered.length} من ${suppliers.length} مورد`, `${filtered.length} of ${suppliers.length} suppliers`)
@@ -248,10 +248,10 @@ export default function SuppliersManager({
         </span>
         <button
           onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowAdd(true); }}
-          className="min-h-[44px] px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all"
+          className="min-h-[44px] px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/40 transition-all hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4" />
-          {isAr ? 'إضافة مورد' : 'Add Supplier'}
+          {isAr ? 'إضافة مورد جديد' : 'Add Supplier'}
         </button>
       </div>
 
@@ -259,101 +259,133 @@ export default function SuppliersManager({
         <label className="sr-only" htmlFor="supplier-filter">
           {L('ابحث في الموردين', 'Search suppliers')}
         </label>
-        <Search className="w-4 h-4 text-slate-500 absolute start-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+        <Search className="w-4 h-4 text-slate-500 absolute start-3.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
         <input
           id="supplier-filter"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-          placeholder={L('ابحث بالاسم أو الكود أو الهاتف أو الرقم الضريبي', 'Search by name, code, phone, or tax number')}
-          className={`${inputCls} ps-9`}
+          placeholder={L('ابحث بالاسم أو الكود أو الهاتف أو الرقم الضريبي...', 'Search by name, code, phone, or tax number...')}
+          className={`${inputCls} ps-10 pe-4 bg-slate-900/90 border-slate-700/80 focus:border-blue-500`}
           autoComplete="off"
         />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {filtered.length === 0 && (
-          <div className="text-center text-xs text-slate-500 py-8">
+          <div className="text-center text-xs text-slate-400 py-12 rounded-2xl border border-dashed border-slate-800 bg-slate-950/20">
             {suppliers.length === 0
               ? isAr ? 'لا يوجد موردون مسجلون بعد' : 'No suppliers registered yet'
               : isAr ? 'لا يوجد موردون مطابقون للبحث' : 'No suppliers match this search'}
           </div>
         )}
-        {pagedRows.map((sup) => {
-          const isOpen = sup.id === selectedId;
-          return (
-          <div
-            key={sup.id}
-            className={`p-4 rounded-2xl border space-y-2 text-xs transition-colors ${
-              isOpen ? 'border-blue-500/60 bg-slate-900 ring-1 ring-blue-500/30' : 'bg-slate-900 border-slate-800'
-            }`}
-          >
-            <div className="flex flex-wrap justify-between items-start gap-2">
-              <button
-                type="button"
-                onClick={() => openStatement(sup.id)}
-                className="text-start min-h-[44px] py-1"
-                aria-current={isOpen ? 'true' : undefined}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {pagedRows.map((sup) => {
+            const isOpen = sup.id === selectedId;
+            return (
+              <div
+                key={sup.id}
+                className={`p-5 rounded-2xl border flex flex-col justify-between text-xs transition-all duration-200 shadow-sm ${
+                  isOpen
+                    ? 'border-blue-500/70 bg-slate-900/95 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10'
+                    : 'bg-slate-900/80 hover:bg-slate-900 border-slate-800/80 hover:border-slate-700'
+                }`}
               >
-                <span className="font-extrabold text-slate-100 underline decoration-blue-500/50 underline-offset-4">
-                  {sup.name}
-                </span>
-                <span className="block text-amber-400 font-bold text-[10px]">{sup.code}</span>
-              </button>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openStatement(sup.id)}
-                  className="min-h-[44px] px-3 rounded-xl border border-slate-700 bg-slate-800/60 text-slate-200 font-bold flex items-center gap-1.5 hover:bg-slate-700"
-                >
-                  <ReceiptText className="w-3.5 h-3.5" aria-hidden="true" />
-                  {L('كشف الحساب', 'Statement')}
-                </button>
-                <button
-                  onClick={() => openEdit(sup)}
-                  aria-label={L(`تعديل ${sup.name}`, `Edit ${sup.name}`)}
-                  title={L('تعديل', 'Edit')}
-                  className="p-1.5 h-11 w-11 rounded-lg bg-blue-500/10 hover:bg-blue-500/30 text-blue-400 transition-colors flex items-center justify-center"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => { setDeleteError(''); setDeleteSup(sup); }}
-                  aria-label={L(`حذف ${sup.name}`, `Delete ${sup.name}`)}
-                  title={L('حذف', 'Delete')}
-                  className="p-1.5 h-11 w-11 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 transition-colors flex items-center justify-center"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openStatement(sup.id)}
+                      className="text-start min-h-[44px] py-0.5 group focus:outline-none"
+                      aria-current={isOpen ? 'true' : undefined}
+                    >
+                      <span className="font-extrabold text-slate-100 text-sm group-hover:text-blue-300 transition-colors block">
+                        {sup.name}
+                      </span>
+                      <span className="inline-block text-amber-400 font-bold font-mono text-[10px] bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md mt-1">
+                        {sup.code}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold text-blue-400">
+                        {L('الكشف مفتوح', 'Active')}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-slate-400 space-y-1.5 border-t border-slate-800/60 pt-2.5">
+                    {sup.contactPerson && (
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Building className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">{sup.contactPerson}</span>
+                      </div>
+                    )}
+                    {sup.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <a href={`tel:${sup.phone}`} dir="ltr" className="hover:text-blue-300 hover:underline">
+                          {sup.phone}
+                        </a>
+                      </div>
+                    )}
+                    {sup.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <a href={`mailto:${sup.email}`} dir="ltr" className="hover:text-blue-300 hover:underline truncate">
+                          {sup.email}
+                        </a>
+                      </div>
+                    )}
+                    {sup.taxNumber && (
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-0.5">
+                        <ShieldCheck className="w-3 h-3 text-slate-600 shrink-0" />
+                        <span>{isAr ? 'الرقم الضريبي:' : 'Tax:'} <span className="font-mono text-slate-400" dir="ltr">{sup.taxNumber}</span></span>
+                      </div>
+                    )}
+                    {sup.address && (
+                      <div className="flex items-center gap-1.5 text-slate-500 text-[11px] truncate">
+                        <MapPin className="w-3 h-3 text-slate-600 shrink-0" />
+                        <span className="truncate">{sup.address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-800/60 mt-3">
+                  <button
+                    onClick={() => openStatement(sup.id)}
+                    className={`min-h-[44px] flex-1 px-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                      isOpen
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                        : 'bg-blue-600/15 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-white'
+                    }`}
+                  >
+                    <ReceiptText className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>{L('كشف الحساب', 'Statement')}</span>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => openEdit(sup)}
+                      aria-label={L(`تعديل ${sup.name}`, `Edit ${sup.name}`)}
+                      title={L('تعديل', 'Edit')}
+                      className="min-h-[44px] min-w-[44px] rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center justify-center"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => { setDeleteError(''); setDeleteSup(sup); }}
+                      aria-label={L(`حذف ${sup.name}`, `Delete ${sup.name}`)}
+                      title={L('حذف', 'Delete')}
+                      className="min-h-[44px] min-w-[44px] rounded-xl bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 hover:text-rose-300 transition-colors flex items-center justify-center"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="text-slate-400 space-y-1">
-              {sup.contactPerson && <div>{isAr ? 'المسئول' : 'Contact'}: {sup.contactPerson}</div>}
-              {sup.phone && (
-                <div className="flex items-center gap-1.5">
-                  <Phone className="w-3 h-3 text-blue-400" />
-                  <span dir="ltr">{sup.phone}</span>
-                </div>
-              )}
-              {sup.email && (
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-3 h-3 text-blue-400" />
-                  <span dir="ltr">{sup.email}</span>
-                </div>
-              )}
-              {sup.taxNumber && (
-                <div className="text-[11px] text-slate-500">
-                  {isAr ? 'الرقم الضريبي' : 'Tax'}: {sup.taxNumber}
-                </div>
-              )}
-              {sup.address && (
-                <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                  <MapPin className="w-3 h-3" />
-                  {sup.address}
-                </div>
-              )}
-            </div>
-          </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {filtered.length > PAGE_SIZE && (
