@@ -91,6 +91,9 @@ enum InventoryLogType {
 enum PurchaseOrderStatus {
   DRAFT
   SUBMITTED
+  /// Some lines received, not all. Distinct from SUBMITTED so a partially
+  /// delivered order stays visible in the goods-receiving queue.
+  PARTIALLY_RECEIVED
   RECEIVED
   CANCELLED
 }
@@ -712,20 +715,26 @@ model Supplier {
   payments       SupplierPayment[]
 }
 
-// T13: supplier payments ledger (cash paid to suppliers, linked to POs optionally).
+// T13: supplier payments ledger (cash paid to suppliers).
 model SupplierPayment {
-  id          String   @id @default(cuid())
-  supplierId  String
-  amount      Decimal  @db.Decimal(12, 2)
-  method      String   @default("CASH")
-  reference   String?
-  notes       String?
-  createdById String?
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  supplierId      String
+  /// The order this payment settles. Nullable so a payment can be an advance
+  /// or a credit note, but payables are only reliable when it is set: without
+  /// it there is no way to know which invoice the cash actually paid.
+  purchaseOrderId String?
+  amount          Decimal  @db.Decimal(12, 2)
+  method          String   @default("CASH")
+  reference       String?
+  notes           String?
+  createdById     String?
+  createdAt       DateTime @default(now())
 
-  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplier      Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
 
   @@index([supplierId])
+  @@index([purchaseOrderId])
 }
 
 model PurchaseOrder {
@@ -743,6 +752,7 @@ model PurchaseOrder {
   supplier Supplier            @relation(fields: [supplierId], references: [id])
   branch   Branch              @relation(fields: [branchId], references: [id])
   items    PurchaseOrderItem[]
+  payments SupplierPayment[]
 }
 
 model PurchaseOrderItem {

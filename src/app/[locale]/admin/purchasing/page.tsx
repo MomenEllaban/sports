@@ -1,29 +1,113 @@
 import React from 'react';
 import { getLocale } from 'next-intl/server';
+import type { Prisma, PurchaseOrderStatus } from '@prisma/client';
 import PurchasingManager from '@/components/admin/PurchasingManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
+import { branchWhere, scopedBranchIds } from '@/lib/auth/branch-scope';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPurchasingPage() {
+const PAGE_SIZE = 20;
+
+/** Only what the order card renders. `items.product` is the heaviest include. */
+const orderSelect = {
+  id: true,
+  poNumber: true,
+  status: true,
+  totalAmount: true,
+  createdAt: true,
+  supplier: { select: { id: true, name: true } },
+  branch: { select: { id: true, name: true, nameEn: true } },
+  items: {
+    select: {
+      id: true,
+      quantityOrdered: true,
+      quantityReceived: true,
+      unitCost: true,
+      product: { select: { id: true, nameAr: true, nameEn: true, sku: true, barcode: true, costPrice: true } },
+    },
+  },
+} as const;
+
+type OrderRow = Prisma.PurchaseOrderGetPayload<{ select: typeof orderSelect }>;
+
+const loadOrders = (where: Prisma.PurchaseOrderWhereInput, page: number) =>
+  prisma.purchaseOrder.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+    select: orderSelect,
+  });
+
+export default async function AdminPurchasingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; status?: string; supplierId?: string }>;
+}) {
   const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const isAr = (await getLocale()) === 'ar';
-  const actor = session as unknown as { user?: { role?: string; branchIds?: string[] } };
-  const [suppliers, branches, products, purchaseOrders] = await Promise.all([
-    prisma.supplier.findMany({ orderBy: { name: 'asc' } }),
-    prisma.branch.findMany({ where: { isActive: true }, select: { id: true, name: true, nameEn: true } }),
-    prisma.product.findMany({
-      where: { isActive: true },
-      select: { id: true, nameAr: true, nameEn: true, sku: true, barcode: true, costPrice: true },
+  const sp = await searchParams;
+
+  const page = Math.max(1, Number(sp.page || 1) || 1);
+  const statusFilter = typeof sp.status === 'string' ? sp.status : '';
+  const supplierFilter = typeof sp.supplierId === 'string' ? sp.supplierId : '';
+
+  // The previous `session as unknown as {...}` cast duplicated the branch-scope
+  // rules and could drift from them. This is the one canonical helper.
+  const allowedBranchIds = scopedBranchIds(session);
+  // Built explicitly rather than spread from a shared helper, so the fragment is
+  // typed as PurchaseOrderWhereInput and cannot carry a foreign model's
+  // relations into this query.
+  const orderWhere: Prisma.PurchaseOrderWhereInput = {
+    ...(allowedBranchIds === null ? {} : { branchId: { in: allowedBranchIds } }),
+    ...(statusFilter ? { status: statusFilter as PurchaseOrderStatus } : {}),
+    ...(supplierFilter ? { supplierId: supplierFilter } : {}),
+  };
+
+  const [suppliers, branches, total, orders] = await Promise.all([
+    // Suppliers and branches are small lookup tables, needed in full to populate
+    // the create form's selects.
+    prisma.supplier.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, code: true } }),
+    // Scoped: the branch select used to offer every active branch in the system,
+    // so a branch manager could open a PO against a branch they cannot see.
+    prisma.branch.findMany({
+      where: { isActive: true, ...branchWhere(session) },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, nameEn: true },
     }),
-    prisma.purchaseOrder.findMany({
-      where: actor.user?.role === 'SUPER_ADMIN' ? undefined : { branch: { id: { in: actor.user?.branchIds || [] } } },
-      orderBy: { createdAt: 'desc' },
-      include: { supplier: true, branch: true, items: { include: { product: true } } },
-    }),
+    prisma.purchaseOrder.count({ where: orderWhere }),
+    // Server-side pagination. The product catalogue is no longer loaded here at
+    // all: the line picker typeaheads against /api/admin/purchasing/products.
+    loadOrders(orderWhere, page),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  // An out-of-range page (a stale bookmark, or a filter that just shrank the
+  // list) is re-read at the last real page instead of rendering nothing, which
+  // is how the other admin lists clamp. The re-read only happens when the
+  // requested page is out of range, so the normal case stays a single round trip.
+  const rows: OrderRow[] = safePage === page ? orders : await loadOrders(orderWhere, safePage);
+
+  const mapRow = (po: OrderRow) => ({
+    id: po.id,
+    poNumber: po.poNumber,
+    status: po.status,
+    createdAt: po.createdAt.toISOString(),
+    totalAmount: num(po.totalAmount),
+    supplier: po.supplier,
+    branch: po.branch,
+    items: po.items.map((i) => ({
+      id: i.id,
+      quantityOrdered: i.quantityOrdered,
+      quantityReceived: i.quantityReceived,
+      unitCost: num(i.unitCost),
+      product: { ...i.product, costPrice: num(i.product.costPrice) },
+    })),
+  });
 
   return (
     <>
@@ -36,12 +120,12 @@ export default async function AdminPurchasingPage() {
         <PurchasingManager
           suppliers={suppliers}
           branches={branches}
-          products={products.map((p) => ({ ...p, costPrice: num(p.costPrice) }))}
-          purchaseOrders={purchaseOrders.map((po) => ({
-            ...po,
-            totalAmount: num(po.totalAmount),
-            items: po.items.map((i) => ({ ...i, unitCost: num(i.unitCost), product: { ...i.product, costPrice: num(i.product.costPrice) } })),
-          }))}
+          purchaseOrders={rows.map(mapRow)}
+          totalCount={total}
+          page={safePage}
+          totalPages={totalPages}
+          statusFilter={statusFilter}
+          selectedSupplierId={supplierFilter}
         />
       </div>
     </>

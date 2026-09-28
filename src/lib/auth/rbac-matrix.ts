@@ -76,6 +76,7 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/leaves': { methods: { GET: HR_READ, POST: BM } },
   '/api/admin/leaves/[id]': { methods: { GET: HR_READ, POST: BM } },
   '/api/admin/purchase-orders': { methods: { POST: BM } },
+  '/api/admin/purchasing/products': { methods: { GET: BM } },
   '/api/admin/purchase-orders/[id]': { methods: { PATCH: BM } },
   '/api/admin/purchase-orders/[id]/return': { methods: { POST: BM } },
   '/api/admin/inventory': { methods: { GET: STOCK_READ } },
