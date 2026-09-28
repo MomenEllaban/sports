@@ -200,7 +200,7 @@ export default function Header() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
-            className="xl:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all shrink-0"
+            className="lg:hidden xl:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 transition-all shrink-0"
             aria-label={isAr ? 'القائمة' : 'Toggle menu'}
             aria-expanded={mobileOpen}
           >
@@ -211,7 +211,7 @@ export default function Header() {
 
       {/* Mobile Navigation */}
       {mobileOpen && (
-        <nav className="xl:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md animate-fade-in" aria-label="Mobile">
+        <nav className="lg:hidden xl:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md animate-fade-in" aria-label="Mobile">
           <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-sm font-bold text-slate-200">
             {[...navLinks, { href: '/pos', label: t('pos') }, { href: '/admin', label: t('admin') }].map((link) => {
               const active = isActive(link.href);

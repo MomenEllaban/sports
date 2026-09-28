@@ -341,10 +341,10 @@ export default function EtaTaxManager({
             </h4>
             <p className="text-xs text-slate-400 mt-1 font-mono">{activeQrModal.invoiceNumber}</p>
 
-            <div className="p-4 bg-[#ffffff] rounded-2xl inline-block mt-4 shadow-inner">
+            <div className="p-4 bg-white rounded-2xl inline-block mt-4 shadow-inner">
               {/* Fallback QR representation */}
-              <div className="w-44 h-44 flex flex-col items-center justify-center text-slate-900 font-mono text-[10px] break-all border-2 border-slate-900 p-2">
-                <QrCode className="w-20 h-20 text-slate-950 mb-1" />
+              <div className="w-44 h-44 flex flex-col items-center justify-center bg-white text-slate-900 font-mono text-[10px] break-all border-2 border-slate-900 p-2">
+                <QrCode className="w-20 h-20 text-slate-950 bg-white mb-1" />
                 <span className="font-bold">{activeQrModal.invoiceNumber}</span>
                 <span>VAT 14%: {activeQrModal.vatAmount} EGP</span>
               </div>

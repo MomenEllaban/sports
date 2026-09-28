@@ -70,28 +70,28 @@ export default function ProductCard({
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden border border-slate-800 flex flex-col justify-between group">
+    <div className="glass-card rounded-2xl overflow-hidden border border-line flex flex-col justify-between group hover:border-blue-500/40 hover:-translate-y-1.5 transition-all duration-300 shadow-sm">
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full bg-slate-900 overflow-hidden block">
+      <div className="relative aspect-square w-full bg-surface overflow-hidden block">
         <Link href={`/catalog/${product.id}`} className="absolute inset-0 block">
           <SafeImage
             src={product.images[0] || '/placeholder-product.svg'}
             alt={name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
           />
         </Link>
 
         {/* Category & Featured Badge */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
-          <span className="px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-[11px] font-semibold text-slate-300 border border-slate-700">
+          <span className="px-2.5 py-1 rounded-full bg-surface/90 backdrop-blur-md text-[11px] font-bold text-ink border border-line shadow-sm">
             {categoryName}
           </span>
-          <span className="flex items-center gap-1 pointer-events-auto">
+          <span className="flex items-center gap-1.5 pointer-events-auto">
             <WishlistButton productId={product.id} productName={name} />
             {product.isFeatured && (
-              <span className="px-2.5 py-1 rounded-full bg-amber-500/90 text-slate-950 text-[10px] font-extrabold uppercase">
+              <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-[10px] font-black uppercase shadow-md shadow-amber-500/20">
                 {L('مميز', 'Featured')}
               </span>
             )}
@@ -104,14 +104,17 @@ export default function ProductCard({
         <div className="space-y-2">
           {/* Per-Branch Live Stock Indicator */}
           <div className="flex items-center gap-1.5 text-xs font-semibold">
-            <MapPin className="w-3.5 h-3.5 text-amber-400" />
+            <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             {inStock ? (
-              <span className="text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="text-emerald-500 flex items-center gap-1.5 font-bold">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
                 {L(`متوفر بفرع الإبراهيمية (${ibrahimeyahStock} قطعة)`, `Available at Ibrahimeyah branch (${ibrahimeyahStock} units)`)}
               </span>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1">
+              <span className="text-rose-500 flex items-center gap-1.5 font-bold">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 {L('غير متوفر حالياً', 'Currently unavailable')}
               </span>
@@ -120,27 +123,27 @@ export default function ProductCard({
 
           <Link
             href={`/catalog/${product.id}`}
-            className="inline-flex min-h-[44px] items-center font-bold text-slate-100 text-base line-clamp-2 leading-snug group-hover:text-blue-400 transition-colors hover:underline"
+            className="inline-flex min-h-[44px] items-center font-bold text-ink text-base line-clamp-2 leading-snug group-hover:text-blue-500 transition-colors hover:underline"
           >
             {name}
           </Link>
-          <p className="text-xs text-slate-400 line-clamp-2">
+          <p className="text-xs text-ink-muted line-clamp-2">
             {isAr ? product.descriptionAr : product.descriptionEn}
           </p>
         </div>
 
         {/* Pricing & Actions */}
-        <div className="space-y-3 pt-3 border-t border-slate-800/80">
+        <div className="space-y-3 pt-3 border-t border-line">
           <div className="flex items-baseline justify-between">
             <div>
-              <span className="text-2xl font-black text-slate-100">
+              <span className="text-2xl font-black text-ink">
                 {product.price.toLocaleString()}
               </span>
-              <span className="text-xs font-bold text-amber-400 ml-1">
+              <span className="text-xs font-bold text-amber-500 ml-1">
                 {tCommon('currency')}
               </span>
             </div>
-            <span className="text-[10px] text-slate-400">{L('شامل ضريبة 14%', 'Includes 14% VAT')}</span>
+            <span className="text-[10px] text-ink-muted">{L('شامل ضريبة 14%', 'Includes 14% VAT')}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -148,6 +151,7 @@ export default function ProductCard({
               onClick={handleAddToCart}
               disabled={!inStock}
               variant="primary"
+              className="shimmer-hover font-bold text-xs"
             >
               <ShoppingCart className="w-4 h-4" />
               {tStore('addToCart')}
@@ -157,9 +161,9 @@ export default function ProductCard({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-700 border border-emerald-500/40 text-emerald-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+              className="px-3 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-500 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
             >
-              <MessageCircle className="w-4 h-4 text-emerald-400" />
+              <MessageCircle className="w-4 h-4 text-emerald-500" />
               {L('طلب واتساب', 'Order on WhatsApp')}
             </a>
           </div>

@@ -265,7 +265,7 @@ export default function WebsiteContentManager({
 
               {/* Banner Live Visual Preview Card */}
               <div
-                className="relative rounded-2xl overflow-hidden min-h-[160px] p-6 flex flex-col justify-end text-white border border-slate-700 shadow-xl"
+                className="relative rounded-2xl overflow-hidden min-h-[160px] p-6 flex flex-col justify-end text-white border border-slate-700 shadow-xl bg-[#0f172a]"
                 style={{
                   backgroundImage: `linear-gradient(to top, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.3)), url(${b.imageUrl})`,
                   backgroundSize: 'cover',
