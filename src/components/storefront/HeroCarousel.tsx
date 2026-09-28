@@ -14,6 +14,10 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStart = useRef<number | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const tiltRef = useRef<HTMLDivElement | null>(null);
+  const isReducedMotion = useRef(false);
+  const rafId = useRef<number | null>(null);
 
   const count = banners.length;
   // Guard against the list shrinking (admin hid a slide) while it is mounted.
@@ -30,15 +34,76 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
     return () => clearInterval(id);
   }, [count, paused]);
 
+  // Track prefers-reduced-motion
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    isReducedMotion.current = mql.matches;
+    const handler = (e: MediaQueryListEvent) => {
+      isReducedMotion.current = e.matches;
+    };
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  // Reset 3D tilt whenever slide index changes
+  useEffect(() => {
+    if (tiltRef.current) {
+      tiltRef.current.style.transition = 'transform 0.4s ease-out';
+      tiltRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)';
+    }
+  }, [safeIndex]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (isReducedMotion.current) return;
+    // Don't calculate or apply tilt on touch/coarse pointers (prevents any mobile performance hit)
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) return;
+
+    const el = sectionRef.current;
+    if (!el || !tiltRef.current) return;
+
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    // Relative mouse position normalized from -1 to 1
+    const normX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const normY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+
+    // Gentle, non-intrusive tilt angles (±2.5deg) and subtle counter-depth shift (±8px)
+    const rotX = -normY * 2.5;
+    const rotY = normX * 3.5;
+    const transX = -normX * 8;
+    const transY = -normY * 8;
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      if (tiltRef.current) {
+        tiltRef.current.style.transition = 'transform 0.15s ease-out';
+        tiltRef.current.style.transform = `perspective(1000px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) translate3d(${transX.toFixed(1)}px, ${transY.toFixed(1)}px, 0)`;
+      }
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setPaused(false);
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    if (tiltRef.current) {
+      tiltRef.current.style.transition = 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+      tiltRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translate3d(0, 0, 0)';
+    }
+  };
+
   if (count === 0) return null;
 
   return (
     <section
+      ref={sectionRef}
       aria-roledescription="carousel"
       aria-label={L('عروض المتجر', 'Store offers')}
       className="relative overflow-hidden bg-[#020617] border-b border-slate-800"
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onTouchStart={(e) => {
         touchStart.current = e.touches[0]?.clientX ?? null;
       }}
@@ -78,29 +143,38 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
             >
               {banner.imageUrl ? (
                 <>
-                  {/* Plain <img> on purpose: image URLs are admin-supplied */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={banner.imageUrl}
-                    alt=""
-                    aria-hidden="true"
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    fetchPriority={i === 0 ? 'high' : 'auto'}
-                    className={`absolute inset-0 w-full h-full object-cover transition-transform duration-[7000ms] ease-out ${
-                      active ? 'scale-105' : 'scale-100'
-                    }`}
-                  />
-                  {/* Directional scrim: deep dark coverage over copy area */}
+                  {/* Subtle 3D-tiltable image container with overflow padding */}
                   <div
-                    className={`absolute inset-0 ${
-                      isAr
-                        ? 'bg-gradient-to-l from-[#020617]/95 via-[#020617]/85 to-[#020617]/30'
-                        : 'bg-gradient-to-r from-[#020617]/95 via-[#020617]/85 to-[#020617]/30'
-                    }`}
+                    ref={active ? tiltRef : undefined}
+                    className="absolute -inset-4 will-change-transform pointer-events-none"
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    {/* Plain <img> on purpose: image URLs are admin-supplied */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={banner.imageUrl}
+                      alt=""
+                      aria-hidden="true"
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      fetchPriority={i === 0 ? 'high' : 'auto'}
+                      className={`w-full h-full object-cover transition-transform duration-[7000ms] ease-out motion-reduce:transform-none motion-reduce:transition-none ${
+                        active ? 'scale-108' : 'scale-100'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Directional scrim: concentrated exclusively on the copy/text side and smoothly fading to transparent */}
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: isAr
+                        ? 'linear-gradient(to left, rgba(2, 6, 23, 0.85) 0%, rgba(2, 6, 23, 0.55) 28%, rgba(2, 6, 23, 0.15) 55%, transparent 75%)'
+                        : 'linear-gradient(to right, rgba(2, 6, 23, 0.85) 0%, rgba(2, 6, 23, 0.55) 28%, rgba(2, 6, 23, 0.15) 55%, transparent 75%)',
+                    }}
                   />
-                  {/* Grounding vertical scrim: dark bottom for controls */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/60 to-[#020617]/20" />
+                  {/* Soft bottom grounding scrim for pagination indicators and seam */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#020617]/70 via-[#020617]/15 to-transparent pointer-events-none" />
                 </>
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-[#172554] via-[#020617] to-[#1e1b4b]" />
@@ -121,7 +195,7 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                   ) : null}
 
                   <h1
-                    className={`text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)] ${
+                    className={`text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.95)] ${
                       active ? 'animate-fade-up stagger-1' : ''
                     }`}
                   >
@@ -130,7 +204,7 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
 
                   {subtitle ? (
                     <p
-                      className={`text-base sm:text-lg font-medium leading-relaxed max-w-xl text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.9)] opacity-95 ${
+                      className={`text-base sm:text-lg font-medium leading-relaxed max-w-xl text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] opacity-95 ${
                         active ? 'animate-fade-up stagger-2' : ''
                       }`}
                       style={{ color: '#ffffff' }}
@@ -141,29 +215,29 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
 
                   {banner.ctaLink && cta ? (
                     <div className={`pt-2 flex flex-wrap items-center gap-3 sm:gap-4 ${active ? 'animate-fade-up stagger-3' : ''}`}>
-                      {/* Primary CTA: Royal Athletic Blue */}
+                      {/* Primary CTA: High-contrast athletic blue with vibrant glow */}
                       <Link
                         href={banner.ctaLink}
                         style={{ color: '#ffffff' }}
-                        className="inline-flex items-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-sm sm:text-base transition-all duration-300 shadow-xl shadow-blue-600/35 hover:shadow-blue-500/50 hover:-translate-y-0.5 active:translate-y-0 border border-blue-400/30 group"
+                        className="inline-flex items-center gap-2.5 px-7 py-3.5 sm:px-8 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-400 hover:via-blue-500 hover:to-indigo-500 active:from-blue-700 active:to-indigo-700 text-white font-extrabold text-sm sm:text-base transition-all duration-300 shadow-xl shadow-blue-500/40 hover:shadow-blue-400/60 hover:-translate-y-0.5 active:translate-y-0 border border-blue-400/50 hover:border-blue-300 ring-2 ring-blue-500/20 group"
                       >
                         <ShoppingCart className="w-5 h-5 text-white transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6" />
-                        <span className="text-white font-bold" style={{ color: '#ffffff' }}>{cta}</span>
+                        <span className="text-white font-black" style={{ color: '#ffffff' }}>{cta}</span>
                       </Link>
 
-                      {/* Secondary CTA: Sleek Frosted Glass */}
+                      {/* Secondary CTA: Crisp high-contrast frosted glass */}
                       <Link
                         href="/catalog"
                         style={{ color: '#ffffff' }}
-                        className="inline-flex items-center gap-2 px-6 py-3.5 sm:px-7 sm:py-4 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/5 text-white font-bold text-sm sm:text-base border border-white/25 hover:border-white/50 backdrop-blur-md shadow-lg shadow-black/15 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 group"
+                        className="inline-flex items-center gap-2 px-6 py-3.5 sm:px-7 sm:py-4 rounded-xl bg-white/20 hover:bg-white/30 active:bg-white/10 text-white font-extrabold text-sm sm:text-base border-2 border-white/60 hover:border-white backdrop-blur-md shadow-lg shadow-black/20 hover:shadow-white/10 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 group"
                       >
-                        <span className="text-white font-bold" style={{ color: '#ffffff' }}>
+                        <span className="text-white font-extrabold" style={{ color: '#ffffff' }}>
                           {isAr ? 'تصفح كل التشكيلات' : 'Explore Collections'}
                         </span>
                         {isAr ? (
-                          <ChevronLeft className="w-4 h-4 text-white/90 transition-transform duration-300 group-hover:-translate-x-1" />
+                          <ChevronLeft className="w-4 h-4 text-white transition-transform duration-300 group-hover:-translate-x-1" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-white/90 transition-transform duration-300 group-hover:translate-x-1" />
+                          <ChevronRight className="w-4 h-4 text-white transition-transform duration-300 group-hover:translate-x-1" />
                         )}
                       </Link>
                     </div>
