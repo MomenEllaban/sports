@@ -81,25 +81,36 @@ export default async function SuppliersPage({
   };
 
   const [statement, orderTotal, openOrders, payments] = await Promise.all([
-    prisma.purchaseOrder.findMany({
-      where: orderScope,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      select: statementSelect,
-    }),
-    prisma.purchaseOrder.count({ where: orderScope }),
+    // Both the history page and its count are only rendered for a chosen
+    // supplier. Unscoped they read one supplier-sized page of every PO in the
+    // branch just to feed an empty state.
+    selectedId
+      ? prisma.purchaseOrder.findMany({
+          where: orderScope,
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * PAGE_SIZE,
+          take: PAGE_SIZE,
+          select: statementSelect,
+        })
+      : Promise.resolve([]),
+    selectedId ? prisma.purchaseOrder.count({ where: orderScope }) : Promise.resolve(0),
     // Bounded scan used only for the totals. A supplier statement has to cover
     // every open order, not the page on screen, and outstanding balance is not
     // expressible as a simple `where`, so this walks the open set. Past the cap
     // the figures are a lower bound and the UI says so rather than implying
     // completeness.
-    prisma.purchaseOrder.findMany({
-      where: { ...orderScope, status: { in: OPEN_STATUSES } },
-      orderBy: { createdAt: 'desc' },
-      take: SCAN_LIMIT,
-      select: statementSelect,
-    }),
+    //
+    // It only runs once a supplier is actually chosen. Unscoped it walked up to
+    // SCAN_LIMIT orders with their items and payments on every visit to the
+    // page, purely to compute totals that the empty state does not render.
+    selectedId
+      ? prisma.purchaseOrder.findMany({
+          where: { ...orderScope, status: { in: OPEN_STATUSES } },
+          orderBy: { createdAt: 'desc' },
+          take: SCAN_LIMIT,
+          select: statementSelect,
+        })
+      : Promise.resolve([]),
     prisma.supplierPayment.findMany({
       where: paymentScope,
       orderBy: { createdAt: 'desc' },
@@ -158,7 +169,10 @@ export default async function SuppliersPage({
 
   const totalPages = Math.max(1, Math.ceil(orderTotal / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const rows = safePage === page ? statement : await prisma.purchaseOrder.findMany({
+  // Clamp an out-of-range page (a stale bookmark, or a supplier switch) to the
+  // last real page. Skipped with no supplier chosen, since there is no history
+  // to re-read and the empty state renders regardless of `page`.
+  const rows = !selectedId || safePage === page ? statement : await prisma.purchaseOrder.findMany({
     where: orderScope,
     orderBy: { createdAt: 'desc' },
     skip: (safePage - 1) * PAGE_SIZE,
@@ -179,22 +193,30 @@ export default async function SuppliersPage({
           <h1 className="text-2xl font-black text-slate-100">{L('دليل الموردين وكشف الحساب', 'Supplier directory & account statement')}</h1>
           <p className="text-xs text-slate-400 mt-0.5">{L('إدارة بيانات الموردين وأوامر التوريد وملخص الالتزامات والمدفوعات لكل مورد.', 'Manage supplier records, purchase orders, commitments, and payments per supplier.')}</p>
         </div>
-        {selected && <span className="status-info rounded-full border px-3 py-1 text-xs font-bold">{selected.name}</span>}
       </div>
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">{L('بيانات الموردين', 'Supplier records')}</h2>
-        <SuppliersManager suppliers={suppliers} />
+        {/* This list is the only place a supplier is picked. It used to be
+            repeated as a second row of chips above the statement, so the same
+            names appeared twice on one page and neither copy carried the
+            selection state. */}
+        <SuppliersManager suppliers={suppliers} selectedId={selectedId} />
       </div>
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">{L('اختر موردًا لعرض كشف حسابه', 'Select a supplier to view their statement')}</h2>
-        <div className="flex flex-wrap gap-2">
-          {suppliers.map((supplier) => (
-            <Link key={supplier.id} href={`/admin/purchasing/suppliers?supplierId=${encodeURIComponent(supplier.id)}`} className={`min-h-[44px] inline-flex items-center rounded-xl border px-3 text-xs font-bold ${selectedId === supplier.id ? 'status-info border' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`}>
-              {supplier.name}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <h2 className="font-extrabold text-sm text-slate-100">
+            {selected ? L(`كشف حساب: ${selected.name}`, `Statement: ${selected.name}`) : L('كشف الحساب', 'Account statement')}
+          </h2>
+          {selected && (
+            <Link
+              href="/admin/purchasing/suppliers"
+              className="min-h-[44px] inline-flex items-center rounded-xl border border-slate-700 bg-slate-800/60 px-3 text-xs font-bold text-slate-200 hover:bg-slate-700"
+            >
+              {L('إغلاق الكشف', 'Close statement')}
             </Link>
-          ))}
+          )}
         </div>
         {selected ? (
           <>
@@ -265,7 +287,9 @@ export default async function SuppliersPage({
       </div>
 
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
-        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">{L('المدفوعات', 'Payments')}</h2>
+        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">
+          {selected ? L(`مدفوعات ${selected.name}`, `${selected.name} payments`) : L('المدفوعات', 'Payments')}
+        </h2>
         <SupplierPayments
           suppliers={suppliers}
           initial={payments.map((payment) => ({

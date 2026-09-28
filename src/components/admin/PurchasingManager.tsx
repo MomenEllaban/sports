@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { usePathname, useRouter } from '@/i18n/routing';
-import { Plus, Search, PackageSearch } from 'lucide-react';
+import { usePathname, useRouter, Link } from '@/i18n/routing';
+import { Plus, Search, PackageSearch, X } from 'lucide-react';
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button, NumberField } from '@/components/ui/foundation';
@@ -40,20 +40,29 @@ export default function PurchasingManager({
   branches,
   purchaseOrders,
   totalCount,
+  totalAll,
+  statusCounts,
   page,
   totalPages,
   statusFilter,
   selectedSupplierId,
+  poQuery = '',
 }: {
-  suppliers: SupplierOpt[];
-  branches: BranchOpt[];
+  suppliers: { id: string; name: string; code: string }[];
+  branches: { id: string; name: string; nameEn: string | null }[];
   purchaseOrders: PoRow[];
   totalCount: number;
+  /** Unfiltered total, so the "All" chip is not the status-filtered count. */
+  totalAll: number;
+  /** Per-status totals within the current supplier and search scope. */
+  statusCounts: Record<string, number>;
   page: number;
   totalPages: number;
   statusFilter: string;
   selectedSupplierId: string;
+  poQuery?: string;
 }) {
+
   const t = useTranslations('admin');
   const locale = useLocale();
   const pathname = usePathname() || '';
@@ -71,6 +80,9 @@ export default function PurchasingManager({
   const [lines, setLines] = useState<PoLine[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [poNotes, setPoNotes] = useState('');
+  // Seeded from the URL so the box matches the list after a reload or a
+  // bookmarked search, and typed into locally between submits.
+  const [q, setQ] = useState(poQuery);
 
   const [matches, setMatches] = useState<ProductOpt[]>([]);
   const [searching, setSearching] = useState(false);
@@ -176,20 +188,24 @@ export default function PurchasingManager({
   };
 
   /** One builder for every navigation, so filters survive a page change. */
-  const buildUrl = (next: { page?: number; status?: string; supplierId?: string }) => {
+  const buildUrl = (next: { page?: number; status?: string; supplierId?: string; q?: string }) => {
     const params = new URLSearchParams();
     const status = next.status !== undefined ? next.status : statusFilter;
     const supplier = next.supplierId !== undefined ? next.supplierId : selectedSupplierId;
+    const q = next.q !== undefined ? next.q : poQuery;
     if (status) params.set('status', status);
     if (supplier) params.set('supplierId', supplier);
+    if (q) params.set('q', q);
     if ((next.page ?? 1) > 1) params.set('page', String(next.page ?? 1));
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   };
 
-  const navigate = (next: { page?: number; status?: string; supplierId?: string }) =>
+  const navigate = (next: { page?: number; status?: string; supplierId?: string; q?: string }) =>
     router.push(buildUrl({ page: 1, ...next }));
 
+  // `aria-pressed` is not decoration: these are toggles for one filter slot, so
+  // a screen reader has to be able to tell the active chip from the rest.
   const statusBtn = (value: string, active: boolean) =>
     `min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
       active
@@ -203,16 +219,45 @@ export default function PurchasingManager({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => navigate({ status: '' })} className={statusBtn('', statusFilter === '')}>
-            {L('الكل', 'All')} ({totalCount})
+          <button aria-pressed={statusFilter === ''} onClick={() => navigate({ status: '' })} className={statusBtn('', statusFilter === '')}>
+            {L('الكل', 'All')} ({statusFilter ? totalAll : totalCount})
           </button>
           {STATUS_FILTERS.map((value) => (
-            <button key={value} onClick={() => navigate({ status: value })} className={statusBtn(value, statusFilter === value)}>
-              {t(`status_${value}`)}
+            <button key={value} aria-pressed={statusFilter === value} onClick={() => navigate({ status: value })} className={statusBtn(value, statusFilter === value)}>
+              {t(`status_${value}`)} ({statusCounts[value] ?? 0})
             </button>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Submits on Enter rather than on every keystroke: the list is server
+              paginated, so each keystroke would be a round trip. */}
+          <form
+            onSubmit={(e) => { e.preventDefault(); navigate({ q: q.trim() }); }}
+            className="relative"
+            role="search"
+          >
+            <label className="sr-only" htmlFor="po-search">{L('ابحث برقم أمر التوريد', 'Search by PO number')}</label>
+            <Search className="w-4 h-4 text-slate-500 absolute start-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
+            <input
+              id="po-search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={L('رقم أمر التوريد', 'PO number')}
+              autoComplete="off"
+              className="min-h-[44px] w-44 rounded-xl border border-slate-700 bg-slate-900 ps-9 pe-2 text-xs text-slate-200 placeholder:text-slate-500"
+            />
+            {poQuery && (
+              <button
+                type="button"
+                onClick={() => { setQ(''); navigate({ q: '' }); }}
+                aria-label={L('مسح البحث', 'Clear search')}
+                title={L('مسح البحث', 'Clear search')}
+                className="absolute end-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </form>
           <label className="sr-only" htmlFor="po-supplier">{L('تصفية حسب المورد', 'Filter by supplier')}</label>
           <select
             id="po-supplier"
@@ -231,17 +276,51 @@ export default function PurchasingManager({
       </div>
 
       <div className="space-y-3">
-        {purchaseOrders.length === 0 && <div className="text-center text-xs text-slate-500 py-8">{t('noData')}</div>}
+        {purchaseOrders.length === 0 && (
+          <div className="text-center text-xs text-slate-500 py-8 space-y-2">
+            <p>{statusFilter || poQuery ? L('لا توجد نتائج مطابقة للفلاتر الحالية', 'No results match the current filters') : t('noData')}</p>
+            {(statusFilter || poQuery) && (
+              <button
+                onClick={() => navigate({ status: '', q: '', supplierId: '' })}
+                className="min-h-[44px] px-4 py-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 font-bold hover:bg-slate-700"
+              >
+                {L('مسح كل الفلاتر', 'Clear all filters')}
+              </button>
+            )}
+          </div>
+        )}
         {purchaseOrders.map((po) => (
           <div key={po.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs space-y-2">
             <div className="flex flex-wrap justify-between items-center gap-2">
               <span className="font-extrabold text-amber-400">{po.poNumber}</span>
               <StatusBadge value={po.status} />
             </div>
-            <div className="text-slate-300">{L('المورد', 'Supplier')}: {po.supplier.name}</div>
-            <div className="text-slate-400">
-              {po.items.map((i) => `${pName(i.product)} (${i.quantityReceived}/${i.quantityOrdered})`).join(isAr ? '، ' : ', ')}
+            {/* `branch` and `createdAt` were both selected and mapped by the page
+                but never rendered, so two of the three things you scan a PO for
+                were invisible. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-400">
+              <span>{L('المورد', 'Supplier')}: <span className="text-slate-200 font-bold">{po.supplier.name}</span></span>
+              <span>{L('الفرع', 'Branch')}: <span className="text-slate-200 font-bold">{isAr ? po.branch?.name || '—' : po.branch?.nameEn || '—'}</span></span>
+              <span>{L('التاريخ', 'Date')}: <span className="text-slate-200 font-bold">{new Date(po.createdAt).toLocaleDateString(isAr ? 'ar-EG' : 'en-GB')}</span></span>
             </div>
+            {/* The item list used to be every line joined into one sentence, which
+                becomes unreadable past a handful of lines. It is capped and the
+                remainder is counted, with a received progress marker per line. */}
+            <ul className="space-y-1 text-slate-400">
+              {po.items.slice(0, 4).map((i) => (
+                <li key={i.id} className="flex flex-wrap items-baseline gap-2">
+                  <span className="text-slate-300">{pName(i.product)}</span>
+                  <span className="text-[11px] font-bold">
+                    {L(`مستلم ${i.quantityReceived} من ${i.quantityOrdered}`, `received ${i.quantityReceived} of ${i.quantityOrdered}`)}
+                  </span>
+                </li>
+              ))}
+              {po.items.length > 4 && (
+                <li className="text-[11px] font-bold text-slate-500">
+                  {L(`+ ${po.items.length - 4} صنف آخر`, `+ ${po.items.length - 4} more items`)}
+                </li>
+              )}
+            </ul>
             <div className="flex flex-wrap justify-between items-center gap-2 pt-1">
               <span className="font-black text-slate-100">{money(po.totalAmount)}</span>
               <div className="flex flex-wrap gap-2">
@@ -268,12 +347,12 @@ export default function PurchasingManager({
                     which let the same order be received through two different
                     forms with different validation. */}
                 {(po.status === 'SUBMITTED' || po.status === 'PARTIALLY_RECEIVED') && (
-                  <a
-                    href={`${pathname}/../receiving`}
+                  <Link
+                    href="/admin/purchasing/receiving"
                     className="min-h-[44px] inline-flex items-center px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-bold text-xs"
                   >
                     {L('الاستلام من صفحة الاستلام', 'Receive on the GRN page')}
-                  </a>
+                  </Link>
                 )}
               </div>
             </div>

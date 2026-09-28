@@ -45,7 +45,7 @@ const loadOrders = (where: Prisma.PurchaseOrderWhereInput, page: number) =>
 export default async function AdminPurchasingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; supplierId?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; supplierId?: string; q?: string }>;
 }) {
   const session = await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const isAr = (await getLocale()) === 'ar';
@@ -54,6 +54,9 @@ export default async function AdminPurchasingPage({
   const page = Math.max(1, Number(sp.page || 1) || 1);
   const statusFilter = typeof sp.status === 'string' ? sp.status : '';
   const supplierFilter = typeof sp.supplierId === 'string' ? sp.supplierId : '';
+  // Bounded free-text lookup. Only the PO number is searchable: it is the one
+  // identifier users actually have in hand from a printed order or a phone call.
+  const poQuery = (typeof sp.q === 'string' ? sp.q : '').trim().slice(0, 40);
 
   // The previous `session as unknown as {...}` cast duplicated the branch-scope
   // rules and could drift from them. This is the one canonical helper.
@@ -65,9 +68,23 @@ export default async function AdminPurchasingPage({
     ...(allowedBranchIds === null ? {} : { branchId: { in: allowedBranchIds } }),
     ...(statusFilter ? { status: statusFilter as PurchaseOrderStatus } : {}),
     ...(supplierFilter ? { supplierId: supplierFilter } : {}),
+    ...(poQuery ? { poNumber: { contains: poQuery } } : {}),
   };
 
-  const [suppliers, branches, total, orders] = await Promise.all([
+  // The status chips are built from `total`, which is the count *after* the
+  // status filter, so the "All" chip used to report the filtered total and every
+  // other chip reported nothing. The tabs need the real per-status counts, and
+  // an unfiltered total, so they are counted separately.
+  const scopeOnly: Prisma.PurchaseOrderWhereInput = {
+    ...(allowedBranchIds === null ? {} : { branchId: { in: allowedBranchIds } }),
+  };
+  const scopeWithSearch: Prisma.PurchaseOrderWhereInput = {
+    ...scopeOnly,
+    ...(supplierFilter ? { supplierId: supplierFilter } : {}),
+    ...(poQuery ? { poNumber: { contains: poQuery } } : {}),
+  };
+
+  const [suppliers, branches, total, orders, totalAll, statusGroups] = await Promise.all([
     // Suppliers and branches are small lookup tables, needed in full to populate
     // the create form's selects.
     prisma.supplier.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true, code: true } }),
@@ -82,7 +99,19 @@ export default async function AdminPurchasingPage({
     // Server-side pagination. The product catalogue is no longer loaded here at
     // all: the line picker typeaheads against /api/admin/purchasing/products.
     loadOrders(orderWhere, page),
+    prisma.purchaseOrder.count({ where: scopeOnly }),
+    // One grouped query instead of one count per status.
+    prisma.purchaseOrder.groupBy({
+      by: ['status'],
+      where: scopeWithSearch,
+      _count: { _all: true },
+    }),
   ]);
+
+  const statusCounts = statusGroups.reduce<Record<string, number>>((acc, g) => {
+    acc[g.status] = g._count._all;
+    return acc;
+  }, {});
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -116,16 +145,18 @@ export default async function AdminPurchasingPage({
         <p className="text-xs text-slate-400 mt-0.5">{isAr ? 'إنشاء ومتابعة أوامر شراء البضائع والمستلزمات الرياضية' : 'Create and track purchase orders for goods and sports equipment'}</p>
       </div>
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">
-        <h2 className="font-extrabold text-sm text-slate-100 border-b border-slate-800 pb-3">{isAr ? 'أوامر الشراء والتوريد (Purchase Orders)' : 'Purchase orders'}</h2>
         <PurchasingManager
           suppliers={suppliers}
           branches={branches}
           purchaseOrders={rows.map(mapRow)}
           totalCount={total}
+          totalAll={totalAll}
+          statusCounts={statusCounts}
           page={safePage}
           totalPages={totalPages}
           statusFilter={statusFilter}
           selectedSupplierId={supplierFilter}
+          poQuery={poQuery}
         />
       </div>
     </>
