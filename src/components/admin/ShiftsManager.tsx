@@ -568,7 +568,7 @@ export default function ShiftsManager({
                 <button
                   type="submit"
                   disabled={isSubmittingClose || !actualCashInput}
-                  className="px-5 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 disabled:opacity-60 text-slate-950 font-black text-xs"
+                  className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-600 disabled:opacity-60 text-white font-black text-xs"
                 >
                   {isSubmittingClose ? (isAr ? 'جاري الإغلاق...' : 'Closing...') : (isAr ? 'تأكيد الإغلاق الإداري' : 'Confirm Close')}
                 </button>

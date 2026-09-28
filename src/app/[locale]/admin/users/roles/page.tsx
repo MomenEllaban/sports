@@ -62,7 +62,7 @@ export default async function AdminRolesPage() {
                   <tr key={path} className="hover:bg-slate-900/50">
                     <td className="p-3 font-mono text-[10px] text-blue-300" dir="ltr">{path}</td>
                     <td className="p-3 text-slate-300">{methods.map(([method]) => method).join(' · ')}</td>
-                    {roles.map((role) => <td key={role} className="p-3 text-center">{methods.some(([, value]) => Array.isArray(value) && value.includes(role)) ? <Check className="mx-auto h-4 w-4 text-emerald-400" aria-label={isAr ? 'مسموح' : 'Allowed'} /> : <X className="mx-auto h-4 w-4 text-slate-700" aria-label={isAr ? 'غير مسموح' : 'Not allowed'} />}</td>)}
+                    {roles.map((role) => <td key={role} className="p-3 text-center">{methods.some(([, value]) => Array.isArray(value) && value.includes(role)) ? <Check className="mx-auto h-4 w-4 text-emerald-400" aria-label={isAr ? 'مسموح' : 'Allowed'} /> : <X className="mx-auto h-4 w-4 text-slate-500" aria-label={isAr ? 'غير مسموح' : 'Not allowed'} />}</td>)}
                   </tr>
                 );
               })}

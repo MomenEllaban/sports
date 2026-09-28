@@ -324,7 +324,7 @@ export default function ReceivablesManager({ branches }: { branches: BranchOpt[]
                           onClick={() => {
                             router.push(`/admin/sales/payments?customerId=${selectedCustomer.customerId}&invoiceId=${inv.id}`);
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1"
                         >
                           <CreditCard className="w-3 h-3" />
                           {L('تحصيل', 'Collect')}

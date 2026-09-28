@@ -317,7 +317,7 @@ export default function TransfersManager({
                   type="button"
                   disabled={busyId === tr.id}
                   onClick={() => void act(tr, 'approve')}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-xs"
                 >
                   {t('transferApprove')}
                 </button>
@@ -327,7 +327,7 @@ export default function TransfersManager({
                   type="button"
                   disabled={busyId === tr.id}
                   onClick={() => void act(tr, 'reject').catch(() => null)}
-                  className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 border border-rose-500/40 text-rose-400 hover:text-white font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-700 border border-rose-500/40 text-rose-400 hover:text-white font-bold text-xs"
                 >
                   {t('transferReject')}
                 </button>
@@ -521,7 +521,7 @@ export default function TransfersManager({
             <button
               type="submit"
               disabled={saving || !cancelReason.trim()}
-              className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all"
+              className="w-full py-3 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all"
             >
               {saving ? t('loading') : t('confirm')}
             </button>

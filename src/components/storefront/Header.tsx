@@ -15,7 +15,7 @@ function WishlistCount() {
   const count = useWishlistCount();
   if (count === 0) return null;
   return (
-    <span className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-rose-500 text-white font-bold text-xs flex items-center justify-center border-2 border-slate-950 tabular-nums">
+    <span className="absolute -top-1.5 -end-1.5 w-5 h-5 rounded-full bg-rose-700 text-white font-bold text-xs flex items-center justify-center border-2 border-slate-950 tabular-nums">
       {count > 99 ? '99+' : count}
     </span>
   );
@@ -173,7 +173,7 @@ export default function Header() {
           {/* Wishlist Icon */}
           <Link
             href="/wishlist"
-            className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500 hover:text-white transition-all shadow-md shrink-0"
+            className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-700 hover:text-white transition-all shadow-md shrink-0"
             aria-label={isAr ? 'قائمة الأمنيات' : 'Wishlist'}
           >
             <Heart className="w-5 h-5" />

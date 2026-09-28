@@ -220,7 +220,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
         </span>
         <button
           onClick={() => { setForm(EMPTY_FORM); setFormError(''); setShowAdd(true); }}
-          className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all"
+          className="px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all"
         >
           <Plus className="w-4 h-4" />
           {isAr ? 'إضافة مورد' : 'Add Supplier'}
@@ -299,7 +299,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
         <Modal title={isAr ? 'إضافة مورد جديد' : 'Add New Supplier'} onClose={() => setShowAdd(false)}>
           <form onSubmit={handleSubmitAdd} className="space-y-3 text-xs">
             {SupplierFormFields()}
-            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white font-extrabold transition-all">
+            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-cyan-700 hover:bg-cyan-800 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'إضافة المورد' : 'Add Supplier')}
             </button>
           </form>
@@ -311,7 +311,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
         <Modal title={isAr ? `تعديل: ${editSup.name}` : `Edit: ${editSup.name}`} onClose={() => setEditSup(null)}>
           <form onSubmit={handleSubmitEdit} className="space-y-3 text-xs">
             {SupplierFormFields()}
-            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 text-white font-extrabold transition-all">
+            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-cyan-700 hover:bg-cyan-800 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
             </button>
           </form>
@@ -331,7 +331,7 @@ export default function SuppliersManager({ suppliers }: { suppliers: SupplierRow
               {isAr ? `هل تريد حذف المورد "${deleteSup.name}"؟` : `Delete supplier "${deleteSup.name}"?`}
             </p>
             <div className="flex gap-2">
-              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all">
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all">
                 {deleting ? (isAr ? 'جاري...' : 'Deleting...') : (isAr ? 'حذف' : 'Delete')}
               </button>
               <button onClick={() => setDeleteSup(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all">

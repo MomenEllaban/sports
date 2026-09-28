@@ -294,7 +294,7 @@ export default function PurchaseInvoicesManager({
           </button>
           <button
             onClick={() => navigate({ unpaid: true })}
-            className={filterBtn(unpaidOnly, 'bg-rose-600 shadow-rose-500/20')}
+            className={filterBtn(unpaidOnly, 'bg-rose-700 shadow-rose-500/20')}
           >
             {L('غير مسددة', 'Unpaid')} ({unpaidCount})
           </button>
@@ -414,7 +414,7 @@ export default function PurchaseInvoicesManager({
                       {!isPaid ? (
                         <button
                           onClick={() => openPaymentModal(inv)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
+                          className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
                         >
                           <CreditCard className="w-3.5 h-3.5" aria-hidden="true" />
                           {L('تسجيل دفعة', 'Pay Bill')}
@@ -529,7 +529,7 @@ export default function PurchaseInvoicesManager({
               <Button type="button" variant="secondary" onClick={() => setPayingInvoice(null)} disabled={isSubmitting}>
                 {L('إلغاء', 'Cancel')}
               </Button>
-              <Button type="submit" variant="primary" disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-500">
+              <Button type="submit" variant="primary" disabled={isSubmitting} className="bg-emerald-700 hover:bg-emerald-700">
                 <Check className="w-3.5 h-3.5" aria-hidden="true" />
                 {isSubmitting ? L('جارٍ التسجيل...', 'Recording...') : L('تأكيد تسجيل الدفعة', 'Confirm Payment')}
               </Button>

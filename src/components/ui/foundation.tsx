@@ -32,8 +32,8 @@ export type ButtonVariant = 'primary' | 'success' | 'danger' | 'secondary' | 'gh
 
 const btnVariants: Record<ButtonVariant, string> = {
   primary: 'bg-blue-600 text-white hover:bg-blue-500 shadow-control',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-control',
-  danger: 'bg-rose-600 text-white hover:bg-rose-500 shadow-control',
+  success: 'bg-emerald-700 text-white hover:bg-emerald-700 shadow-control',
+  danger: 'bg-rose-700 text-white hover:bg-rose-700 shadow-control',
   brand: 'bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-control',
   secondary: 'bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700',
   ghost: 'bg-transparent text-slate-300 hover:bg-slate-800 border border-slate-800',
@@ -329,7 +329,7 @@ export function Stepper({ steps, active }: { steps: string[]; active: number }) 
       {steps.map((s, i) => (
         <li key={s} className="flex-1 flex items-center gap-1">
           <div className="flex flex-col items-center gap-1 w-full">
-            <span className={`w-full h-1.5 rounded-full ${i < active ? 'bg-emerald-500' : i === active ? 'bg-blue-500' : 'bg-slate-700'}`} />
+            <span className={`w-full h-1.5 rounded-full ${i < active ? 'bg-emerald-700' : i === active ? 'bg-blue-500' : 'bg-slate-700'}`} />
             <span className={`text-[10px] font-bold text-center leading-tight ${i === active ? 'text-blue-300' : 'text-slate-500'}`}>{s}</span>
           </div>
         </li>

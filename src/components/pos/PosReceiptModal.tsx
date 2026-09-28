@@ -195,8 +195,8 @@ export default function PosReceiptModal({
       <div className="space-y-2 rounded-2xl border border-slate-300 bg-white p-4 font-mono text-[11px] text-slate-950 shadow-inner">
         <div className="border-b border-dashed border-slate-400 pb-2 text-center">
           <div className="text-sm font-black">SPORTS CHAMPIONS</div>
-          <div className="text-[10px] text-slate-600">{data.branchName}</div>
-          <div className="text-[10px] text-slate-600">{new Date(data.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-EG')}</div>
+          <div className="text-[10px] text-[#475569]">{data.branchName}</div>
+          <div className="text-[10px] text-[#475569]">{new Date(data.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-EG')}</div>
         </div>
 
         <div className="app-scrollbar max-h-36 space-y-1 overflow-y-auto py-1 pr-1">
@@ -212,7 +212,7 @@ export default function PosReceiptModal({
           <div className="flex justify-between"><span>{L('المجموع', 'Subtotal')}:</span><span>{data.subtotal.toLocaleString()} {currencyLabel}</span></div>
           {data.discount > 0 && <div className="flex justify-between font-bold text-emerald-700"><span>{L('الخصم', 'Discount')}:</span><span>-{data.discount.toLocaleString()} {currencyLabel}</span></div>}
           <div className="flex justify-between border-t border-slate-200 pt-1 text-xs font-black"><span>{L('المدفوع', 'Paid')} ({data.paymentMethod}):</span><span>{data.total.toLocaleString()} {currencyLabel}</span></div>
-          {data.change !== undefined && data.change > 0 && <div className="flex justify-between text-[10px] text-slate-600"><span>{L('الباقي', 'Change')}:</span><span>{data.change.toLocaleString()} {currencyLabel}</span></div>}
+          {data.change !== undefined && data.change > 0 && <div className="flex justify-between text-[10px] text-[#475569]"><span>{L('الباقي', 'Change')}:</span><span>{data.change.toLocaleString()} {currencyLabel}</span></div>}
         </div>
       </div>
     </DialogFrame>

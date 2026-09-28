@@ -244,7 +244,7 @@ export default function ProductDetailsClient({
             href={`https://wa.me/${STORE_WHATSAPP_INTL}?text=${waMsg}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/40 text-emerald-400 hover:text-white text-sm font-bold flex items-center justify-center gap-2"
+            className="px-4 py-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-700 border border-emerald-500/40 text-emerald-400 hover:text-white text-sm font-bold flex items-center justify-center gap-2"
           >
             <MessageCircle className="w-4 h-4" />
             {L('طلب واتساب', 'Order on WhatsApp')}

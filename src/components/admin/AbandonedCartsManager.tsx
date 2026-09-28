@@ -232,7 +232,7 @@ export default function AbandonedCartsManager({
                   <td className="p-3.5 text-end">
                     <button
                       onClick={() => handleSendRecoveryWhatsApp(cart)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
                       {L('استعادة عبر واتساب', 'Recover on WhatsApp')}

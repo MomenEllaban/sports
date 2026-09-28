@@ -249,7 +249,7 @@ export default function GoodsReceivingManager({
             onClick={() => setFilter('RECEIVED')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filter === 'RECEIVED'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
             }`}
           >
@@ -348,7 +348,7 @@ export default function GoodsReceivingManager({
                         <div className="w-20 bg-slate-800 rounded-full h-2 overflow-hidden">
                           <div
                             className={`h-full transition-all ${
-                              pct >= 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-blue-500' : 'bg-slate-700'
+                              pct >= 100 ? 'bg-emerald-700' : pct > 0 ? 'bg-blue-500' : 'bg-slate-700'
                             }`}
                             style={{ width: `${pct}%` }}
                           />

@@ -140,7 +140,7 @@ export default function CouponsManager({ initial }: { initial: Coupon[] }) {
             <input id="cp-limit" type="number" min="1" step="1" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           {formError && <p role="alert" className="sm:col-span-3 text-rose-400 font-bold">{formError}</p>}
-          <button type="submit" disabled={busy === 'new'} className="sm:col-span-3 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold">
+          <button type="submit" disabled={busy === 'new'} className="sm:col-span-3 min-h-[44px] rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold">
             {busy === 'new' ? '...' : isAr ? 'إنشاء الكوبون' : 'Create coupon'}
           </button>
         </form>

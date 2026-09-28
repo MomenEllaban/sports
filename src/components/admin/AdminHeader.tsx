@@ -87,7 +87,7 @@ export default function AdminHeader({ onMenuClick }: { onMenuClick?: () => void 
 
         <Link href="/admin/notifications" className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100" aria-label={isAr ? 'مركز التنبيهات' : 'Notification center'}>
           <Bell className="h-4 w-4" aria-hidden="true" />
-          {unreadCount > 0 && <span className="absolute -top-1 -end-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+          {unreadCount > 0 && <span className="absolute -top-1 -end-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-700 px-1 text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
         </Link>
 
         <ThemeToggle />
@@ -98,11 +98,11 @@ export default function AdminHeader({ onMenuClick }: { onMenuClick?: () => void 
             <div className="truncate font-bold text-slate-100">{name}</div>
             <div className="truncate text-[10px] text-slate-400" dir="ltr">{email}</div>
           </div>
-          <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/20 text-rose-400 transition hover:bg-rose-500 hover:text-white" title={isAr ? 'تسجيل الخروج' : 'Sign out'} aria-label={isAr ? 'تسجيل الخروج' : 'Sign out'}>
+          <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/20 text-rose-400 transition hover:bg-rose-700 hover:text-white" title={isAr ? 'تسجيل الخروج' : 'Sign out'} aria-label={isAr ? 'تسجيل الخروج' : 'Sign out'}>
             <LogOut className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
-        <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/20 text-rose-400 transition hover:bg-rose-500 hover:text-white lg:hidden" title={isAr ? 'تسجيل الخروج' : 'Sign out'} aria-label={isAr ? 'تسجيل الخروج' : 'Sign out'}>
+        <button type="button" onClick={() => signOut({ callbackUrl: '/' })} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/20 text-rose-400 transition hover:bg-rose-700 hover:text-white lg:hidden" title={isAr ? 'تسجيل الخروج' : 'Sign out'} aria-label={isAr ? 'تسجيل الخروج' : 'Sign out'}>
           <LogOut className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>

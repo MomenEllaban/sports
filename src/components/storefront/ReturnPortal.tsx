@@ -372,7 +372,7 @@ export function ReturnRequestPanel({ orderNumber, phone }: { orderNumber: string
               <button
                 onClick={submit}
                 disabled={submitting || Object.values(selected).filter((s) => s.quantity > 0).length === 0}
-                className="w-full min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-black transition-all flex items-center justify-center gap-2"
+                className="w-full min-h-[44px] rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-black transition-all flex items-center justify-center gap-2"
               >
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 {L('تأكيد وإرسال طلب المرتجع', 'Confirm & submit request')}
@@ -508,7 +508,7 @@ function ReturnTimeline({ r }: { r: NonNullable<TrackResult['return']> }) {
               const isNow = currentStatus.startsWith(s.start[0]) && !done;
               return (
                 <div key={i} className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-emerald-500 text-slate-950' : isNow ? 'bg-blue-600 text-white animate-pulse' : 'bg-slate-800 text-slate-500'}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-emerald-700 text-slate-950' : isNow ? 'bg-blue-600 text-white animate-pulse' : 'bg-slate-800 text-slate-500'}`}>
                     {done ? <Check className="w-3.5 h-3.5" /> : <Package className="w-3 h-3" />}
                   </div>
                   <div>

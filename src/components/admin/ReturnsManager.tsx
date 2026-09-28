@@ -116,7 +116,7 @@ export default function ReturnsManager({ initial, branches, counts, filterType =
         <button type="submit" disabled={loading} className="min-h-[44px] rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold col-span-2 md:col-span-1">
           {loading ? '...' : L('بحث', 'Search')}
         </button>
-        <Link href="/admin/returns/new" className="min-h-[44px] px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-1 col-span-2 md:col-span-1">
+        <Link href="/admin/returns/new" className="min-h-[44px] px-4 rounded-xl bg-emerald-700 hover:bg-emerald-700 text-white font-bold flex items-center justify-center gap-1 col-span-2 md:col-span-1">
           <Plus className="w-4 h-4" /> {L('مرتجع جديد', 'New return')}
         </Link>
       </form>

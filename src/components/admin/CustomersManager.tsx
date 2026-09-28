@@ -392,7 +392,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all"
+                className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all"
               >
                 {deleting ? (isAr ? 'جاري الحذف...' : 'Deleting...') : (isAr ? 'نعم، احذف' : 'Yes, Delete')}
               </button>

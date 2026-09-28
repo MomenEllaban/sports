@@ -628,7 +628,7 @@ export default function CustomerPaymentsManager({
             <button
               type="submit"
               disabled={recording}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-extrabold transition-all"
+              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold transition-all"
             >
               {recording ? L('جاري تسجيل السند...', 'Recording...') : L('تسجيل سند القبض', 'Save Receipt')}
             </button>

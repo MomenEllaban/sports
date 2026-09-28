@@ -186,7 +186,7 @@ export default function ExpensesManager({
             <Field label={isAr ? 'المبلغ (ج.م) *' : 'Amount (EGP) *'}>
               <input required type="number" min="1" placeholder={isAr ? 'المبلغ (ج.م)' : 'Amount (EGP)'} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className={inputCls} />
             </Field>
-            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-extrabold transition-all">
+            <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white font-extrabold transition-all">
               {saving ? t('loading') : t('confirm')}
             </button>
           </form>

@@ -305,7 +305,7 @@ export default function AccountClient() {
             <label htmlFor="addr-building" className="sr-only">{isAr ? 'العمارة' : 'Building'}</label>
             <input id="addr-building" value={building} onChange={(e) => setBuilding(e.target.value)} placeholder={isAr ? 'عمارة/شقة' : 'Bldg/Apt'} className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs focus:outline-none focus:border-blue-500" />
           </div>
-          <button type="submit" className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1">
+          <button type="submit" className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1">
             <Plus className="w-4 h-4" />
             {isAr ? 'إضافة' : 'Add'}
           </button>

@@ -121,7 +121,7 @@ export default function NewReturnClient() {
               </div>
             );
           })}
-          <button onClick={submit} disabled={busy} className="min-h-[44px] px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-black">
+          <button onClick={submit} disabled={busy} className="min-h-[44px] px-6 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-black">
             {busy ? '...' : L('إنشاء طلب المرتجع', 'Create return request')}
           </button>
         </div>

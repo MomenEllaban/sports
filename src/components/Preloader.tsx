@@ -136,7 +136,7 @@ export default function Preloader() {
         />
       </div>
 
-      <p className="mt-4 text-sm font-extrabold tracking-wide text-amber-300">{t('loading')}</p>
+      <p className="mt-4 text-sm font-extrabold tracking-wide text-[#fcd34d]">{t('loading')}</p>
       <p className="mt-1 text-[11px] font-semibold text-[#cbd5e1]">{t('appName')}</p>
     </div>
   );

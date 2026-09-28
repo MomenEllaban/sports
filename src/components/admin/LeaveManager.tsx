@@ -490,7 +490,7 @@ export default function LeaveManager({
                 type="submit"
                 disabled={deciding}
                 className={`flex-1 py-2.5 rounded-xl font-extrabold text-white transition-all ${
-                  decisionAction === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-rose-600 hover:bg-rose-500'
+                  decisionAction === 'APPROVED' ? 'bg-emerald-700 hover:bg-emerald-700' : 'bg-rose-700 hover:bg-rose-700'
                 }`}
               >
                 {deciding ? L('جاري الحفظ...', 'Saving...') : decisionAction === 'APPROVED' ? L('تأكيد القبول', 'Confirm Approval') : L('تأكيد الرفض', 'Confirm Rejection')}

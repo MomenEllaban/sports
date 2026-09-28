@@ -259,6 +259,52 @@
 [data-theme="light"] [class~="bg-slate-500/15"] { background-color: rgba(100, 116, 139, 0.12) !important; }
 [data-theme="light"] [class~="bg-slate-500/20"] { background-color: rgba(100, 116, 139, 0.15) !important; }
 
+/* --- Gradient stops ---
+   The remap table above only matches `bg-*` utilities, so gradient stops were
+   invisible to it: a section painted `from-slate-900 via-slate-950` kept its
+   dark navy gradient in light mode while its `text-slate-100` was remapped to
+   dark navy, leaving dark-on-dark text that could not be read at all.
+
+   Stops therefore mirror the solid surfaces above. Surfaces that must stay dark
+   in BOTH themes (a scrim over a photo, a photo backdrop) use literal arbitrary
+   values such as `from-[#020617]` so no theme rule can rewrite them. */
+[data-theme="light"] [class~="from-slate-950"] { --tw-gradient-from: #f8fafc !important; }
+[data-theme="light"] [class~="from-slate-900"] { --tw-gradient-from: #ffffff !important; }
+[data-theme="light"] [class~="from-slate-800"] { --tw-gradient-from: #e2e8f0 !important; }
+[data-theme="light"] [class~="from-slate-700"] { --tw-gradient-from: #cbd5e1 !important; }
+
+[data-theme="light"] [class~="via-slate-950"] { --tw-gradient-via: #f8fafc !important; }
+[data-theme="light"] [class~="via-slate-900"] { --tw-gradient-via: #ffffff !important; }
+[data-theme="light"] [class~="via-slate-800"] { --tw-gradient-via: #e2e8f0 !important; }
+[data-theme="light"] [class~="via-slate-700"] { --tw-gradient-via: #cbd5e1 !important; }
+
+[data-theme="light"] [class~="to-slate-950"] { --tw-gradient-to: #f8fafc !important; }
+[data-theme="light"] [class~="to-slate-900"] { --tw-gradient-to: #ffffff !important; }
+[data-theme="light"] [class~="to-slate-800"] { --tw-gradient-to: #e2e8f0 !important; }
+[data-theme="light"] [class~="to-slate-700"] { --tw-gradient-to: #cbd5e1 !important; }
+
+/* Tinted dark stops (e.g. `to-blue-950/40`) become a faint wash instead of a
+   dark corner bleeding into the light surface. */
+[data-theme="light"] [class~="to-blue-950/40"] { --tw-gradient-to: rgba(30, 58, 138, 0.06) !important; }
+[data-theme="light"] [class~="to-blue-950/30"] { --tw-gradient-to: rgba(30, 58, 138, 0.05) !important; }
+[data-theme="light"] [class~="to-blue-950"] { --tw-gradient-to: rgba(30, 58, 138, 0.06) !important; }
+[data-theme="light"] [class~="to-indigo-950"] { --tw-gradient-to: rgba(67, 56, 202, 0.07) !important; }
+[data-theme="light"] [class~="to-indigo-950/40"] { --tw-gradient-to: rgba(67, 56, 202, 0.07) !important; }
+[data-theme="light"] [class~="to-purple-950/40"] { --tw-gradient-to: rgba(126, 34, 206, 0.07) !important; }
+[data-theme="light"] [class~="from-blue-950"] { --tw-gradient-from: rgba(30, 58, 138, 0.07) !important; }
+[data-theme="light"] [class~="from-blue-950/40"] { --tw-gradient-from: rgba(30, 58, 138, 0.07) !important; }
+[data-theme="light"] [class~="from-amber-950/30"] { --tw-gradient-from: rgba(146, 64, 14, 0.06) !important; }
+[data-theme="light"] [class~="to-amber-950/30"] { --tw-gradient-to: rgba(146, 64, 14, 0.06) !important; }
+[data-theme="light"] [class~="from-emerald-950/40"] { --tw-gradient-from: rgba(4, 120, 87, 0.07) !important; }
+[data-theme="light"] [class~="via-purple-950/30"] { --tw-gradient-via: rgba(126, 34, 206, 0.06) !important; }
+[data-theme="light"] [class~="via-indigo-950/30"] { --tw-gradient-via: rgba(67, 56, 202, 0.06) !important; }
+
+/* Alpha slate stops keep the same translucency over the pale page base. */
+[data-theme="light"] [class~="via-slate-900/80"] { --tw-gradient-via: rgba(255, 255, 255, 0.85) !important; }
+[data-theme="light"] [class~="to-slate-900/60"] { --tw-gradient-to: rgba(255, 255, 255, 0.75) !important; }
+[data-theme="light"] [class~="from-slate-900/80"] { --tw-gradient-from: rgba(255, 255, 255, 0.85) !important; }
+[data-theme="light"] [class~="via-slate-950/80"] { --tw-gradient-via: rgba(248, 250, 252, 0.85) !important; }
+
 /* Modal overlay scrim keeps a dark overlay in light mode for focus */
 [data-theme="light"] .app-modal-overlay { background-color: rgba(15, 23, 42, 0.65) !important; }
 
@@ -288,15 +334,16 @@
 
 /* Orange */
 [data-theme="light"] [class~="text-orange-300"],
-[data-theme="light"] [class~="text-orange-400"] { color: #c2410c !important; }
+[data-theme="light"] [class~="text-orange-400"] { color: #9a3412 !important; }
 
 [data-theme="light"] [class~="hover:text-orange-400"]:hover { color: #9a3412 !important; }
 
-/* Emerald / Green */
+/* Emerald / Green — #065f46 rather than #047857: the old value passed on white
+   but fell to 3.9:1 on the emerald-tinted rows these labels sit in. */
 [data-theme="light"] [class~="text-emerald-300"],
 [data-theme="light"] [class~="text-emerald-400"],
 [data-theme="light"] [class~="text-green-300"],
-[data-theme="light"] [class~="text-green-400"] { color: #047857 !important; }
+[data-theme="light"] [class~="text-green-400"] { color: #065f46 !important; }
 
 [data-theme="light"] [class~="hover:text-emerald-300"]:hover,
 [data-theme="light"] [class~="hover:text-emerald-400"]:hover { color: #065f46 !important; }
@@ -312,7 +359,7 @@
 
 /* Blue / Sky / Cyan / Indigo */
 [data-theme="light"] [class~="text-blue-300"],
-[data-theme="light"] [class~="text-blue-400"] { color: #1d4ed8 !important; }
+[data-theme="light"] [class~="text-blue-400"] { color: #1e3a8a !important; }
 
 [data-theme="light"] [class~="hover:text-blue-300"]:hover,
 [data-theme="light"] [class~="hover:text-blue-400"]:hover { color: #1e40af !important; }
@@ -321,7 +368,7 @@
 [data-theme="light"] [class~="text-sky-400"] { color: #0369a1 !important; }
 
 [data-theme="light"] [class~="text-cyan-300"],
-[data-theme="light"] [class~="text-cyan-400"] { color: #0e7490 !important; }
+[data-theme="light"] [class~="text-cyan-400"] { color: #155e75 !important; }
 
 [data-theme="light"] [class~="text-indigo-400"] { color: #4338ca !important; }
 
@@ -330,14 +377,85 @@
 
 [data-theme="light"] [class~="hover:text-purple-300"]:hover { color: #5b21b6 !important; }
 
+/* Mid accent shades: on the light page base these sit between 3:1 and 4.4:1, so
+   they step down to the 600–800 range of the same hue. Without this, success /
+   warning / info copy and icon accents wash out on white. */
+[data-theme="light"] [class~="text-emerald-200"],
+[data-theme="light"] [class~="text-emerald-500"],
+[data-theme="light"] [class~="text-emerald-600"],
+[data-theme="light"] [class~="text-emerald-700"],
+[data-theme="light"] [class~="text-green-500"],
+[data-theme="light"] [class~="text-green-600"],
+[data-theme="light"] [class~="text-green-700"] { color: #065f46 !important; }
+
+[data-theme="light"] [class~="text-rose-200"],
+[data-theme="light"] [class~="text-rose-500"],
+[data-theme="light"] [class~="text-rose-600"],
+[data-theme="light"] [class~="text-red-500"],
+[data-theme="light"] [class~="text-red-600"] { color: #be123c !important; }
+
+[data-theme="light"] [class~="text-amber-200"],
+[data-theme="light"] [class~="text-amber-500"],
+[data-theme="light"] [class~="text-amber-600"],
+[data-theme="light"] [class~="text-orange-500"] { color: #92400e !important; }
+
+[data-theme="light"] [class~="text-blue-200"],
+[data-theme="light"] [class~="text-blue-500"],
+[data-theme="light"] [class~="text-blue-800"],
+[data-theme="light"] [class~="text-blue-900"] { color: #1e3a8a !important; }
+
+[data-theme="light"] [class~="text-cyan-500"],
+[data-theme="light"] [class~="text-cyan-600"] { color: #155e75 !important; }
+
+[data-theme="light"] [class~="text-teal-200"],
+[data-theme="light"] [class~="text-teal-300"],
+[data-theme="light"] [class~="text-teal-400"] { color: #0f766e !important; }
+
+/* Variant-tolerant accent text: `[class~=…]` is an exact whitespace-token match,
+   so it never matches opacity variants (`text-amber-500/70`) or responsive/
+   state prefixes (`sm:text-rose-400`). Those fall back to the raw mid-tone and
+   wash out on the light base, so the accent text ramp is matched by substring
+   as well. Targets match the exact-token rules above so the two cannot fight:
+   300/400 keep their existing darker value, only 500 steps down. */
+[data-theme="light"] [class~="text-fuchsia-400"],
+[data-theme="light"] [class*="text-fuchsia-400"] { color: #86198f !important; }
+[data-theme="light"] [class*="text-amber-300"],
+[data-theme="light"] [class*="text-amber-400"] { color: #92400e !important; }
+[data-theme="light"] [class*="text-amber-500"] { color: #92400e !important; }
+
+[data-theme="light"] [class*="text-rose-300"],
+[data-theme="light"] [class*="text-rose-400"],
+[data-theme="light"] [class*="text-rose-500"] { color: #be123c !important; }
+
+[data-theme="light"] [class*="text-emerald-300"],
+[data-theme="light"] [class*="text-emerald-400"],
+[data-theme="light"] [class*="text-emerald-500"] { color: #065f46 !important; }
+
+[data-theme="light"] [class*="text-blue-300"],
+[data-theme="light"] [class*="text-blue-400"],
+[data-theme="light"] [class*="text-blue-500"] { color: #1e3a8a !important; }
+
 /* Neutral Slate text */
 [data-theme="light"] [class~="text-slate-50"],
 [data-theme="light"] [class~="text-slate-100"],
 [data-theme="light"] [class~="text-slate-200"] { color: #0f172a !important; }
 [data-theme="light"] [class~="text-slate-300"] { color: #334155 !important; }
 [data-theme="light"] [class~="text-slate-400"] { color: #475569 !important; }
-[data-theme="light"] [class~="text-slate-500"] { color: #64748b !important; }
+/* Muted text: the raw slate-500 lands at 4.2:1 on the light page base, so it is
+   stepped down one notch to keep secondary copy above the 4.5:1 AA floor. */
+[data-theme="light"] [class~="text-slate-500"] { color: #55637a !important; }
 [data-theme="light"] [class~="text-slate-600"] { color: #475569 !important; }
+
+/* ============================================================
+   DARK MODE — muted text lift
+   Dark is the absence of `data-theme="light"`, so these rules are scoped to
+   `:root:not([data-theme="light"])` rather than a `[data-theme="dark"]`
+   attribute that the app never sets. `text-slate-500`/`600` are the de-emphasis
+   ramp: on the dark base they fall to 4.3:1 and 2.4:1, so they are lifted to
+   5.6:1 and 4.8:1 while keeping 500 lighter than 600.
+   ============================================================ */
+:root:not([data-theme="light"]) [class~="text-slate-500"] { color: #8296ad !important; }
+:root:not([data-theme="light"]) [class~="text-slate-600"] { color: #74839a !important; }
 
 /* Hover text mappings */
 [data-theme="light"] [class~="hover:text-slate-100"]:hover,

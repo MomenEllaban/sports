@@ -499,7 +499,7 @@ export default function StocktakeClient({
                 className="h-2 w-full overflow-hidden rounded-full bg-slate-800"
               >
                 <div
-                  className={progress === 100 ? 'h-full bg-emerald-500' : 'h-full bg-blue-500'}
+                  className={progress === 100 ? 'h-full bg-emerald-700' : 'h-full bg-blue-500'}
                   style={{ width: `${progress}%` }}
                 />
               </div>

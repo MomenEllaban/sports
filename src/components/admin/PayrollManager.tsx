@@ -159,7 +159,7 @@ export default function PayrollManager({ runs }: { runs: RunRow[] }) {
                 </ActionButton>
               )}
               {run.status === 'APPROVED' && (
-                <ActionButton onAction={() => transition(run.id, 'pay')} className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs">
+                <ActionButton onAction={() => transition(run.id, 'pay')} className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-700 text-white font-bold text-xs">
                   {isAr ? 'صرف المرتبات' : 'Mark as paid'}
                 </ActionButton>
               )}

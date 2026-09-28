@@ -332,7 +332,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
                     disabled={loading}
                     className={`min-h-[38px] px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md ${
                       acc.role === 'SUPER_ADMIN'
-                        ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                        ? 'bg-emerald-700 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
                         : acc.role === 'CASHIER'
                         ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
                         : acc.role === 'FINANCE'

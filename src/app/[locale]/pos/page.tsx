@@ -982,7 +982,7 @@ export default function PosTerminalPage() {
               className="w-full min-h-[52px] py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-600 text-slate-950 font-black text-sm md:text-base shadow-xl shadow-amber-500/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
               <span>{L('متابعة الدفع وإنهاء البيع (F10)', 'Continue to payment & complete sale (F10)')}</span>
-              <span className="px-2 py-0.5 rounded-lg bg-slate-950/20 text-slate-950 text-xs font-mono font-bold">
+              <span className="px-2 py-0.5 rounded-lg bg-slate-950/20 text-slate-100 text-xs font-mono font-bold">
                 {getTotalAmount().toLocaleString()} {currencyLabel}
               </span>
             </button>

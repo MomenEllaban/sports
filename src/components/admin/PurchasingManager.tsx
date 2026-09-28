@@ -258,7 +258,7 @@ export default function PurchasingManager({
                   <ActionButton
                     onAction={async () => { await apiFetch(`/api/admin/purchase-orders/${po.id}`, 'PATCH', { action: 'cancel' }); router.refresh(); }}
                     confirmMessage={isAr ? `إلغاء أمر التوريد ${po.poNumber}؟` : `Cancel PO ${po.poNumber}?`}
-                    className="min-h-[44px] px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 border border-rose-500/40 text-rose-400 hover:text-white font-bold text-xs"
+                    className="min-h-[44px] px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-700 border border-rose-500/40 text-rose-400 hover:text-white font-bold text-xs"
                   >
                     {t('status_CANCELLED')}
                   </ActionButton>

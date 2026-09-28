@@ -55,7 +55,7 @@ export default async function SetupPage() {
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                  <div className={`h-full rounded-full ${pct === 100 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
+                  <div className={`h-full rounded-full ${pct === 100 ? 'bg-emerald-700' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
                 </div>
                 <ul className="space-y-2 text-xs">
                   {gi.map(({ def, status }) => (

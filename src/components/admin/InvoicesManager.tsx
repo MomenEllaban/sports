@@ -919,7 +919,7 @@ export default function InvoicesManager({
                   <button
                     type="button"
                     onClick={() => router.push(`/admin/sales/payments?customerId=${activeInvoice.customerId}&invoiceId=${activeInvoice.id}`)}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-700 text-white font-extrabold flex items-center gap-1.5"
                   >
                     <CreditCard className="w-4 h-4" />
                     {L('تحصيل دفعة مالية', 'Record Payment')}

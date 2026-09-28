@@ -37,7 +37,7 @@ export default function WhatsAppButton() {
         rel="noopener noreferrer"
         aria-label={isAr ? 'تواصل معنا على واتساب: 01224226876' : 'Chat with us on WhatsApp: 01224226876'}
         title={isAr ? 'تواصل معنا على واتساب: 01224226876' : 'Chat on WhatsApp: 01224226876'}
-        className="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 border border-emerald-400/40"
+        className="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 text-white shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 border border-emerald-400/40"
       >
         {/* Pulsing ring indicator */}
         <span className="absolute -top-1 -end-1 flex h-3.5 w-3.5">

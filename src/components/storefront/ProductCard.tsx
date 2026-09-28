@@ -157,7 +157,7 @@ export default function ProductCard({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/40 text-emerald-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+              className="px-3 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-700 border border-emerald-500/40 text-emerald-400 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
             >
               <MessageCircle className="w-4 h-4 text-emerald-400" />
               {L('طلب واتساب', 'Order on WhatsApp')}

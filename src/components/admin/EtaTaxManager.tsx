@@ -181,7 +181,7 @@ export default function EtaTaxManager({
             onClick={() => setStatusFilter('ACCEPTED')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               statusFilter === 'ACCEPTED'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-emerald-300'
             }`}
           >
@@ -201,7 +201,7 @@ export default function EtaTaxManager({
             onClick={() => setStatusFilter('REJECTED')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               statusFilter === 'REJECTED'
-                ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/20'
+                ? 'bg-rose-700 text-white shadow-lg shadow-rose-500/20'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-rose-300'
             }`}
           >
@@ -341,7 +341,7 @@ export default function EtaTaxManager({
             </h4>
             <p className="text-xs text-slate-400 mt-1 font-mono">{activeQrModal.invoiceNumber}</p>
 
-            <div className="p-4 bg-white rounded-2xl inline-block mt-4 shadow-inner">
+            <div className="p-4 bg-[#ffffff] rounded-2xl inline-block mt-4 shadow-inner">
               {/* Fallback QR representation */}
               <div className="w-44 h-44 flex flex-col items-center justify-center text-slate-900 font-mono text-[10px] break-all border-2 border-slate-900 p-2">
                 <QrCode className="w-20 h-20 text-slate-950 mb-1" />

@@ -67,7 +67,7 @@ export default function DatabaseBackupManager({
               </h3>
               <span className="flex h-2.5 w-2.5 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-700"></span>
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -84,7 +84,7 @@ export default function DatabaseBackupManager({
             onClick={() => handleDownload('all', L('النسخة الشاملة', 'Full Database'))}
             variant="primary"
             disabled={downloading !== null}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+            className="bg-emerald-700 hover:bg-emerald-700 text-white font-bold"
           >
             <Download className="w-4 h-4" />
             {downloading === 'all' ? L('جارٍ التصدير...', 'Exporting...') : L('تصدير نسخة شاملة فورية', 'Export Full Backup (JSON)')}

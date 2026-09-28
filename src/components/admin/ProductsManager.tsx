@@ -674,7 +674,7 @@ export default function ProductsManager({
                   onClick={() => handleRemoveImage(idx)}
                   title={isAr ? 'حذف الصورة' : 'Remove image'}
                   aria-label={isAr ? 'حذف الصورة' : 'Remove image'}
-                  className="absolute bottom-1.5 left-1.5 min-h-[44px] min-w-[44px] p-2 rounded-md bg-rose-600/90 hover:bg-rose-500 text-white text-[9px] opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  className="absolute bottom-1.5 left-1.5 min-h-[44px] min-w-[44px] p-2 rounded-md bg-rose-600/90 hover:bg-rose-700 text-white text-[9px] opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
@@ -943,7 +943,7 @@ export default function ProductsManager({
                 : `Delete product "${deleteProduct.nameEn}"?`}
             </p>
             <div className="flex gap-2">
-              <button onClick={handleDeleteProduct} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all">
+              <button onClick={handleDeleteProduct} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all">
                 {deleting ? (isAr ? 'جاري...' : 'Deleting...') : (isAr ? 'حذف' : 'Delete')}
               </button>
               <button onClick={() => setDeleteProduct(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all">

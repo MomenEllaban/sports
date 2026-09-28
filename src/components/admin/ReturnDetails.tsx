@@ -181,7 +181,7 @@ export default function ReturnDetails({ data, canAct }: Props) {
               <button
                 onClick={() => call('receive', { lines: receive, refundMethod })}
                 disabled={busy !== ''}
-                className="w-full sm:w-auto min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-black flex items-center gap-1"
+                className="w-full sm:w-auto min-h-[44px] px-5 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-black flex items-center gap-1"
               >
                 <PackageCheck className="w-4 h-4" /> {L('استلام وتسجيل الاسترداد', 'Receive & record refund')}
               </button>
@@ -213,7 +213,7 @@ export default function ReturnDetails({ data, canAct }: Props) {
                 <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-2">
                   <input value={manualRef} onChange={(e) => setManualRef(e.target.value)} placeholder={L('مرجع التحويل *', 'Transfer reference *')} aria-label={L('مرجع التحويل', 'Transfer reference')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-950 border border-slate-700" />
                   <input value={manualProof} onChange={(e) => setManualProof(e.target.value)} placeholder={L('رابط صورة الإثبات (اختياري)', 'Proof image URL (optional)')} dir="ltr" aria-label={L('صورة الإثبات', 'Proof image')} className="min-h-[44px] p-2.5 rounded-xl bg-slate-950 border border-slate-700" />
-                  <button onClick={() => manualSettle(f.id)} disabled={busy !== ''} className="min-h-[44px] px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 font-bold flex items-center gap-1">
+                  <button onClick={() => manualSettle(f.id)} disabled={busy !== ''} className="min-h-[44px] px-4 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 font-bold flex items-center gap-1">
                     <Banknote className="w-4 h-4" /> {L('تسجيل يدوي', 'Record manually')}
                   </button>
                 </div>
@@ -229,7 +229,7 @@ export default function ReturnDetails({ data, canAct }: Props) {
         <div className="flex flex-wrap gap-2">
           {data.status === 'REQUESTED' && (
             <>
-              <button onClick={() => call('approve')} disabled={busy !== ''} className="min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white text-xs font-black flex items-center gap-1">
+              <button onClick={() => call('approve')} disabled={busy !== ''} className="min-h-[44px] px-5 rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-black flex items-center gap-1">
                 <Check className="w-4 h-4" /> {L('اعتماد', 'Approve')}
               </button>
               <button onClick={() => setConfirm({ action: 'reject', title: L('رفض المرتجع؟', 'Reject return?'), impact: L('لن يُستلم ولن يُسترد أي مبلغ. سجّل السبب للعميل.', 'No items will be received or refunded. Record the reason for the customer.') })} disabled={busy !== ''} className="min-h-[44px] px-5 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center gap-1">

@@ -336,7 +336,7 @@ export default function SupplierReturnsManager({
             <button
               type="submit"
               disabled={submitting || maxAvailable <= 0}
-              className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all"
+              className="w-full py-3 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all"
             >
               {submitting ? L('جاري تسجيل المرتجع وخصم المخزون...', 'Processing Return...') : L('تأكيد الإرجاع للمورد', 'Confirm Supplier Return')}
             </button>

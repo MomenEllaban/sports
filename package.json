@@ -34,7 +34,8 @@
     "orders:expire": "npx tsx scripts/expire-unpaid-orders.ts",
     "refunds:process": "npx tsx scripts/process-refunds.ts",
     "eta:retry": "npx tsx scripts/eta-retry.ts",
-    "test:smoke": "npx tsx --env-file=.env scripts/smoke-test.ts"
+    "test:smoke": "npx tsx --env-file=.env scripts/smoke-test.ts",
+    "check:light-mode": "tsx scripts/check-light-mode.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",

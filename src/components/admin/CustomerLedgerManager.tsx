@@ -182,7 +182,7 @@ export default function CustomerLedgerManager({
             onClick={() => setFilter('DEBTORS')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filter === 'DEBTORS'
-                ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/20'
+                ? 'bg-rose-700 text-white shadow-lg shadow-rose-500/20'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-rose-300'
             }`}
           >
@@ -192,7 +192,7 @@ export default function CustomerLedgerManager({
             onClick={() => setFilter('SETTLED')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filter === 'SETTLED'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                ? 'bg-emerald-700 text-white shadow-lg shadow-emerald-500/20'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-emerald-300'
             }`}
           >
@@ -412,7 +412,7 @@ export default function CustomerLedgerManager({
                 <Button
                   onClick={() => handleWhatsAppReminder(selectedCustomer)}
                   variant="primary"
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                  className="bg-emerald-700 hover:bg-emerald-700 text-white"
                 >
                   <MessageCircle className="w-3.5 h-3.5" />
                   {L('إرسال مطالبة بالسداد عبر واتساب', 'Send Settlement Reminder via WhatsApp')}

@@ -92,7 +92,7 @@ export default function SupplierPayments({ suppliers, initial }: { suppliers: Su
             <input id="sp-ref" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder={L('رقم الإيصال...', 'Receipt number...')} className="w-full min-h-[44px] p-2.5 rounded-xl bg-slate-900 border border-slate-700" />
           </div>
           {formError && <p role="alert" className="sm:col-span-2 text-rose-400 font-bold">{formError}</p>}
-          <button type="submit" disabled={busy} className="sm:col-span-2 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold">
+          <button type="submit" disabled={busy} className="sm:col-span-2 min-h-[44px] rounded-xl bg-emerald-700 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold">
             {busy ? '...' : (isAr ? 'حفظ الدفعة' : 'Save payment')}
           </button>
         </form>

@@ -262,7 +262,7 @@ export default function LabelsClient() {
                   className="label-cell rounded-xl border border-slate-700 bg-white p-2 text-center text-slate-900"
                 >
                   <p className="truncate text-[10px] font-bold">{isAr ? p.nameAr : p.nameEn}</p>
-                  <p className="font-mono text-[9px] text-slate-500">{p.sku}</p>
+                  <p className="font-mono text-[9px] text-[#64748b]">{p.sku}</p>
                   <svg
                     ref={(el) => {
                       if (el) refs.current.set(`${p.id}-${i}`, el);

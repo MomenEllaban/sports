@@ -431,7 +431,7 @@ export default function EmployeesManager({
               {isAr ? `هل تريد حذف الموظف "${deleteEmp.name}"؟` : `Delete employee "${deleteEmp.name}"?`}
             </p>
             <div className="flex gap-2">
-              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-extrabold transition-all">
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all">
                 {deleting ? (isAr ? 'جاري...' : 'Deleting...') : (isAr ? 'حذف' : 'Delete')}
               </button>
               <button onClick={() => setDeleteEmp(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all">

@@ -89,11 +89,11 @@ export default function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                   />
                   {/* Two-stop scrim: dark enough under the copy on the left,
                       still lets the product photo read on the right. */}
-                  <div className="absolute inset-0 bg-gradient-to-l from-slate-950 via-slate-950/80 to-slate-950/25" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-l from-[#020617] via-[#020617cc] to-[#02061740]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent" />
                 </>
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-slate-950 to-indigo-950" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#172554] via-[#020617] to-[#1e1b4b]" />
               )}
 
               <div className="relative z-10 h-full max-w-7xl mx-auto px-4 flex items-center">
