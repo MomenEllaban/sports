@@ -138,6 +138,13 @@ const inventoryTabs: readonly AdminTab[] = [
   { key: 'movements',  labelAr: 'حركة المخزون',           labelEn: 'Movements ledger',     href: '/admin/inventory/movements' },
   { key: 'transfers',  labelAr: 'تحويلات بين الفروع',     labelEn: 'Inter-branch transfers', href: '/admin/inventory/transfers' },
   { key: 'alerts',     labelAr: 'تنبيهات إعادة الطلب',   labelEn: 'Reorder alerts',       href: '/admin/inventory/alerts' },
+  // Stocktake and barcode printing live under /admin/inventory/*, so they are
+  // tabs of this section rather than sibling sidebar entries. Listing them
+  // separately left the sidebar highlighting two items at once here (the
+  // /admin/inventory prefix also matches /admin/inventory/count) and made the
+  // tab bar show four links that all pointed away from the open page.
+  { key: 'count',      labelAr: 'الجرد وتسوية المخزون',   labelEn: 'Stocktake',            href: '/admin/inventory/count' },
+  { key: 'labels',     labelAr: 'الباركود والتسميات',     labelEn: 'Barcode & labels',    href: '/admin/inventory/labels' },
 ];
 
 const purchasingTabs: readonly AdminTab[] = [
@@ -306,21 +313,9 @@ export const adminNavigation: readonly AdminNavGroup[] = [
       {
         key: 'inventory', section: 'inventory',
         labelAr: 'المخزون', labelEn: 'Inventory',
-        descriptionAr: 'أرصدة الفروع وحركة المخزون والتحويلات', descriptionEn: 'Stock balances, movements & transfers',
+        descriptionAr: 'أرصدة الفروع وحركة المخزون والتحويلات والجرد والتسميات', descriptionEn: 'Branch balances, movements, transfers, stocktake & labels',
         href: '/admin/inventory', icon: 'inventory',
         allowedRoles: MANAGERS, tabs: tabSet(inventoryTabs), status: 'live',
-      },
-      {
-        key: 'stocktake', section: 'stocktake',
-        labelAr: 'الجرد وتسوية المخزون', labelEn: 'Stocktake',
-        href: '/admin/inventory/count', icon: 'stocktake',
-        allowedRoles: MANAGERS, status: 'live',
-      },
-      {
-        key: 'barcode', section: 'barcode',
-        labelAr: 'الباركود وطباعة التسميات', labelEn: 'Barcode & labels',
-        href: '/admin/inventory/labels', icon: 'barcode',
-        allowedRoles: MANAGERS, status: 'live',
       },
     ],
   },
