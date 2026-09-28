@@ -1,128 +1,43 @@
-'use client';
-
 import React from 'react';
-import { useTranslations, useLocale } from 'next-intl';
-import { Link } from '@/i18n/routing';
-import { ShoppingCart, MapPin, ShieldCheck, Truck, Clock } from 'lucide-react';
+import { getLocale } from 'next-intl/server';
+import { Clock, MapPin, ShieldCheck, Truck } from 'lucide-react';
+import HeroCarousel from '@/components/storefront/HeroCarousel';
+import { readHeroBanners } from '@/lib/website/cms';
 
-export default function HeroBanner() {
-  const tHero = useTranslations('hero');
-  const tCommon = useTranslations('common');
-  const isAr = useLocale() === 'ar';
+/**
+ * Storefront hero. Content comes from the CMS (`cms.heroBanners`), so what an
+ * admin saves on /admin/website/content is what visitors see. This component
+ * used to hardcode the whole hero, which is why the CMS editor appeared to do
+ * nothing.
+ */
+export default async function HeroBanner() {
+  const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
+  const banners = await readHeroBanners(isAr ? 'ar' : 'en');
+
+  const trust = [
+    { icon: Truck, tint: 'text-blue-400', label: L('توصيل سريع لكل الإسكندرية', 'Fast delivery across Alexandria') },
+    { icon: ShieldCheck, tint: 'text-emerald-400', label: L('منتجات أصلية 100%', '100% original products') },
+    { icon: Clock, tint: 'text-amber-400', label: L('فواتير وإيصالات معتمدة', 'Approved invoices & receipts') },
+    { icon: MapPin, tint: 'text-cyan-400', label: L('استلام من الفرع بدون رسوم', 'Free in-store pickup') },
+  ];
 
   return (
-    <div className="relative overflow-hidden bg-slate-950 border-b border-slate-800 py-16 lg:py-24">
-      {/* Dynamic Background Effects */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+    <>
+      <HeroCarousel banners={banners} />
 
-      <div className="max-w-7xl mx-auto px-4 relative z-10 grid lg:grid-cols-12 gap-12 items-center">
-        {/* Left Column: Headlines & Action Buttons */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold tracking-wide animate-fade-up">
-            <MapPin className="w-4 h-4 text-amber-400" />
-            <span>{L('فرع الإبراهيمية الرئيسي: 92 شارع عمر لطفى - سيدي جابر', 'Main Ibrahimeyah branch: 92 Omar Lotfy St. — Sidi Gaber')}</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-100 tracking-tight leading-tight animate-fade-up stagger-1">
-            <span className="block">{tHero('title')}</span>
-            <span className="gold-gradient-text block mt-2">{L('ابطال الرياضة الإبراهيمية', 'Sports Champions Alexandria')}</span>
-          </h1>
-
-          <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl animate-fade-up stagger-2">
-            {tHero('subtitle')}
-          </p>
-
-          {/* Key Value Badges */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 animate-fade-up stagger-3">
-            <div className="glass-panel p-3 rounded-xl flex items-center gap-2 text-xs font-semibold text-slate-300">
-              <Truck className="w-4 h-4 text-blue-400 shrink-0" />
-              <span>{L('توصيل فوري بالإسكندرية', 'Fast delivery in Alexandria')}</span>
+      {/* Value strip. Sits directly under the hero so the guarantees read as
+          part of the offer rather than as an unrelated block further down. */}
+      <section className="border-b border-slate-800 bg-slate-950">
+        <div className="max-w-7xl mx-auto px-4 py-5 grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
+          {trust.map(({ icon: Icon, tint, label }) => (
+            <div key={label} className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-300">
+              <Icon className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${tint}`} />
+              <span className="leading-snug">{label}</span>
             </div>
-            <div className="glass-panel p-3 rounded-xl flex items-center gap-2 text-xs font-semibold text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>{L('منتجات أصلية 100%', '100% original products')}</span>
-            </div>
-            <div className="glass-panel p-3 rounded-xl flex items-center gap-2 text-xs font-semibold text-slate-300 col-span-2 sm:col-span-1">
-              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>{L('فواتير وإيصالات معتمدة', 'Approved invoices & receipts')}</span>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-4 pt-4 animate-fade-up stagger-4">
-            <Link
-              href="/catalog"
-              className="px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-base shadow-control flex items-center gap-2 transition-all"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {tHero('ctaShop')}
-            </Link>
-
-            <Link
-              href="/branches"
-              className="px-6 py-3.5 rounded-xl glass-panel hover:bg-slate-800 text-slate-200 font-bold text-base flex items-center gap-2 border border-slate-700 transition-all"
-            >
-              <MapPin className="w-5 h-5 text-amber-400" />
-              {tHero('ctaBranches')}
-            </Link>
-          </div>
+          ))}
         </div>
-
-        {/* Right Column: Visual Showcase */}
-        <div className="lg:col-span-5 relative animate-fade-up stagger-2">
-          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-2xl relative">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                {L('الفرع الرئيسي الحكيم', 'Flagship smart branch')}
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[11px] font-bold border border-emerald-500/30">
-                {L('مفتوح الآن', 'Open now')}
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold text-slate-100">
-                {tCommon('appName')}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {tCommon('flagshipAddress')}
-              </p>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-xs text-slate-300 space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-400">{L('مواعيد العمل', 'Working hours')}:</span>
-                <span className="font-semibold text-slate-200">{L('السبت–الأربعاء 10ص–10م', 'Sat–Wed 10am–10pm')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">{L('الخميس والجمعة', 'Thu & Fri')}:</span>
-                <span className="font-semibold text-amber-400">{L('10ص–11م', '10am–11pm')}</span>
-              </div>
-              <div className="flex justify-between items-center pt-1 border-t border-slate-800">
-                <span className="text-slate-400">{L('هاتف الفرع', 'Branch phone')}:</span>
-                <a href="tel:035926908" className="font-bold text-blue-400 hover:underline tabular-nums" dir="ltr">03 5926908</a>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">{L('واتساب مباشر', 'WhatsApp')}:</span>
-                <a href="https://wa.me/201224226876" target="_blank" rel="noopener noreferrer" className="font-bold text-emerald-400 hover:underline tabular-nums" dir="ltr">0122 422 6876</a>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-center text-xs font-bold text-slate-300">
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                <div className="text-amber-400 text-base font-extrabold">+12</div>
-                <div className="text-[11px] text-slate-400">{L('فئة ومستلزمات', 'categories & essentials')}</div>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
-                <div className="text-blue-400 text-base font-extrabold">100%</div>
-                <div className="text-[11px] text-slate-400">{L('تغطية الإسكندرية', 'Alexandria coverage')}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </>
   );
 }

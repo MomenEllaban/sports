@@ -110,6 +110,9 @@ export const RBAC_MATRIX: Record<string, MatrixEntry> = {
   '/api/admin/backup/export': { methods: { GET: SUPER } },
   '/api/admin/settings': { methods: { GET: SUPER, PUT: SUPER } },
   '/api/admin/settings/status': { methods: { GET: SUPER } },
+  // Storefront CMS: the editor page already grants BRANCH_MANAGER, and this
+  // content is global rather than branch-scoped.
+  '/api/admin/website/content': { methods: { GET: BM, PUT: BM } },
   '/api/upload/receipt': { methods: { POST: 'public' } },
   '/api/health': { methods: { GET: 'public' } },
   '/api/webhooks/paymob': { methods: { POST: 'public' } },

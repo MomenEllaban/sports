@@ -13,28 +13,14 @@ import {
 import { Button } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import { apiFetch } from './ui';
+import {
+  DEFAULT_BANNERS,
+  type AnnouncementSettings,
+  type HeroBanner,
+  MAX_BANNERS,
+} from '@/lib/website/cms';
 
-export interface HeroBanner {
-  id: string;
-  titleAr: string;
-  titleEn: string;
-  subtitleAr: string;
-  subtitleEn: string;
-  ctaTextAr: string;
-  ctaTextEn: string;
-  ctaLink: string;
-  imageUrl: string;
-  badgeAr?: string;
-  badgeEn?: string;
-  isActive: boolean;
-}
-
-export interface AnnouncementSettings {
-  enabled: boolean;
-  textAr: string;
-  textEn: string;
-  link?: string;
-}
+export type { AnnouncementSettings, HeroBanner };
 
 export default function WebsiteContentManager({
   initialAnnouncement,
@@ -50,24 +36,7 @@ export default function WebsiteContentManager({
 
   const [announcement, setAnnouncement] = useState<AnnouncementSettings>(initialAnnouncement);
   const [banners, setBanners] = useState<HeroBanner[]>(
-    initialBanners.length > 0
-      ? initialBanners
-      : [
-          {
-            id: 'banner-1',
-            titleAr: 'أحدث التشكيلات الرياضية العالمية',
-            titleEn: 'Latest World Sports Collections',
-            subtitleAr: 'خصومات حصرية حتى 40% على أحذية الجري وملابس التدريب الأصلية',
-            subtitleEn: 'Exclusive discounts up to 40% on genuine running shoes & training apparel',
-            ctaTextAr: 'تسوق الآن',
-            ctaTextEn: 'Shop Now',
-            ctaLink: '/products',
-            imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=80',
-            badgeAr: 'تخفيضات الموسم',
-            badgeEn: 'Season Sale',
-            isActive: true,
-          },
-        ]
+    initialBanners.length > 0 ? initialBanners : DEFAULT_BANNERS,
   );
 
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
@@ -77,13 +46,15 @@ export default function WebsiteContentManager({
     e.preventDefault();
     setSavingAnnouncement(true);
     try {
-      await apiFetch('/api/admin/settings', 'PUT', {
-        key: 'cms.announcement',
-        value: announcement,
-      });
+      await apiFetch('/api/admin/website/content', 'PUT', { announcement });
       toast(L('تم حفظ شريط الإعلانات بنجاح', 'Announcement bar saved successfully'), 'success');
-    } catch {
-      toast(L('فشل الحفظ، يرجى المحاولة لاحقاً', 'Failed to save announcement'), 'error');
+    } catch (err) {
+      toast(
+        err instanceof Error && err.message
+          ? err.message
+          : L('فشل الحفظ، يرجى المحاولة لاحقاً', 'Failed to save announcement'),
+        'error',
+      );
     } finally {
       setSavingAnnouncement(false);
     }
@@ -92,19 +63,25 @@ export default function WebsiteContentManager({
   const handleSaveBanners = async () => {
     setSavingBanners(true);
     try {
-      await apiFetch('/api/admin/settings', 'PUT', {
-        key: 'cms.heroBanners',
-        value: banners,
-      });
+      await apiFetch('/api/admin/website/content', 'PUT', { banners });
       toast(L('تم حفظ وتحديث بنرات الواجهة بنجاح', 'Hero banners saved successfully'), 'success');
-    } catch {
-      toast(L('فشل الحفظ، يرجى المحاولة لاحقاً', 'Failed to save hero banners'), 'error');
+    } catch (err) {
+      toast(
+        err instanceof Error && err.message
+          ? err.message
+          : L('فشل حفظ البنرات، يرجى المحاولة لاحقاً', 'Failed to save hero banners'),
+        'error',
+      );
     } finally {
       setSavingBanners(false);
     }
   };
 
   const addBanner = () => {
+    if (banners.length >= MAX_BANNERS) {
+      toast(L(`الحد الأقصى ${MAX_BANNERS} شرائح`, `Maximum of ${MAX_BANNERS} slides`), 'error');
+      return;
+    }
     const newBanner: HeroBanner = {
       id: `banner-${Date.now()}`,
       titleAr: 'عنوان العرض الترويجي الجديد',
@@ -113,8 +90,8 @@ export default function WebsiteContentManager({
       subtitleEn: 'Engaging description for featured items and discounts',
       ctaTextAr: 'اكتشف المزيد',
       ctaTextEn: 'Explore More',
-      ctaLink: '/products',
-      imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200&q=80',
+      ctaLink: '/catalog',
+      imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1600&q=80',
       badgeAr: 'جديد',
       badgeEn: 'New Arrival',
       isActive: true,
