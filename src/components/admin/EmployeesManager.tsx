@@ -7,7 +7,7 @@ import { Plus, Pencil, Trash2, UserCheck, UserX, Phone, Briefcase, DollarSign, B
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
 interface EmployeeRow {
@@ -66,11 +66,8 @@ export default function EmployeesManager({
     return true;
   });
 
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 8;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(filtered);
+  const pagedRows = paged;
 
   useEffect(() => {
     setPage(1);
@@ -390,7 +387,7 @@ export default function EmployeesManager({
           <span className="text-[11px] font-bold text-slate-400">
             {isAr ? `${filtered.length} موظف` : `${filtered.length} employees`}
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+          <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
         </div>
       )}
 

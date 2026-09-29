@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import { apiFetch } from './ui';
+import { useTablePage, TablePager } from './tablePaging';
 
 export interface ReceivingOrderItem {
   id: string;
@@ -97,6 +98,8 @@ export default function GoodsReceivingManager({
       return true;
     });
   }, [orders, search, filter]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
 
   const openInspectionModal = (po: ReceivingPurchaseOrder) => {
     setInspectingOrder(po);
@@ -301,7 +304,7 @@ export default function GoodsReceivingManager({
                 </td>
               </tr>
             ) : (
-              filtered.map((po) => {
+              tableRows.map((po) => {
                 const totalOrdered = po.items.reduce((s, i) => s + i.quantityOrdered, 0);
                 const totalReceived = po.items.reduce((s, i) => s + i.quantityReceived, 0);
                 const pct = totalOrdered > 0 ? Math.min(100, Math.round((totalReceived / totalOrdered) * 100)) : 0;
@@ -385,6 +388,8 @@ export default function GoodsReceivingManager({
           </tbody>
         </table>
       </div>
+
+      <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
 
       {/* Goods Receipt Note (GRN) Inspection Modal */}
       {inspectingOrder && (

@@ -16,7 +16,7 @@ import {
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { TablePager, TABLE_PAGE_SIZE } from './tablePaging';
 
 interface EmployeeOpt {
   id: string;
@@ -108,7 +108,7 @@ export default function AttendanceManager({
         from: selectedDate,
         to: selectedDate,
         page: String(page),
-        pageSize: '20',
+        pageSize: String(TABLE_PAGE_SIZE),
       });
       if (branchFilter) params.set('branchId', branchFilter);
       if (statusFilter) params.set('status', statusFilter);
@@ -378,12 +378,7 @@ export default function AttendanceManager({
       </div>
 
       {totalRecords > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <span className="text-[11px] font-bold text-slate-400">
-            {L(`إجمالي: ${totalRecords} سجل`, `Total: ${totalRecords} records`)}
-          </span>
-          <Pagination page={page} totalPages={pageCount} onPageChange={setPage} />
-        </div>
+        <TablePager page={page} totalPages={pageCount} total={totalRecords} onPageChange={setPage} />
       )}
 
       {/* Manual Record / Edit Modal */}

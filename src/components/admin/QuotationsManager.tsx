@@ -17,7 +17,7 @@ import {
 import { Modal, StatusBadge, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { TablePager, TABLE_PAGE_SIZE } from './tablePaging';
 
 interface CustomerOpt {
   id: string;
@@ -123,7 +123,7 @@ export default function QuotationsManager({
     try {
       const params = new URLSearchParams({
         page: String(page),
-        pageSize: '10',
+        pageSize: String(TABLE_PAGE_SIZE),
       });
       if (search) params.set('q', search);
       if (statusFilter) params.set('status', statusFilter);
@@ -528,7 +528,7 @@ export default function QuotationsManager({
           <span className="text-[11px] font-bold text-slate-400">
             {L(`إجمالي: ${total} عرض`, `Total: ${total} quotes`)}
           </span>
-          <Pagination page={page} totalPages={pageCount} onPageChange={setPage} />
+          <TablePager page={page} totalPages={pageCount} total={total} onPageChange={setPage} />
         </div>
       )}
 

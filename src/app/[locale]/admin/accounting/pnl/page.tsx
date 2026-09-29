@@ -13,14 +13,21 @@ import {
   FileSpreadsheet,
   Percent,
 } from 'lucide-react';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminAccountingPnlPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminAccountingPnlPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const currencyLabel = L('ج.م', 'EGP');
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
 
   const [orders, sales, expenses, branches] = await Promise.all([
     prisma.order.findMany({
@@ -144,6 +151,8 @@ export default async function AdminAccountingPnlPage() {
     PACKAGING: { ar: 'التعبئة والتغليف', en: 'Packaging & Bags' },
     OTHER: { ar: 'مصروفات تشغيلية أخرى', en: 'Other Operating Expenses' },
   };
+
+  const branchPageRows = branchBreakdown.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -327,7 +336,7 @@ export default async function AdminAccountingPnlPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {branchBreakdown.map((b) => (
+              {branchPageRows.map((b) => (
                 <tr key={b.id} className="hover:bg-slate-900/40">
                   <td className="py-3 px-4 font-bold text-slate-200">{b.name}</td>
                   <td className="py-3 px-4 text-end font-mono text-slate-300">{b.revenue.toLocaleString()} {currencyLabel}</td>
@@ -347,6 +356,13 @@ export default async function AdminAccountingPnlPage() {
             </tbody>
           </table>
         </div>
+
+        <ServerTablePager
+          page={page}
+          total={branchBreakdown.length}
+          hrefFor={(n) => (n > 1 ? `/admin/accounting/pnl?page=${n}` : '/admin/accounting/pnl')}
+          isAr={isAr}
+        />
       </div>
     </>
   );

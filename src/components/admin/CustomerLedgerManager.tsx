@@ -16,6 +16,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/foundation';
+import { useTablePage, TablePager } from './tablePaging';
 
 export interface CustomerLedgerEntry {
   id: string;
@@ -87,6 +88,8 @@ export default function CustomerLedgerManager({
       return true;
     });
   }, [customers, search, filter]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
 
   const handleWhatsAppReminder = (c: CustomerLedgerEntry) => {
     const cleanPhone = c.phone.replace(/[^0-9]/g, '');
@@ -234,7 +237,7 @@ export default function CustomerLedgerManager({
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => {
+              tableRows.map((c) => {
                 const hasDebt = c.outstandingBalance > 0;
 
                 return (
@@ -306,6 +309,8 @@ export default function CustomerLedgerManager({
           </tbody>
         </table>
       </div>
+
+      <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
 
       {/* Customer Statement Modal */}
       {selectedCustomer && (

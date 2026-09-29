@@ -18,7 +18,7 @@ async function login(page: Page) {
   await page.locator('input[type="password"]').fill('Test@123456');
   await page.locator('button[type="submit"]').click();
   // Must not match the login page itself, which also lives under /admin/.
-  await page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 30000 });
+  await page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 60000 });
   // A redirect to the login page again would mean the session cookie did not stick.
   await expect(page).not.toHaveURL(/login/);
 }
@@ -125,6 +125,6 @@ test.describe('purchasing pages', () => {
     await search.fill('PO-ZZZZ-NOPE');
     await search.press('Enter');
     await page.waitForURL(/q=PO-ZZZZ-NOPE/, { timeout: 20000 });
-    await expect(page.getByText(/لا توجد نتائج مطابقة|No results match/)).toBeVisible();
+    await expect(page.getByText(/لا توجد أوامر توريد مطابقة|No purchase orders match/)).toBeVisible();
   });
 });

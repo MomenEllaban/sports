@@ -12,6 +12,8 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
+import { useTablePage, TablePager } from './tablePaging';
+
 export interface CustomerSegmentItem {
   id: string;
   name: string | null;
@@ -90,6 +92,8 @@ export default function CustomerSegmentsManager({
       return matchSeg && matchSearch;
     });
   }, [classified, activeSegment, search]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
 
   const getSegmentBadge = (seg: string) => {
     switch (seg) {
@@ -285,7 +289,7 @@ export default function CustomerSegmentsManager({
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => (
+              tableRows.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-900/40 transition-colors">
                   <td className="p-3.5 font-bold text-slate-100">
                     <div className="flex items-center gap-2">
@@ -327,6 +331,7 @@ export default function CustomerSegmentsManager({
             )}
           </tbody>
         </table>
+        <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { Plus, Download, Pencil, Trash2, Search, Upload, Image as ImageIcon, Loa
 import { Modal, apiFetch } from './ui';
 import { inputCls, Button, SafeImage } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
-import Pagination from './Pagination';
+import { TablePager } from './tablePaging';
 import { apiRequest, getClientErrorMessage } from '@/lib/client-api';
 
 interface ProductRow {
@@ -893,14 +893,7 @@ export default function ProductsManager({
           )}
 
           {resultCount > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <span className="text-[11px] font-bold text-slate-400">
-                {/* In server mode `products` is one page, so the visible count is
-                    not the catalogue size. `totalCount` is the real total. */}
-                {isAr ? `${resultCount} منتج` : `${resultCount} products`}
-              </span>
-              <Pagination page={safePage} totalPages={totalPages} onPageChange={changePage} />
-            </div>
+            <TablePager page={safePage} totalPages={totalPages} total={resultCount} onPageChange={changePage} />
           )}
       </div>
 

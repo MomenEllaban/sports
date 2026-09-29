@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { getClientErrorMessage } from '@/lib/client-api';
 import { apiFetch } from './ui';
-import { inputCls, Pagination } from '@/components/ui/foundation';
+import { inputCls } from '@/components/ui/foundation';
+import { TablePager, TABLE_PAGE_SIZE } from './tablePaging';
 import { Link } from '@/i18n/routing';
 
 type View = 'stock' | 'movements' | 'alerts';
@@ -45,7 +46,7 @@ const STOCK_STATES = [
   { value: '3', key: 'outOfStock' },
 ];
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = TABLE_PAGE_SIZE;
 
 const number = (v: unknown) => (typeof v === 'number' ? v.toLocaleString('en-GB') : String(v ?? '—'));
 
@@ -324,12 +325,7 @@ export default function InventoryTable({
       )}
 
       {data && data.total > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] font-bold text-slate-400">
-            {isAr ? `${data.total} سجل` : `${data.total} records`} · {isAr ? `صفحة ${data.page} من ${data.pageCount}` : `page ${data.page} of ${data.pageCount}`}
-          </span>
-          <Pagination page={data.page} totalPages={data.pageCount} onPageChange={setPage} />
-        </div>
+        <TablePager page={data.page} totalPages={data.pageCount} total={data.total} onPageChange={setPage} />
       )}
     </div>
   );

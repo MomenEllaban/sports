@@ -271,6 +271,7 @@ export function DataTable<T extends { id: string }>({
   totalCount?: number;
   loading?: boolean;
 }) {
+  const isAr = useLocale() === 'ar';
   if (loading && rows.length === 0) {
     return (
       <div className="space-y-2 p-4 rounded-card border border-slate-800 bg-slate-900/40">
@@ -317,7 +318,16 @@ export function DataTable<T extends { id: string }>({
           </div>
         ))}
       </div>
-      {showPager && <Pagination page={safePage} totalPages={totalPages} onPageChange={onPageChange!} />}
+      {showPager && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
+          <span className="text-[11px] font-bold text-slate-400" aria-live="polite">
+            {isAr
+              ? `عرض ${effectiveTotal === 0 ? 0 : (safePage - 1) * pageSize! + 1}–${Math.min(safePage * pageSize!, effectiveTotal)} من ${effectiveTotal}`
+              : `Showing ${effectiveTotal === 0 ? 0 : (safePage - 1) * pageSize! + 1}–${Math.min(safePage * pageSize!, effectiveTotal)} of ${effectiveTotal}`}
+          </span>
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={onPageChange!} ariaLabel={isAr ? 'ترقيم الصفحات' : 'Pagination'} />
+        </div>
+      )}
     </>
   );
 }

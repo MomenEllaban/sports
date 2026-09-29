@@ -7,7 +7,9 @@ test.describe('storefront smoke', () => {
   });
 
   test('branches page lists flagship branch', async ({ page }) => {
-    await page.goto('/branches');
+    // Requested explicitly in Arabic: the locale-less /branches redirect lands
+    // on the default locale (en), which renders the English branch name only.
+    await page.goto('/ar/branches');
     await expect(page.getByText(/الإبراهيمية/).first()).toBeVisible();
   });
 

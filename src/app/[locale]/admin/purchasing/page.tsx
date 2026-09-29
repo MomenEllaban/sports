@@ -6,10 +6,11 @@ import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { branchWhere, scopedBranchIds } from '@/lib/auth/branch-scope';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
 
 export const dynamic = 'force-dynamic';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = TABLE_PAGE_SIZE;
 
 /** Only what the order card renders. `items.product` is the heaviest include. */
 const orderSelect = {

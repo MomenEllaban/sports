@@ -9,7 +9,7 @@ import { StatusBadge, PayLabel, SourceLabel, Modal, apiFetch } from './ui';
 import { inputCls, Button, NumberField, ConfirmDialog } from '@/components/ui/foundation';
 import { nextOrderStatuses, transitionImpact } from '@/lib/orders/transitions';
 import { useToast } from '@/components/Toast';
-import Pagination from './Pagination';
+import { useTablePage, TablePager } from './tablePaging';
 import InvoiceActions from './InvoiceActions';
 
 interface OrderItem {
@@ -93,7 +93,6 @@ export default function OrdersManager({
   const [saving, setSaving] = useState(false);
   const [newOrderError, setNewOrderError] = useState('');
 
-  const [page, setPage] = useState(1);  const PAGE_SIZE = 10;
   const [searchQuery, setSearchQuery] = useState('');
   const [orderList, setOrderList] = useState(orders);
 
@@ -138,9 +137,8 @@ export default function OrdersManager({
     return true;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(filtered);
+  const pagedRows = paged;
 
   useEffect(() => {
     setPage(1);
@@ -555,7 +553,7 @@ export default function OrdersManager({
           <span className="text-[11px] font-bold text-slate-400">
             {isAr ? `${filtered.length} طلب` : `${filtered.length} orders`}
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+          <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
         </div>
       )}
 

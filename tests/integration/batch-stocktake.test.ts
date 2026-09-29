@@ -19,8 +19,8 @@ describe('batch stocktake', () => {
 
   it('creates a multi-line draft without changing stock', async () => {
     const response = await createSession(request('/api/admin/stocktakes', 'POST', { branchId, productIds, notes: 'جرد شهري' }));
-    expect(response.status).toBe(200); const body = await response.json() as { stocktake: { id: string; status: string; lines: Array<{ expectedQuantity: number }> } };
-    expect(body.stocktake.status).toBe('DRAFT'); expect(body.stocktake.lines).toHaveLength(2);
+    expect(response.status).toBe(200); const body = await response.json() as { stocktake: { id: string; status: string; _count: { lines: number } } };
+    expect(body.stocktake.status).toBe('DRAFT'); expect(body.stocktake._count.lines).toBe(2);
     for (const productId of productIds) expect((await testPrisma().branchInventory.findUniqueOrThrow({ where: { branchId_productId: { branchId, productId } } })).stockQuantity).toBe(5);
     const sessionId = body.stocktake.id;
     const lines = await testPrisma().stocktakeLine.findMany({ where: { sessionId }, orderBy: { productId: 'asc' } });

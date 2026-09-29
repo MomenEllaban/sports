@@ -11,7 +11,7 @@ import ThemeToggle from '@/components/admin/ThemeToggle';
 import PosReturnWizard from '@/components/pos/ReturnWizard';
 import PosPaymentModal from '@/components/pos/PosPaymentModal';
 import PosReceiptModal, { type PosReceiptData } from '@/components/pos/PosReceiptModal';
-import { ShoppingCart, Barcode, User, Check, X, Trash2 } from 'lucide-react';
+import { ShoppingCart, Barcode, User, Check, X, Trash2, Phone } from 'lucide-react';
 import Image from 'next/image';
 
 interface DbProduct {
@@ -1070,35 +1070,42 @@ export default function PosTerminalPage() {
           panelClassName="max-w-sm"
           bodyClassName="space-y-4"
         >
-          <form onSubmit={handleCreateQuickCustomer} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  {L('اسم العميل *', 'Customer name *')}
-                </label>
+          <form onSubmit={handleCreateQuickCustomer} className="space-y-3.5">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                {L('اسم العميل *', 'Customer name *')}
+              </label>
+              <div className="relative">
                 <input
                   type="text"
                   required
+                  autoFocus
                   placeholder={L('مثال: أحمد مصطفى', 'Example: Ahmed Mostafa')}
                   value={newCustomerName}
                   onChange={(e) => setNewCustomerName(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:border-blue-500 outline-none"
+                  className="w-full min-h-[42px] ps-9 pe-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                 />
+                <User className="w-4 h-4 text-slate-400 absolute start-3 top-3 pointer-events-none" />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                  {L('رقم الموبايل *', 'Mobile number *')}
-                </label>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                {L('رقم الموبايل *', 'Mobile number *')}
+              </label>
+              <div className="relative">
                 <input
                   type="tel"
                   required
                   placeholder={L('مثال: 01012345678', 'Example: 01012345678')}
                   value={newCustomerPhone}
                   onChange={(e) => setNewCustomerPhone(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:border-blue-500 outline-none"
+                  className="w-full min-h-[42px] ps-9 pe-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-100 font-mono placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                   dir="ltr"
                 />
+                <Phone className="w-4 h-4 text-slate-400 absolute start-3 top-3 pointer-events-none" />
               </div>
+            </div>
 
               <div className="flex gap-2 pt-2">
                 <Button

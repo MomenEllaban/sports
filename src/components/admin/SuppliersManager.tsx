@@ -7,7 +7,7 @@ import { Plus, Pencil, Trash2, Phone, Mail, MapPin, Building, ShieldCheck, Searc
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface SupplierRow {
   id: string;
@@ -65,11 +65,8 @@ export default function SuppliersManager({
     );
   }, [suppliers, query]);
 
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 6;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(filtered);
+  const pagedRows = paged;
 
   // Selecting a supplier drives the statement panel, so it is a navigation and
   // not local state: the server has to re-scope the orders and payments.
@@ -388,16 +385,8 @@ export default function SuppliersManager({
         </div>
       </div>
 
-      {filtered.length > PAGE_SIZE && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <span className="text-[11px] font-bold text-slate-400">
-            {isAr
-              ? `عرض ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} من ${filtered.length}`
-              : `Showing ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} of ${filtered.length}`}
-          </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
-        </div>
-      )}
+      {/* Always shown, so a short list is distinguishable from a paginated one. */}
+      <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
 
       {/* Add Modal */}
       {showAdd && (

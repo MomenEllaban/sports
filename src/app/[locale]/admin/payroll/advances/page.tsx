@@ -4,14 +4,21 @@ import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { BadgeMinus, DollarSign, Users, AlertTriangle } from 'lucide-react';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPayrollAdvancesPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminPayrollAdvancesPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const currencyLabel = L('ج.م', 'EGP');
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
 
   const runs = await prisma.payrollRun.findMany({
     orderBy: { createdAt: 'desc' },
@@ -30,7 +37,7 @@ export default async function AdminPayrollAdvancesPage() {
         },
       },
     },
-    take: 50,
+    take: 5000,
   });
 
   const adjustmentItems: Array<{
@@ -59,6 +66,8 @@ export default async function AdminPayrollAdvancesPage() {
 
   const totalDeductions = adjustmentItems.reduce((acc, i) => acc + i.deductions, 0);
   const totalBonuses = adjustmentItems.reduce((acc, i) => acc + i.bonus, 0);
+
+  const pageRows = adjustmentItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -127,7 +136,7 @@ export default async function AdminPayrollAdvancesPage() {
                   </td>
                 </tr>
               ) : (
-                adjustmentItems.map((item) => (
+                pageRows.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-900/40">
                     <td className="py-3 px-4 font-bold text-slate-200">{item.employeeName}</td>
                     <td className="py-3 px-4 text-slate-400">{item.branchName}</td>
@@ -149,6 +158,13 @@ export default async function AdminPayrollAdvancesPage() {
             </tbody>
           </table>
         </div>
+
+        <ServerTablePager
+          page={page}
+          total={adjustmentItems.length}
+          hrefFor={(n) => (n > 1 ? `/admin/payroll/advances?page=${n}` : '/admin/payroll/advances')}
+          isAr={isAr}
+        />
       </div>
     </>
   );

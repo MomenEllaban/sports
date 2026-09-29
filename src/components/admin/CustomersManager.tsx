@@ -3,11 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import { Award, Plus, Pencil, Trash2, Search, Phone, Mail, FileText, Star } from 'lucide-react';
-import { Modal, apiFetch } from './ui';
+import {
+  Award,
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Phone,
+  Mail,
+  FileText,
+  User,
+  UserPlus,
+  UserCheck,
+  AlertCircle,
+  Check,
+} from 'lucide-react';
+import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { Button, DialogFrame } from '@/components/ui/foundation';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface CustomerRow {
   id: string;
@@ -29,26 +43,315 @@ const EMPTY_FORM = {
   loyaltyPoints: '0',
 };
 
-export default function CustomersManager({ customers, initialPhone = '' }: { customers: CustomerRow[]; initialPhone?: string }) {
+interface CustomerModalProps {
+  open: boolean;
+  mode: 'add' | 'edit';
+  customer?: CustomerRow | null;
+  onClose: () => void;
+  onSuccess: (message: string) => void;
+  isAr: boolean;
+}
+
+function CustomerModal({
+  open,
+  mode,
+  customer,
+  onClose,
+  onSuccess,
+  isAr,
+}: CustomerModalProps) {
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    if (mode === 'edit' && customer) {
+      setForm({
+        name: customer.name || '',
+        phone: customer.phone,
+        email: customer.email || '',
+        notes: customer.notes || '',
+        loyaltyPoints: String(customer.loyaltyPoints ?? 0),
+      });
+    } else {
+      setForm(EMPTY_FORM);
+    }
+    setError('');
+  }, [open, mode, customer]);
+
+  if (!open) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPhone = form.phone.trim();
+    if (!cleanPhone || cleanPhone.length < 7) {
+      setError(
+        isAr
+          ? 'يرجى إدخال رقم موبايل صحيح (7 أرقام على الأقل)'
+          : 'Please enter a valid mobile number (at least 7 digits)'
+      );
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    try {
+      if (mode === 'add') {
+        await apiFetch('/api/admin/customers', 'POST', {
+          ...form,
+          phone: cleanPhone,
+          loyaltyPoints: Number(form.loyaltyPoints) || 0,
+        });
+        onSuccess(isAr ? 'تمت إضافة العميل بنجاح' : 'Customer added successfully');
+      } else if (customer) {
+        await apiFetch(`/api/admin/customers/${customer.id}`, 'PATCH', {
+          ...form,
+          phone: cleanPhone,
+          loyaltyPoints: Number(form.loyaltyPoints) || 0,
+        });
+        onSuccess(isAr ? 'تم تحديث بيانات العميل بنجاح' : 'Customer updated successfully');
+      }
+      onClose();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : isAr
+          ? 'فشل في حفظ بيانات العميل'
+          : 'Failed to save customer data';
+      setError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isPhoneValid = form.phone.trim().length >= 10;
+
+  return (
+    <DialogFrame
+      active={open}
+      title={
+        mode === 'add'
+          ? isAr
+            ? 'إضافة عميل جديد'
+            : 'Add New Customer'
+          : isAr
+          ? `تعديل بيانات: ${customer?.name || customer?.phone}`
+          : `Edit: ${customer?.name || customer?.phone}`
+      }
+      onClose={onClose}
+      size="md"
+      header={
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600/25 to-indigo-600/15 border border-blue-500/30 text-blue-400 shadow-sm">
+            {mode === 'add' ? <UserPlus className="h-5 w-5" /> : <UserCheck className="h-5 w-5" />}
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-black text-slate-100 truncate">
+              {mode === 'add'
+                ? isAr
+                  ? 'إضافة عميل جديد'
+                  : 'Add New Customer'
+                : isAr
+                ? `تعديل بيانات: ${customer?.name || customer?.phone}`
+                : `Edit: ${customer?.name || customer?.phone}`}
+            </h3>
+            <p className="text-[11px] font-medium text-slate-400 truncate mt-0.5">
+              {isAr
+                ? 'بيانات العميل الأساسية، معلومات التواصل وبرنامج نقاط الولاء'
+                : 'Customer master details, phone contact & loyalty points'}
+            </p>
+          </div>
+        </div>
+      }
+      footer={
+        <div className="flex w-full items-center justify-end gap-2.5">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            disabled={saving}
+            className="min-h-[42px] px-5"
+          >
+            {isAr ? 'إلغاء' : 'Cancel'}
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="min-h-[42px] px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black shadow-lg shadow-blue-600/25"
+          >
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>{isAr ? 'جاري الحفظ...' : 'Saving...'}</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                <span>{mode === 'add' ? (isAr ? 'حفظ العميل' : 'Save Customer') : (isAr ? 'حفظ التعديلات' : 'Save Changes')}</span>
+              </span>
+            )}
+          </Button>
+        </div>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+        {error && (
+          <div
+            role="alert"
+            className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-start gap-2.5 animate-shake"
+          >
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
+          </div>
+        )}
+
+        {/* Section 1: Phone and Name */}
+        <div className="space-y-3 rounded-2xl bg-slate-950/40 border border-slate-800/80 p-3.5">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span>{isAr ? 'البيانات الأساسية والتواصل' : 'Contact & Identity'}</span>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+              <span>{isAr ? 'رقم الموبايل' : 'Mobile Phone'}</span>
+              <span className="text-rose-400 ms-1">*</span>
+              <span className="text-[10px] text-slate-500 font-normal ms-2">
+                {isAr ? '(مطلوب للبحث ونقاط الولاء)' : '(Required for lookup)'}
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                required
+                autoFocus
+                type="tel"
+                dir="ltr"
+                placeholder="01xxxxxxxxx"
+                value={form.phone}
+                onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                className="w-full min-h-[44px] ps-10 pe-10 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm font-mono placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              />
+              <Phone className="w-4 h-4 text-slate-400 absolute start-3 top-3.5 pointer-events-none" />
+              {isPhoneValid && (
+                <div className="absolute end-3 top-3.5 text-emerald-400 flex items-center gap-1 text-[11px] font-bold">
+                  <Check className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1">
+              {isAr ? 'مثال: 01012345678 أو 011 / 012 / 015' : 'e.g. 01012345678 (11 digits)'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+              <span>{isAr ? 'اسم العميل' : 'Customer Name'}</span>
+              <span className="text-[10px] text-slate-500 font-normal ms-2">
+                {isAr ? '(اختياري)' : '(Optional)'}
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder={isAr ? 'مثال: كابتن أحمد مصطفى' : 'e.g. Ahmed Mostafa'}
+                value={form.name}
+                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                className="w-full min-h-[44px] ps-10 pe-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              />
+              <User className="w-4 h-4 text-slate-400 absolute start-3 top-3.5 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Email and Loyalty */}
+        <div className="space-y-3 rounded-2xl bg-slate-950/40 border border-slate-800/80 p-3.5">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span>{isAr ? 'الحساب والولاء' : 'Account & Loyalty'}</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                <span>{isAr ? 'البريد الإلكتروني' : 'Email Address'}</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  dir="ltr"
+                  placeholder="client@domain.com"
+                  value={form.email}
+                  onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full min-h-[44px] ps-10 pe-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
+                />
+                <Mail className="w-4 h-4 text-slate-400 absolute start-3 top-3.5 pointer-events-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
+                <span>{isAr ? 'رصيد نقاط الولاء' : 'Loyalty Points'}</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={form.loyaltyPoints}
+                  onChange={(e) => setForm((prev) => ({ ...prev, loyaltyPoints: e.target.value }))}
+                  className="w-full min-h-[44px] ps-10 pe-3.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs font-mono placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
+                />
+                <Award className="w-4 h-4 text-amber-400 absolute start-3 top-3.5 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Notes */}
+        <div>
+          <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-slate-400" />
+              <span>{isAr ? 'ملاحظات إضافية' : 'Notes & Preferences'}</span>
+            </span>
+            <span className="text-[10px] text-slate-500 font-normal">
+              {isAr ? '(مقاسات، تفضيلات، إلخ)' : '(Sizes, sport, etc.)'}
+            </span>
+          </label>
+          <textarea
+            rows={2}
+            placeholder={isAr ? 'مثال: يفضل ماركة Nike، مقاس الحذاء 43، لاعب جمنازيوم...' : 'Any customer notes, size preferences...'}
+            value={form.notes}
+            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+            className="w-full p-3 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-xs placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors resize-none"
+          />
+        </div>
+      </form>
+    </DialogFrame>
+  );
+}
+
+export default function CustomersManager({
+  customers,
+  initialPhone = '',
+}: {
+  customers: CustomerRow[];
+  initialPhone?: string;
+}) {
   const locale = useLocale();
   const router = useRouter();
   const { toast } = useToast();
   const isAr = locale === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
-  const okMsg = isAr ? 'تمت العملية بنجاح' : 'Done successfully';
 
   const [search, setSearch] = useState(initialPhone);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editCustomer, setEditCustomer] = useState<CustomerRow | null>(null);
   const [deleteCustomer, setDeleteCustomer] = useState<CustomerRow | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
-
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 8;
 
   const filtered = customers.filter(
     (c) =>
@@ -57,76 +360,12 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
       (c.email || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(filtered);
+  const pagedRows = paged;
 
   useEffect(() => {
     setPage(1);
   }, [search]);
-
-  const labelCls = 'block text-[11px] font-bold text-slate-400 mb-1';
-
-  const openAdd = () => {
-    setForm(EMPTY_FORM);
-    setFormError('');
-    setShowAddModal(true);
-  };
-
-  const openEdit = (c: CustomerRow) => {
-    setForm({
-      name: c.name || '',
-      phone: c.phone,
-      email: c.email || '',
-      notes: c.notes || '',
-      loyaltyPoints: String(c.loyaltyPoints),
-    });
-    setFormError('');
-    setEditCustomer(c);
-  };
-
-  const handleSubmitAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setFormError('');
-    try {
-      await apiFetch('/api/admin/customers', 'POST', {
-        ...form,
-        loyaltyPoints: Number(form.loyaltyPoints) || 0,
-      });
-      setShowAddModal(false);
-      toast(okMsg, 'success');
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : L('فشل في إضافة العميل', 'Could not add the customer');
-      setFormError(msg);
-      toast(msg, 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSubmitEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editCustomer) return;
-    setSaving(true);
-    setFormError('');
-    try {
-      await apiFetch(`/api/admin/customers/${editCustomer.id}`, 'PATCH', {
-        ...form,
-        loyaltyPoints: Number(form.loyaltyPoints) || 0,
-      });
-      setEditCustomer(null);
-      toast(okMsg, 'success');
-      router.refresh();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : L('فشل في تحديث بيانات العميل', 'Could not update the customer');
-      setFormError(msg);
-      toast(msg, 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!deleteCustomer) return;
@@ -135,7 +374,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
     try {
       await apiFetch(`/api/admin/customers/${deleteCustomer.id}`, 'DELETE');
       setDeleteCustomer(null);
-      toast(okMsg, 'success');
+      toast(isAr ? 'تم حذف العميل بنجاح' : 'Customer deleted successfully', 'success');
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : L('فشل في حذف العميل', 'Could not delete the customer');
@@ -145,108 +384,6 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
       setDeleting(false);
     }
   };
-
-  const CustomerForm = ({
-    onSubmit,
-    title,
-    onClose,
-  }: {
-    onSubmit: (e: React.FormEvent) => Promise<void>;
-    title: string;
-    onClose: () => void;
-  }) => (
-    <Modal title={title} onClose={onClose}>
-      <form onSubmit={onSubmit} className="space-y-4 text-xs">
-        {formError && (
-          <div role="alert" className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold">
-            {formError}
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>
-              <Phone className="w-3 h-3 inline ml-1" />
-              {isAr ? 'رقم الموبايل *' : 'Phone *'}
-            </label>
-            <input
-              required
-              type="tel"
-              dir="ltr"
-              placeholder="01xxxxxxxxx"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>
-              {isAr ? 'اسم العميل' : 'Customer Name'}
-            </label>
-            <input
-              type="text"
-              placeholder={isAr ? 'مثال: أحمد محمد' : 'e.g. Ahmed Mohamed'}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className={inputCls}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>
-            <Mail className="w-3 h-3 inline ml-1" />
-            {isAr ? 'البريد الإلكتروني' : 'Email'}
-          </label>
-          <input
-            type="email"
-            dir="ltr"
-            placeholder="example@email.com"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className={inputCls}
-          />
-        </div>
-
-        <div>
-          <label className={labelCls}>
-            <Star className="w-3 h-3 inline ml-1" />
-            {isAr ? 'نقاط الولاء' : 'Loyalty Points'}
-          </label>
-          <input
-            type="number"
-            min="0"
-            placeholder="0"
-            value={form.loyaltyPoints}
-            onChange={(e) => setForm({ ...form, loyaltyPoints: e.target.value })}
-            className={inputCls}
-          />
-        </div>
-
-        <div>
-          <label className={labelCls}>
-            <FileText className="w-3 h-3 inline ml-1" />
-            {isAr ? 'ملاحظات' : 'Notes'}
-          </label>
-          <textarea
-            rows={2}
-            placeholder={isAr ? 'أي ملاحظات خاصة بالعميل...' : 'Any notes about this customer...'}
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            className={`${inputCls} resize-none`}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-extrabold transition-all"
-        >
-          {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ' : 'Save')}
-        </button>
-      </form>
-    </Modal>
-  );
 
   return (
     <div className="space-y-4">
@@ -267,7 +404,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
               className="pr-9 pl-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-100 w-64 focus:outline-none focus:border-blue-500"
             />
           </div>
-          <Button onClick={openAdd} variant="primary">
+          <Button onClick={() => setShowAddModal(true)} variant="primary">
             <Plus className="w-4 h-4" />
             {isAr ? 'إضافة عميل' : 'Add Customer'}
           </Button>
@@ -311,7 +448,7 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
                 <td className="p-3">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => openEdit(c)}
+                      onClick={() => setEditCustomer(c)}
                       title={isAr ? 'تعديل' : 'Edit'}
                       className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/30 text-blue-400 transition-colors"
                     >
@@ -342,33 +479,61 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
           <span className="text-[11px] font-bold text-slate-400">
             {isAr ? `${filtered.length} عميل` : `${filtered.length} customers`}
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+          <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
         </div>
       )}
 
-      {/* Add Modal */}
-      {showAddModal && (
-        <CustomerForm
-          title={isAr ? 'إضافة عميل جديد' : 'Add New Customer'}
-          onSubmit={handleSubmitAdd}
-          onClose={() => setShowAddModal(false)}
-        />
-      )}
+      {/* Add Customer Modal */}
+      <CustomerModal
+        open={showAddModal}
+        mode="add"
+        onClose={() => setShowAddModal(false)}
+        onSuccess={(msg) => {
+          toast(msg, 'success');
+          router.refresh();
+        }}
+        isAr={isAr}
+      />
 
-      {/* Edit Modal */}
-      {editCustomer && (
-        <CustomerForm
-          title={isAr ? `تعديل بيانات: ${editCustomer.name || editCustomer.phone}` : `Edit: ${editCustomer.name || editCustomer.phone}`}
-          onSubmit={handleSubmitEdit}
-          onClose={() => setEditCustomer(null)}
-        />
-      )}
+      {/* Edit Customer Modal */}
+      <CustomerModal
+        open={!!editCustomer}
+        mode="edit"
+        customer={editCustomer}
+        onClose={() => setEditCustomer(null)}
+        onSuccess={(msg) => {
+          toast(msg, 'success');
+          router.refresh();
+        }}
+        isAr={isAr}
+      />
 
       {/* Delete Confirmation Modal */}
       {deleteCustomer && (
-        <Modal
+        <DialogFrame
+          active={!!deleteCustomer}
           title={isAr ? 'تأكيد الحذف' : 'Confirm Delete'}
           onClose={() => setDeleteCustomer(null)}
+          size="sm"
+          footer={
+            <div className="flex w-full gap-2">
+              <Button
+                variant="danger"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1"
+              >
+                {deleting ? (isAr ? 'جاري الحذف...' : 'Deleting...') : (isAr ? 'نعم، احذف' : 'Yes, Delete')}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setDeleteCustomer(null)}
+                className="flex-1"
+              >
+                {isAr ? 'إلغاء' : 'Cancel'}
+              </Button>
+            </div>
+          }
         >
           <div className="space-y-4 text-xs">
             {deleteError && (
@@ -388,23 +553,8 @@ export default function CustomersManager({ customers, initialPhone = '' }: { cus
                   : `⚠️ This customer has ${deleteCustomer.orders.length} orders — deletion will be blocked.`}
               </div>
             )}
-            <div className="flex gap-2">
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-700 disabled:opacity-60 text-white font-extrabold transition-all"
-              >
-                {deleting ? (isAr ? 'جاري الحذف...' : 'Deleting...') : (isAr ? 'نعم، احذف' : 'Yes, Delete')}
-              </button>
-              <button
-                onClick={() => setDeleteCustomer(null)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all"
-              >
-                {isAr ? 'إلغاء' : 'Cancel'}
-              </button>
-            </div>
           </div>
-        </Modal>
+        </DialogFrame>
       )}
     </div>
   );

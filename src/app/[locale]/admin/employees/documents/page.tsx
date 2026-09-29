@@ -3,13 +3,20 @@ import { getLocale } from 'next-intl/server';
 import { prisma } from '@/lib/db';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { FileText, CheckCircle2, AlertCircle, Clock, ShieldCheck, User } from 'lucide-react';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminEmployeesDocumentsPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminEmployeesDocumentsPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
 
   const employees = await prisma.employee.findMany({
     where: { isActive: true },
@@ -17,6 +24,7 @@ export default async function AdminEmployeesDocumentsPage() {
     include: {
       branch: { select: { id: true, name: true, nameEn: true } },
     },
+    take: 5000,
   });
 
   const docTypes = [
@@ -26,6 +34,8 @@ export default async function AdminEmployeesDocumentsPage() {
     { key: 'medical', labelAr: 'الشهادة الصحية / الكشف الطبي', labelEn: 'Medical Certificate' },
     { key: 'insurance', labelAr: 'نموذج س1 تأمينات', labelEn: 'Social Insurance' },
   ];
+
+  const pageRows = employees.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -84,7 +94,14 @@ export default async function AdminEmployeesDocumentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {employees.map((emp) => (
+              {employees.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-500">
+                    {L('لا يوجد موظفون نشطون بعد', 'No active staff yet')}
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((emp) => (
                 <tr key={emp.id} className="hover:bg-slate-900/40">
                   <td className="py-3 px-4">
                     <span className="font-bold text-slate-200 block">{emp.name}</span>
@@ -103,10 +120,17 @@ export default async function AdminEmployeesDocumentsPage() {
                     </td>
                   ))}
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
+
+        <ServerTablePager
+          page={page}
+          total={employees.length}
+          hrefFor={(n) => (n > 1 ? `/admin/employees/documents?page=${n}` : '/admin/employees/documents')}
+          isAr={isAr}
+        />
       </div>
     </>
   );

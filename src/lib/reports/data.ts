@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
 
 export type ReportType = 'sales' | 'inventory' | 'branches' | 'finance';
 export interface ReportQuery {
@@ -43,7 +44,7 @@ export function parseReportQuery(params: URLSearchParams | Record<string, string
   const from = rawFrom && !Number.isNaN(Date.parse(rawFrom)) ? new Date(rawFrom) : new Date(Date.now() - 30 * 86_400_000);
   const to = rawTo && !Number.isNaN(Date.parse(rawTo)) ? new Date(`${rawTo.slice(0, 10)}T23:59:59.999Z`) : new Date();
   const page = Math.max(1, Math.min(1000, Number(get('page') || 1) || 1));
-  const pageSize = Math.max(5, Math.min(100, Number(get('pageSize') || 25) || 25));
+  const pageSize = Math.max(5, Math.min(100, Number(get('pageSize') || TABLE_PAGE_SIZE) || TABLE_PAGE_SIZE));
   return { from, to, branchId: get('branch') || undefined, q: (get('q') || '').trim().slice(0, 100) || undefined, page, pageSize };
 }
 

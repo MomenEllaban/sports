@@ -7,7 +7,7 @@ import { Plus, Search, PackageSearch, X, ShoppingBag, Clock, Truck, CheckCircle2
 import { Modal, StatusBadge, ActionButton, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button, NumberField } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { TablePager, TABLE_PAGE_SIZE } from './tablePaging';
 import { getClientErrorMessage } from '@/lib/client-api';
 
 interface SupplierOpt { id: string; name: string; code: string }
@@ -460,18 +460,13 @@ export default function PurchasingManager({
       </div>
 
       {totalCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
-          <span className="text-[11px] font-bold text-slate-400">
-            {L(`${totalCount} أمر توريد`, `${totalCount} purchase orders`)}
-          </span>
-          {totalPages > 1 && (
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={(next) => router.push(buildUrl({ page: next }))}
-            />
-          )}
-        </div>
+        <TablePager
+          page={page}
+          totalPages={totalPages}
+          total={totalCount}
+          pageSize={TABLE_PAGE_SIZE}
+          onPageChange={(next) => router.push(buildUrl({ page: next }))}
+        />
       )}
 
       {showNew && (

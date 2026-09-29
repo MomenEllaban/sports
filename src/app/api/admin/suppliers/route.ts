@@ -11,7 +11,8 @@ export async function GET() {
 
     const suppliers = await prisma.supplier.findMany({ orderBy: { name: 'asc' } });
     return NextResponse.json({ success: true, suppliers });
-  } catch {
+  } catch (e) {
+    captureError('api/admin/suppliers', e);
     return apiError('INTERNAL_ERROR', 'Failed', 500);
   }
 }

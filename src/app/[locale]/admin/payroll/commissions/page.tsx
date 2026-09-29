@@ -4,14 +4,21 @@ import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { Percent, TrendingUp, DollarSign, Award, Users } from 'lucide-react';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPayrollCommissionsPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminPayrollCommissionsPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const currencyLabel = L('ج.م', 'EGP');
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
 
   const [employees, sales] = await Promise.all([
     prisma.employee.findMany({
@@ -62,6 +69,7 @@ export default async function AdminPayrollCommissionsPage() {
 
   const totalCommissionsEarned = employeeCommissions.reduce((acc, e) => acc + e.earnedCommission, 0);
   const totalSalesTracked = employeeCommissions.reduce((acc, e) => acc + e.totalSalesAchieved, 0);
+  const pageRows = employeeCommissions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -125,7 +133,7 @@ export default async function AdminPayrollCommissionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {employeeCommissions.map((emp) => (
+              {employeeCommissions.length > 0 && pageRows.map((emp) => (
                 <tr key={emp.id} className="hover:bg-slate-900/40">
                   <td className="py-3 px-4 font-bold text-slate-200">{emp.name}</td>
                   <td className="py-3 px-4 text-slate-400">
@@ -148,6 +156,13 @@ export default async function AdminPayrollCommissionsPage() {
             </tbody>
           </table>
         </div>
+
+        <ServerTablePager
+          page={page}
+          total={employeeCommissions.length}
+          hrefFor={(n) => (n > 1 ? `/admin/payroll/commissions?page=${n}` : '/admin/payroll/commissions')}
+          isAr={isAr}
+        />
       </div>
     </>
   );

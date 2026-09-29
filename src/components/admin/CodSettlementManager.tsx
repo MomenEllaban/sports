@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useLocale } from 'next-intl';
 import { calculateCodReconciliation } from '@/lib/payments';
 import { apiFetch } from './ui';
+import { useTablePage, TablePager } from './tablePaging';
 import { useToast } from '@/components/Toast';
 import { useRouter } from '@/i18n/routing';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -60,6 +61,8 @@ export default function CodSettlementManager({ initialOrders }: { initialOrders:
     { collected: 0, remitted: 0 }
   );
 
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(initialOrders);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3 text-xs">
@@ -93,7 +96,7 @@ export default function CodSettlementManager({ initialOrders }: { initialOrders:
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 bg-slate-900/40">
-            {initialOrders.map((o) => {
+            {tableRows.map((o) => {
               const draft = drafts[o.id] !== undefined ? Number(drafts[o.id]) : o.remittedAmount;
               const rec = calculateCodReconciliation({
                 branchId: o.branchId,
@@ -153,6 +156,7 @@ export default function CodSettlementManager({ initialOrders }: { initialOrders:
             })}
           </tbody>
         </table>
+        <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
         {initialOrders.length === 0 && (
           <div className="p-8 text-center text-xs text-slate-500">{isAr ? 'لا توجد طلبات دفع عند الاستلام بعد.' : 'No COD orders yet.'}</div>
         )}

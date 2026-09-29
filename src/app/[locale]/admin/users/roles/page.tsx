@@ -5,6 +5,8 @@ import { requirePageRole } from '@/lib/auth/require-page';
 import { Link } from '@/i18n/routing';
 import { Check, LockKeyhole, ShieldCheck, X } from 'lucide-react';
 import type { Role } from '@prisma/client';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,11 +26,17 @@ const roleDescriptions: Record<Role, { ar: string; en: string }> = {
   STAFF: { ar: 'العمليات المسموحة حسب الفرع.', en: 'Branch-scoped permitted operations.' },
 };
 
-export default async function AdminRolesPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminRolesPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN');
   const isAr = (await getLocale()) === 'ar';
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
   const roles = Object.keys(roleLabels) as Role[];
   const adminEntries = Object.entries(RBAC_MATRIX).filter(([path]) => path.startsWith('/api/admin/'));
+  const pageRows = adminEntries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -56,7 +64,7 @@ export default async function AdminRolesPage() {
           <table className="w-full min-w-[760px] text-xs text-start">
             <thead className="bg-slate-950 text-slate-400"><tr><th className="p-3">API Route</th><th className="p-3">{isAr ? 'الطرق' : 'Methods'}</th>{roles.map((role) => <th key={role} className="p-3 text-center">{roleLabels[role][isAr ? 'ar' : 'en']}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-800">
-              {adminEntries.map(([path, entry]) => {
+              {pageRows.map(([path, entry]) => {
                 const methods = Object.entries(entry.methods).filter(([, value]) => value !== 'public');
                 return (
                   <tr key={path} className="hover:bg-slate-900/50">
@@ -68,6 +76,14 @@ export default async function AdminRolesPage() {
               })}
             </tbody>
           </table>
+        </div>
+        <div className="p-4">
+          <ServerTablePager
+            page={page}
+            total={adminEntries.length}
+            hrefFor={(n) => (n > 1 ? `/admin/users/roles?page=${n}` : '/admin/users/roles')}
+            isAr={isAr}
+          />
         </div>
       </section>
     </>

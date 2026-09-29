@@ -6,7 +6,8 @@ import { ArrowLeftRight } from 'lucide-react';
 import { Modal, StatusBadge, apiFetch } from './ui';
 import { getClientErrorMessage } from '@/lib/client-api';
 import { useToast } from '@/components/Toast';
-import { inputCls, Button, Pagination } from '@/components/ui/foundation';
+import { inputCls, Button } from '@/components/ui/foundation';
+import { TablePager } from './tablePaging';
 
 interface BranchOpt { id: string; name: string; nameEn: string }
 interface ProductOpt { id: string; nameAr: string; nameEn: string }
@@ -373,12 +374,7 @@ export default function TransfersManager({
       </div>
 
       {data && data.total > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <span className="text-[11px] font-bold text-slate-400">
-            {isAr ? `${data.total} تحويل` : `${data.total} transfers`}
-          </span>
-          <Pagination page={data.page} totalPages={data.pageCount} onPageChange={setPage} />
-        </div>
+        <TablePager page={data.page} totalPages={data.pageCount} total={data.total} onPageChange={setPage} />
       )}
 
       {showCreate && (

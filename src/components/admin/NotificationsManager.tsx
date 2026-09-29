@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
-import Pagination from './Pagination';
+import { TablePager } from './tablePaging';
 
 interface NotifRow {
   id: string;
@@ -108,12 +108,7 @@ export default function NotificationsManager({ notifications }: { notifications:
       )}
 
       {notifications.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <span className="text-[11px] font-bold text-slate-400">
-            {isAr ? `${notifications.length} إشعار` : `${notifications.length} notifications`}
-          </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
-        </div>
+        <TablePager page={safePage} totalPages={totalPages} total={notifications.length} onPageChange={setPage} />
       )}
     </div>
   );

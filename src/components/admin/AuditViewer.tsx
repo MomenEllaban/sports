@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useLocale } from 'next-intl';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface AuditRow {
   id: string;
@@ -27,6 +28,8 @@ export default function AuditViewer({ logs }: { logs: AuditRow[] }) {
       (l.entityId || '').includes(q)
   );
 
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
+
   return (
     <div className="space-y-4">
       <input
@@ -48,7 +51,7 @@ export default function AuditViewer({ logs }: { logs: AuditRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {filtered.map((l) => (
+            {tableRows.map((l) => (
               <tr key={l.id} className="hover:bg-slate-900/50">
                 <td className="p-3 text-slate-400 whitespace-nowrap">{new Date(l.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')}</td>
                 <td className="p-3 font-mono text-[10px] text-slate-500">{l.actorId ? l.actorId.slice(-6) : '—'}</td>
@@ -59,6 +62,7 @@ export default function AuditViewer({ logs }: { logs: AuditRow[] }) {
             ))}
           </tbody>
         </table>
+        <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
         {filtered.length === 0 && <div className="text-center text-xs text-slate-500 py-8">{isAr ? 'لا توجد قيود' : 'No entries'}</div>}
       </div>
     </div>

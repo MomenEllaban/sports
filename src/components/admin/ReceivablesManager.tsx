@@ -11,6 +11,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { Modal, apiFetch } from './ui';
+import { useTablePage, TablePager } from './tablePaging';
 import { useToast } from '@/components/Toast';
 import { Button } from '@/components/ui/foundation';
 
@@ -100,6 +101,8 @@ export default function ReceivablesManager({ branches }: { branches: BranchOpt[]
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(debtors);
 
   const openCustomerDrilldown = async (customer: DebtorRow) => {
     setSelectedCustomer(customer);
@@ -210,7 +213,7 @@ export default function ReceivablesManager({ branches }: { branches: BranchOpt[]
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {debtors.map((row) => (
+            {tableRows.map((row) => (
               <tr key={row.customerId} className="hover:bg-slate-900/50 transition-colors">
                 <td className="p-3 font-bold text-slate-100">{row.customerName}</td>
                 <td className="p-3 font-mono text-slate-400" dir="ltr">{row.customerPhone}</td>
@@ -260,6 +263,8 @@ export default function ReceivablesManager({ branches }: { branches: BranchOpt[]
             ))}
           </tbody>
         </table>
+
+        <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
 
         {debtors.length === 0 && !loading && (
           <div className="text-center text-xs text-slate-500 py-12">

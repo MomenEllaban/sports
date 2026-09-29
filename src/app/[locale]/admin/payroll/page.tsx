@@ -4,21 +4,30 @@ import PayrollManager from '@/components/admin/PayrollManager';
 import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPayrollPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminPayrollPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const currencyLabel = L('ج.م', 'EGP');
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
   const [employees, runs] = await Promise.all([
-    prisma.employee.findMany({ include: { branch: true } }),
+    prisma.employee.findMany({ include: { branch: true }, take: 5000 }),
     prisma.payrollRun.findMany({
       orderBy: { createdAt: 'desc' },
       include: { items: { include: { employee: true } } },
     }),
   ]);
+
+  const pageRows = employees.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -43,7 +52,12 @@ export default async function AdminPayrollPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {employees.map((emp) => (
+                  {employees.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-500">{L('لا يوجد موظفون بعد', 'No employees yet')}</td>
+                    </tr>
+                  )}
+                  {pageRows.map((emp) => (
                     <tr key={emp.id} className="hover:bg-slate-900/50">
                       <td className="p-3 font-bold text-slate-100">{emp.name}</td>
                       <td className="p-3 text-slate-300">{emp.roleTitle}</td>
@@ -58,6 +72,13 @@ export default async function AdminPayrollPage() {
                 </tbody>
               </table>
             </div>
+
+            <ServerTablePager
+              page={page}
+              total={employees.length}
+              hrefFor={(n) => (n > 1 ? `/admin/payroll?page=${n}` : '/admin/payroll')}
+              isAr={isAr}
+            />
           </div>
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 animate-fade-up">

@@ -10,7 +10,7 @@ import {
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { TablePager, TABLE_PAGE_SIZE } from './tablePaging';
 
 interface CustomerOpt {
   id: string;
@@ -101,7 +101,7 @@ export default function CustomerPaymentsManager({
     try {
       const params = new URLSearchParams({
         page: String(page),
-        pageSize: '10',
+        pageSize: String(TABLE_PAGE_SIZE),
       });
       if (search) params.set('q', search);
       if (branchFilter) params.set('branchId', branchFilter);
@@ -453,7 +453,7 @@ export default function CustomerPaymentsManager({
           <span className="text-[11px] font-bold text-slate-400">
             {L(`إجمالي: ${total} سند قبض`, `Total: ${total} receipts`)}
           </span>
-          <Pagination page={page} totalPages={pageCount} onPageChange={setPage} />
+          <TablePager page={page} totalPages={pageCount} total={total} onPageChange={setPage} />
         </div>
       )}
 

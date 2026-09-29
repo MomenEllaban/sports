@@ -5,14 +5,21 @@ import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { CalendarDays, CheckCircle2, DollarSign, Clock, Users, ArrowUpRight } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminPayrollHistoryPage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminPayrollHistoryPage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'FINANCE');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const currencyLabel = L('ج.م', 'EGP');
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
 
   const runs = await prisma.payrollRun.findMany({
     orderBy: { createdAt: 'desc' },
@@ -23,9 +30,11 @@ export default async function AdminPayrollHistoryPage() {
         },
       },
     },
+    take: 5000,
   });
 
   const totalHistoricalDisbursed = runs.reduce((acc, r) => acc + num(r.totalAmount), 0);
+  const pageRows = runs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -85,14 +94,7 @@ export default async function AdminPayrollHistoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {runs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500">
-                    {L('لا توجد مسيرات رواتب مسجلة في الأرشيف', 'No payroll runs archived yet')}
-                  </td>
-                </tr>
-              ) : (
-                runs.map((run) => (
+              {runs.length > 0 && pageRows.map((run) => (
                   <tr key={run.id} className="hover:bg-slate-900/40">
                     <td className="py-3 px-4 font-mono font-bold text-slate-200">{run.periodMonth} / {run.periodYear}</td>
                     <td className="py-3 px-4">
@@ -119,13 +121,19 @@ export default async function AdminPayrollHistoryPage() {
                         <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <ServerTablePager
+              page={page}
+              total={runs.length}
+              hrefFor={(n) => (n > 1 ? `/admin/payroll/history?page=${n}` : '/admin/payroll/history')}
+              isAr={isAr}
+            />
+          </div>
     </>
   );
 }

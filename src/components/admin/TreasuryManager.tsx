@@ -9,6 +9,7 @@ import {
   Store,
 } from 'lucide-react';
 import { StatusBadge } from './ui';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface ShiftCashInfo {
   id: string;
@@ -57,6 +58,9 @@ export default function TreasuryManager({
   const currencyLabel = L('ج.م', 'EGP');
 
   const netLiquidity = totalCustomerReceipts + totalCodCollected - totalExpensesDisbursed;
+
+  const { page: shiftPage, totalPages: shiftTotalPages, paged: shiftRows, total: shiftTotal, setPage: setShiftPage } = useTablePage(recentShifts);
+  const { page: txPage, totalPages: txTotalPages, paged: txRows, total: txTotal, setPage: setTxPage } = useTablePage(recentTransactions);
 
   return (
     <div className="space-y-6">
@@ -132,7 +136,7 @@ export default function TreasuryManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {recentShifts.map((s) => (
+              {shiftRows.map((s) => (
                 <tr key={s.id} className="hover:bg-slate-900/50">
                   <td className="p-3 font-mono font-bold text-sky-400">{s.shiftNumber}</td>
                   <td className="p-3 font-semibold text-slate-200">{s.branchName}</td>
@@ -163,6 +167,7 @@ export default function TreasuryManager({
             </tbody>
           </table>
         </div>
+        <TablePager page={shiftPage} totalPages={shiftTotalPages} total={shiftTotal} onPageChange={setShiftPage} />
       </div>
 
       {/* Recent Cash Flow Ledger */}
@@ -192,7 +197,7 @@ export default function TreasuryManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {recentTransactions.map((tx) => (
+              {txRows.map((tx) => (
                 <tr key={tx.id} className="hover:bg-slate-900/50">
                   <td className="p-3 text-slate-400">
                     {new Date(tx.date).toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}
@@ -221,6 +226,7 @@ export default function TreasuryManager({
             </tbody>
           </table>
         </div>
+        <TablePager page={txPage} totalPages={txTotalPages} total={txTotal} onPageChange={setTxPage} />
       </div>
     </div>
   );

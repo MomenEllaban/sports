@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import { apiFetch } from './ui';
+import { useTablePage, TablePager } from './tablePaging';
 
 export interface CampaignRecord {
   id: string;
@@ -188,6 +189,8 @@ export default function CampaignsManager({
     window.open(`https://wa.me/${phoneWithCode}?text=${encodeURIComponent(personalized)}`, '_blank');
   };
 
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(campaigns);
+
   return (
     <div className="space-y-6">
       {/* Top Cards */}
@@ -307,7 +310,7 @@ export default function CampaignsManager({
                   </td>
                 </tr>
               ) : (
-                campaigns.map((camp) => (
+                tableRows.map((camp) => (
                   <tr key={camp.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="p-3.5">
                       <div className="font-bold text-slate-100">{camp.title}</div>
@@ -367,6 +370,8 @@ export default function CampaignsManager({
           </table>
         </div>
       </div>
+
+      <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
 
       {/* Create Campaign Modal */}
       {isModalOpen && (

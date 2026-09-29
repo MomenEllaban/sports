@@ -66,6 +66,7 @@
 @layer base {
   :root {
     --font-cairo: 'Cairo', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
 
     /* === DARK MODE (default) === */
     --bg-base: #0f172a;
@@ -91,7 +92,7 @@
     --status-danger-bg: rgba(225, 29, 72, 0.14);
     --status-info-bg: rgba(59, 130, 246, 0.14);
 
-    --input-bg: #0f172a;
+    --input-bg: #0b1324;
     --input-border: #334155;
     --input-text: #f1f5f9;
 
@@ -102,6 +103,7 @@
   }
 
   [data-theme="light"] {
+    color-scheme: light;
     /* === LIGHT MODE === */
     --bg-base: #f1f5f9;
     --bg-surface: #ffffff;
@@ -192,6 +194,29 @@
 .border-slate-800 { border-color: var(--border-subtle) !important; }
 .border-slate-700 { border-color: var(--input-border) !important; }
 
+/* ============================================================
+   Table alignment is direction-driven, not locale-driven.
+
+   Headers and cells align to `start`, which resolves to the right edge under
+   `dir="rtl"` and the left edge under `dir="ltr"`. Because <html> already
+   carries the locale direction, one rule covers both languages, so a header
+   can never disagree with the body beneath it, and a new table gets the
+   behaviour for free instead of re-deciding it per component.
+
+   `!important` is required, not laziness: these must beat the per-cell
+   `text-center` / `text-end` utilities that individual columns still carry for
+   numeric alignment. Those are overridden here deliberately and uniformly so
+   a column's header stays flush with its own values. A column that genuinely
+   needs centring (an icon-only action column) should re-assert it with an
+   inline style, which is explicit and greppable.
+   ============================================================ */
+.admin-shell table th,
+.admin-shell table td,
+.glass-panel table th,
+.glass-panel table td {
+  text-align: start;
+}
+
 /* Inputs (both themes) */
 [data-theme="light"] input,
 [data-theme="light"] select,
@@ -205,6 +230,28 @@
 [data-theme="light"] textarea::placeholder,
 [data-theme="light"] .placeholder\:text-slate-500::placeholder {
   color: #94a3b8 !important;
+}
+
+/* Fix browser autofill washing out inputs with glaring white background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--input-text, #f1f5f9) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg, #0b1324) inset !important;
+  box-shadow: 0 0 0px 1000px var(--input-bg, #0b1324) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+[data-theme="light"] input:-webkit-autofill,
+[data-theme="light"] input:-webkit-autofill:hover,
+[data-theme="light"] input:-webkit-autofill:focus,
+[data-theme="light"] textarea:-webkit-autofill,
+[data-theme="light"] select:-webkit-autofill {
+  -webkit-text-fill-color: var(--input-text, #0f172a) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--input-bg, #f8fafc) inset !important;
+  box-shadow: 0 0 0px 1000px var(--input-bg, #f8fafc) inset !important;
 }
 
 @layer base {

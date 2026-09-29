@@ -11,6 +11,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { useTablePage, TablePager } from './tablePaging';
 
 export interface AbandonedCartItem {
   id: string;
@@ -61,6 +62,8 @@ export default function AbandonedCartsManager({
         c.orderNumber.toLowerCase().includes(q)
     );
   }, [carts, search]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
 
   const handleSendRecoveryWhatsApp = (c: AbandonedCartItem) => {
     const cleanPhone = c.customerPhone.replace(/[^0-9]/g, '');
@@ -188,7 +191,7 @@ export default function AbandonedCartsManager({
                 </td>
               </tr>
             ) : (
-              filtered.map((cart) => (
+              tableRows.map((cart) => (
                 <tr key={cart.id} className="hover:bg-slate-800/40 transition-colors">
                   <td className="p-3.5">
                     <div className="font-bold text-slate-100">{cart.customerName}</div>
@@ -244,6 +247,8 @@ export default function AbandonedCartsManager({
           </tbody>
         </table>
       </div>
+
+      <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
     </div>
   );
 }

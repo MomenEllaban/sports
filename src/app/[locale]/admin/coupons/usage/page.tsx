@@ -4,19 +4,26 @@ import { prisma } from '@/lib/db';
 import { num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { History, TicketPercent, DollarSign, Users, Calendar } from 'lucide-react';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminCouponsUsagePage() {
+type SearchParams = Promise<{ page?: string }>;
+
+const PAGE_SIZE = TABLE_PAGE_SIZE;
+
+export default async function AdminCouponsUsagePage({ searchParams }: { searchParams: SearchParams }) {
   await requirePageRole('SUPER_ADMIN', 'BRANCH_MANAGER');
   const isAr = (await getLocale()) === 'ar';
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const currencyLabel = L('ج.م', 'EGP');
+  const page = Math.max(1, Number((await searchParams).page || 1) || 1);
 
   const [couponUses, ordersWithCoupons] = await Promise.all([
     prisma.couponUse.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 150,
+      take: 5000,
       include: {
         coupon: { select: { code: true, kind: true, value: true } },
       },
@@ -35,7 +42,7 @@ export default async function AdminCouponsUsagePage() {
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: 5000,
     }),
   ]);
 
@@ -71,6 +78,8 @@ export default async function AdminCouponsUsagePage() {
         date: o.createdAt.toISOString(),
       })),
   ].sort((a, b) => b.date.localeCompare(a.date));
+
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -136,7 +145,7 @@ export default async function AdminCouponsUsagePage() {
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => (
+                pageRows.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-900/40">
                     <td className="py-3 px-4">
                       <span className="font-mono font-bold text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/20">
@@ -157,6 +166,13 @@ export default async function AdminCouponsUsagePage() {
             </tbody>
           </table>
         </div>
+
+        <ServerTablePager
+          page={page}
+          total={rows.length}
+          hrefFor={(n) => (n > 1 ? `/admin/coupons/usage?page=${n}` : '/admin/coupons/usage')}
+          isAr={isAr}
+        />
       </div>
     </>
   );

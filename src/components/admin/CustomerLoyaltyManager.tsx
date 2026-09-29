@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import { apiFetch } from './ui';
+import { useTablePage, TablePager } from './tablePaging';
 
 export interface CustomerLoyaltyItem {
   id: string;
@@ -110,6 +111,8 @@ export default function CustomerLoyaltyManager({
       return true;
     });
   }, [customers, search, tierFilter, getTier]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
 
   const handleAdjustPoints = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -347,7 +350,7 @@ export default function CustomerLoyaltyManager({
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => {
+              tableRows.map((c) => {
                 const tier = getTier(c.loyaltyPoints);
                 const TierIcon = tier.icon;
                 const valueEgp = c.loyaltyPoints * pointValue;
@@ -417,6 +420,8 @@ export default function CustomerLoyaltyManager({
           </tbody>
         </table>
       </div>
+
+      <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
 
       {/* Adjust Points Modal */}
       {adjustingCustomer && (

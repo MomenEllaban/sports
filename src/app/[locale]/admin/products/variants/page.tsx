@@ -6,12 +6,14 @@ import { requirePageRole } from '@/lib/auth/require-page';
 import { scopedBranchIds } from '@/lib/auth/branch-scope';
 import { Link } from '@/i18n/routing';
 import { Layers } from 'lucide-react';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
+import ServerTablePager from '@/components/admin/ServerTablePager';
 
 export const dynamic = 'force-dynamic';
 
 type SearchParams = Promise<{ query?: string; page?: string }>;
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = TABLE_PAGE_SIZE;
 
 /**
  * Variant families. This page groups SKUs into style families so the size/colour
@@ -101,7 +103,6 @@ export default async function AdminProductVariantsPage({ searchParams }: { searc
   }
 
   const all = Object.values(families);
-  const pageCount = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
   const familyList = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const variantCount = all.reduce((acc, f) => acc + f.items.length, 0);
   const lowVariants = all.reduce((acc, f) => acc + f.lowCount, 0);
@@ -261,28 +262,18 @@ export default async function AdminProductVariantsPage({ searchParams }: { searc
         </div>
       )}
 
-      {pageCount > 1 && (
-        <nav className="flex flex-wrap items-center justify-center gap-1.5" aria-label={L('التنقل بين الصفحات', 'Pagination')}>
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => {
-            const pageQuery: Record<string, string> = {};
-            if (query) pageQuery.query = query;
-            if (n > 1) pageQuery.page = String(n);
-            const active = n === page;
-            return (
-              <Link
-                key={n}
-                href={{ pathname: '/admin/products/variants', query: pageQuery }}
-                aria-current={active ? 'page' : undefined}
-                className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl px-3 text-xs font-bold transition-colors ${
-                  active ? 'bg-blue-600 text-white' : 'border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                {n}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+      <ServerTablePager
+        page={page}
+        total={all.length}
+        hrefFor={(n) => {
+          const q: Record<string, string> = {};
+          if (query) q.query = query;
+          if (n > 1) q.page = String(n);
+          const qs = new URLSearchParams(q).toString();
+          return qs ? `/admin/products/variants?${qs}` : '/admin/products/variants';
+        }}
+        isAr={isAr}
+      />
     </>
   );
 }

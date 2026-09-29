@@ -10,10 +10,11 @@ import { money, num } from '@/lib/pricing';
 import { requirePageRole } from '@/lib/auth/require-page';
 import { scopedBranchIds } from '@/lib/auth/branch-scope';
 import { receivedValueOf } from '@/lib/purchasing/payables';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
 
 export const dynamic = 'force-dynamic';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = TABLE_PAGE_SIZE;
 const LEDGER_TAKE = 200;
 
 /** Ceiling on the open-order scan that backs the statement totals. */
@@ -312,14 +313,20 @@ export default async function SuppliersPage({
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                <span className="text-[11px] font-bold text-slate-400">
-                  {L(`${orderTotal} أمر توريد`, `${orderTotal} purchase orders`)}
-                </span>
-                <ServerPagination page={safePage} totalPages={totalPages} hrefFor={pageHref} />
-              </div>
-            )}
+            {/* The range is shown even on a single page, so the user can tell a
+                short list from a paginated one. */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-slate-400">
+                {orderTotal === 0
+                  ? L('لا توجد صفوف', 'No rows')
+                  : L(
+                      `عرض ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, orderTotal)} من ${orderTotal}`,
+                      `Showing ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, orderTotal)} of ${orderTotal}`
+                    )}
+              </span>
+              <ServerPagination page={safePage} totalPages={totalPages} hrefFor={pageHref} />
+            </div>
+
           </div>
 
           {/* Supplier Specific Payments */}

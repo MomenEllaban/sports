@@ -22,7 +22,7 @@ export default async function SupplierReturnsPage() {
         type: 'PURCHASE_RETURN',
         ...branchWhere,
       },
-      take: 50,
+      take: 5000,
       orderBy: { createdAt: 'desc' },
       include: {
         product: { select: { nameAr: true, nameEn: true, sku: true } },
@@ -34,7 +34,7 @@ export default async function SupplierReturnsPage() {
         ...branchWhere,
         items: { some: { quantityReceived: { gt: 0 } } },
       },
-      take: 50,
+      take: 5000,
       orderBy: { createdAt: 'desc' },
       include: {
         branch: { select: { id: true, name: true, nameEn: true } },

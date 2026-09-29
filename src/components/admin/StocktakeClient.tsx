@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { apiFetch } from './ui';
 import { Button, ConfirmDialog } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { useTablePage, TablePager } from './tablePaging';
 
 type NamedRef = { id: string; nameAr: string; nameEn: string };
 type Line = {
@@ -42,8 +42,6 @@ type Summary = {
 };
 type Report = { session: Session; lines: Line[]; summary: Summary };
 type Dirty = { id: string; countedQuantity: number | null; reasonCode: string | null; notes: string | null };
-
-const PAGE_SIZE = 25;
 
 /** Reason codes must match the `StocktakeReason` enum used by the API. */
 const REASONS: Array<{ value: string; ar: string; en: string }> = [
@@ -83,7 +81,6 @@ export default function StocktakeClient({
   const [brand, setBrand] = useState('');
   const [onlyVariance, setOnlyVariance] = useState(false);
   const [onlyUncounted, setOnlyUncounted] = useState(false);
-  const [page, setPage] = useState(1);
 
   const [scopeCategoryId, setScopeCategoryId] = useState('');
   const [scopeBrandId, setScopeBrandId] = useState('');
@@ -274,9 +271,8 @@ export default function StocktakeClient({
     });
   }, [lines, search, category, brand, onlyVariance, onlyUncounted]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(filtered);
+  const pagedRows = paged;
 
   /** Quotes every cell and neutralises spreadsheet formula injection. */
   const csvCell = (value: unknown) => {
@@ -710,7 +706,7 @@ export default function StocktakeClient({
               <span className="text-[11px] font-bold text-slate-400">
                 {L(`${filtered.length} سطر`, `${filtered.length} line${filtered.length === 1 ? '' : 's'}`)}
               </span>
-              <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+              <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
             </div>
           )}
         </>

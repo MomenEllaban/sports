@@ -10,7 +10,7 @@ import {
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { TablePager, TABLE_PAGE_SIZE } from './tablePaging';
 
 interface EmployeeOpt {
   id: string;
@@ -94,7 +94,7 @@ export default function LeaveManager({
     try {
       const params = new URLSearchParams({
         page: String(page),
-        pageSize: '10',
+        pageSize: String(TABLE_PAGE_SIZE),
       });
       if (statusFilter) params.set('status', statusFilter);
       if (branchFilter) params.set('branchId', branchFilter);
@@ -345,7 +345,7 @@ export default function LeaveManager({
           <span className="text-[11px] font-bold text-slate-400">
             {L(`إجمالي: ${total} طلب`, `Total: ${total} requests`)}
           </span>
-          <Pagination page={page} totalPages={pageCount} onPageChange={setPage} />
+          <TablePager page={page} totalPages={pageCount} total={total} onPageChange={setPage} />
         </div>
       )}
 

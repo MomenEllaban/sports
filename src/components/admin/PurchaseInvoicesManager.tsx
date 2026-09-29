@@ -18,7 +18,7 @@ import {
 import { Button, Modal } from '@/components/ui/foundation';
 import { useToast } from '@/components/Toast';
 import { apiFetch } from './ui';
-import Pagination from './Pagination';
+import { TablePager } from './tablePaging';
 import { getClientErrorMessage } from '@/lib/client-api';
 import type { PurchaseOrderStatus } from '@prisma/client';
 
@@ -434,14 +434,7 @@ export default function PurchaseInvoicesManager({
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] font-bold text-slate-400">
-            {L(`${filtered.length} من ${totalCount}`, `${filtered.length} of ${totalCount}`)}
-          </span>
-          <Pagination page={page} totalPages={totalPages} onPageChange={(next) => router.push(buildUrl({ page: next }))} />
-        </div>
-      )}
+      <TablePager page={page} totalPages={totalPages} total={totalCount} onPageChange={(next) => router.push(buildUrl({ page: next }))} />
 
       {payingInvoice && (
         <Modal

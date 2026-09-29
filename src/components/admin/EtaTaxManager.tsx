@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import EtaRetryButton from './EtaRetryButton';
+import { useTablePage, TablePager } from './tablePaging';
 
 export interface TaxInvoiceRow {
   id: string;
@@ -79,6 +80,8 @@ export default function EtaTaxManager({
       return true;
     });
   }, [invoices, search, statusFilter]);
+
+  const { page, totalPages, paged: tableRows, total: tableTotal, setPage } = useTablePage(filtered);
 
   return (
     <div className="space-y-6">
@@ -245,7 +248,7 @@ export default function EtaTaxManager({
                 </td>
               </tr>
             ) : (
-              filtered.map((inv) => (
+              tableRows.map((inv) => (
                 <tr key={inv.id} className="hover:bg-slate-800/40 transition-colors">
                   <td className="p-3.5 font-mono font-bold text-blue-400">
                     {inv.invoiceNumber}
@@ -320,6 +323,8 @@ export default function EtaTaxManager({
           </tbody>
         </table>
       </div>
+
+      <TablePager page={page} totalPages={totalPages} total={tableTotal} onPageChange={setPage} />
 
       {/* QR Code Modal */}
       {activeQrModal && (

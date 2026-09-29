@@ -2,8 +2,13 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 60000,
+  globalSetup: './tests/e2e/global-setup.ts',
+  timeout: 90000,
   fullyParallel: false,
+  // One worker against `next dev`: two workers compiling different routes at
+  // once starved the dev server and turned cold compiles into login waits and
+  // `page.goto` timeouts, which read as test failures.
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: process.env.E2E_BASE_URL || 'http://localhost:3102', trace: 'on-first-retry' },
   webServer: {

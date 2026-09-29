@@ -11,6 +11,7 @@ import {
 import { Modal, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface ReturnLog {
   id: string;
@@ -121,6 +122,21 @@ export default function SupplierReturnsManager({
       o.supplier.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const {
+    page: logPage,
+    totalPages: logTotalPages,
+    paged: pagedLogs,
+    total: totalLogs,
+    setPage: setLogPage,
+  } = useTablePage(filteredLogs);
+  const {
+    page: orderPage,
+    totalPages: orderTotalPages,
+    paged: pagedOrders,
+    total: totalOrders,
+    setPage: setOrderPage,
+  } = useTablePage(filteredOrders);
+
   return (
     <div className="space-y-4">
       {/* Sub Tabs */}
@@ -177,7 +193,7 @@ export default function SupplierReturnsManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {filteredLogs.map((log) => (
+              {pagedLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-900/50 transition-colors">
                   <td className="p-3 text-slate-400">
                     {new Date(log.createdAt).toLocaleString(isAr ? 'ar-EG' : 'en-US')}
@@ -195,6 +211,8 @@ export default function SupplierReturnsManager({
               ))}
             </tbody>
           </table>
+
+          <TablePager page={logPage} totalPages={logTotalPages} total={totalLogs} onPageChange={setLogPage} />
 
           {filteredLogs.length === 0 && (
             <div className="text-center text-xs text-slate-500 py-12">
@@ -219,7 +237,7 @@ export default function SupplierReturnsManager({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {filteredOrders.map((po) => {
+              {pagedOrders.map((po) => {
                 const receivedCount = po.items.filter((i) => i.quantityReceived > 0).length;
                 return (
                   <tr key={po.id} className="hover:bg-slate-900/50 transition-colors">
@@ -244,6 +262,8 @@ export default function SupplierReturnsManager({
               })}
             </tbody>
           </table>
+
+          <TablePager page={orderPage} totalPages={orderTotalPages} total={totalOrders} onPageChange={setOrderPage} />
 
           {filteredOrders.length === 0 && (
             <div className="text-center text-xs text-slate-500 py-12">

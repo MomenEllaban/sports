@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getReorderRows } from '@/lib/reports/reorder';
 import { scopedBranchIds } from '@/lib/auth/branch-scope';
 import ReorderClient from '@/components/admin/ReorderClient';
+import { TABLE_PAGE_SIZE } from '@/lib/table-paging';
 import type { AppSession } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,7 @@ export default async function ReorderReportPage({ searchParams }: { searchParams
   const requestedBranch = value('branch');
   const branchId = allowed === null ? requestedBranch : requestedBranch && allowed.includes(requestedBranch) ? requestedBranch : allowed[0] || '__no_branch__';
   const page = Math.max(1, Number(value('page') || 1));
-  const pageSize = 25;
+  const pageSize = TABLE_PAGE_SIZE;
   const [result, branches, suppliers] = await Promise.all([
     getReorderRows({ q: value('q') || undefined, branchId, page, pageSize, requested: value('requested') === 'requested' || value('requested') === 'unrequested' ? value('requested') as 'requested' | 'unrequested' : undefined }),
     prisma.branch.findMany({ where: { isActive: true, ...(allowed === null ? {} : { id: { in: allowed } }) }, select: { id: true, name: true, nameEn: true }, orderBy: { name: 'asc' } }),

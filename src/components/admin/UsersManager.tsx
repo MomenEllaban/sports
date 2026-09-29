@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
-import Pagination from './Pagination';
+import { useTablePage, TablePager } from './tablePaging';
 import { Button, Modal } from '@/components/ui/foundation';
 import {
   Plus,
@@ -199,11 +199,8 @@ export default function UsersManager({
     return matchSearch && matchRole;
   });
 
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 8;
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(filteredUsers);
+  const pagedUsers = paged;
 
   useEffect(() => {
     setPage(1);
@@ -368,7 +365,7 @@ export default function UsersManager({
           <span className="text-[11px] font-bold text-slate-400">
             {isAr ? `${filteredUsers.length} مستخدم` : `${filteredUsers.length} users`}
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+          <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
         </div>
       )}
 

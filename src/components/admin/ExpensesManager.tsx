@@ -7,7 +7,7 @@ import { Plus } from 'lucide-react';
 import { Modal, Field, apiFetch } from './ui';
 import { useToast } from '@/components/Toast';
 import { inputCls, Button } from '@/components/ui/foundation';
-import Pagination from './Pagination';
+import { useTablePage, TablePager } from './tablePaging';
 
 interface ExpenseRow {
   id: string;
@@ -41,11 +41,8 @@ export default function ExpensesManager({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({ branchId: branches[0]?.id || '', category: 'OTHER', description: '', amount: '' });
 
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 8;
-  const totalPages = Math.max(1, Math.ceil(expenses.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedRows = expenses.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const { page: safePage, totalPages, paged, total: totalRows, setPage } = useTablePage(expenses);
+  const pagedRows = paged;
 
   const openAdd = () => {
     setEditing(null);
@@ -160,7 +157,7 @@ export default function ExpensesManager({
           <span className="text-[11px] font-bold text-slate-400">
             {isAr ? `${expenses.length} مصروف` : `${expenses.length} expenses`}
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+          <TablePager page={safePage} totalPages={totalPages} total={totalRows} onPageChange={setPage} />
         </div>
       )}
 
