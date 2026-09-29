@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Monitor, PanelLeftClose, PanelLeftOpen, User, X, ChevronRight, ChevronDown } from 'lucide-react';
 import {
   ADMIN_ROLES,
+  findAdminNavItem,
   getVisibleAdminGroups,
   normalizeAdminPath,
   pathMatches,
@@ -79,6 +80,7 @@ export default function AdminSidebar({
   }, [pathname, role]);
 
   const groups = useMemo(() => getVisibleAdminGroups(role), [role]);
+  const currentNav = useMemo(() => (session ? findAdminNavItem(pathname, role) : null), [pathname, role, session]);
 
   const toggleCollapsed = () => {
     setCollapsed((current) => {
@@ -191,7 +193,9 @@ export default function AdminSidebar({
                  * The icon gets a blue tint on the group header to give a subtle cue
                  * without clashing with the active child.
                  */
-                const hasActiveChild = group.items.some((item) => pathMatches(pathname, item.href));
+                const hasActiveChild = currentNav
+                  ? currentNav.group.key === group.key
+                  : group.items.some((item) => pathMatches(pathname, item.href));
                 const isOpen = groupOpen[group.key] ?? groupIndex === 0;
                 const groupLabel = isAr ? group.labelAr : group.labelEn;
 
@@ -230,7 +234,14 @@ export default function AdminSidebar({
                     {isOpen && (
                       <div id={`admin-group-${group.key}`} className={`space-y-0.5 ${showLabels ? 'ps-2' : ''}`}>
                         {group.items.map((item) => (
-                          <SidebarLink key={item.key} item={item} pathname={pathname} collapsed={!showLabels} isAr={isAr} onNavigate={onClose} />
+                          <SidebarLink
+                            key={item.key}
+                            item={item}
+                            active={currentNav ? currentNav.item.key === item.key : pathMatches(pathname, item.href)}
+                            collapsed={!showLabels}
+                            isAr={isAr}
+                            onNavigate={onClose}
+                          />
                         ))}
                       </div>
                     )}
@@ -259,9 +270,20 @@ export default function AdminSidebar({
   );
 }
 
-function SidebarLink({ item, pathname, collapsed, isAr, onNavigate }: { item: AdminNavItem; pathname: string; collapsed: boolean; isAr: boolean; onNavigate?: () => void }) {
+function SidebarLink({
+  item,
+  active,
+  collapsed,
+  isAr,
+  onNavigate,
+}: {
+  item: AdminNavItem;
+  active: boolean;
+  collapsed: boolean;
+  isAr: boolean;
+  onNavigate?: () => void;
+}) {
   const label = isAr ? item.labelAr : item.labelEn;
-  const active = pathMatches(pathname, item.href);
 
   const link = (
     <Link

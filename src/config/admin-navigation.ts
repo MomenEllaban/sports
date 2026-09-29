@@ -148,11 +148,10 @@ const inventoryTabs: readonly AdminTab[] = [
 ];
 
 const purchasingTabs: readonly AdminTab[] = [
-  { key: 'orders',    labelAr: 'أوامر الشراء',               labelEn: 'Purchase orders',       href: '/admin/purchasing' },
-  { key: 'receiving', labelAr: 'استلام البضائع (GRN)',       labelEn: 'Goods receiving',       href: '/admin/purchasing/receiving' },
-  { key: 'invoices',  labelAr: 'فواتير الموردين',           labelEn: 'Supplier invoices',     href: '/admin/purchasing/invoices' },
-  { key: 'returns',   labelAr: 'مرتجعات الموردين',         labelEn: 'Supplier returns',      href: '/admin/purchasing/returns' },
-  { key: 'suppliers', labelAr: 'دليل الموردين وكشف الحساب', labelEn: 'Suppliers & statements', href: '/admin/purchasing/suppliers' },
+  { key: 'orders',    labelAr: 'أوامر الشراء',         labelEn: 'Purchase orders',   href: '/admin/purchasing' },
+  { key: 'receiving', labelAr: 'استلام البضائع (GRN)', labelEn: 'Goods receiving',   href: '/admin/purchasing/receiving' },
+  { key: 'invoices',  labelAr: 'فواتير الموردين',     labelEn: 'Supplier invoices', href: '/admin/purchasing/invoices' },
+  { key: 'returns',   labelAr: 'مرتجعات الموردين',   labelEn: 'Supplier returns',  href: '/admin/purchasing/returns' },
 ];
 
 const customersTabs: readonly AdminTab[] = [
@@ -330,10 +329,17 @@ export const adminNavigation: readonly AdminNavGroup[] = [
     items: [
       {
         key: 'purchasing', section: 'purchasing',
-        labelAr: 'المشتريات والموردون', labelEn: 'Purchasing & suppliers',
-        descriptionAr: 'أوامر الشراء والاستلام وفواتير ومرتجعات الموردين وكشوف الحساب', descriptionEn: 'POs, receiving, invoices, returns & supplier statements',
+        labelAr: 'أوامر التوريد والشراء', labelEn: 'Purchase orders',
+        descriptionAr: 'أوامر الشراء، استلام البضائع، فواتير ومرتجعات الموردين', descriptionEn: 'POs, goods receiving, invoices & returns',
         href: '/admin/purchasing', icon: 'purchasing',
         allowedRoles: MANAGERS, tabs: tabSet(purchasingTabs), status: 'live',
+      },
+      {
+        key: 'suppliers', section: 'suppliers',
+        labelAr: 'الموردون وكشف الحساب', labelEn: 'Suppliers & statements',
+        descriptionAr: 'دليل بيانات الموردين، أرصدة الحسابات، وكشوف المعاملات', descriptionEn: 'Supplier directory, account balances & statement ledger',
+        href: '/admin/purchasing/suppliers', icon: 'suppliers',
+        allowedRoles: MANAGERS, status: 'live',
       },
     ],
   },

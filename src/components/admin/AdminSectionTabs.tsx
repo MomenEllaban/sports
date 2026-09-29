@@ -4,7 +4,7 @@ import React from 'react';
 import { useLocale } from 'next-intl';
 import { useSession } from 'next-auth/react';
 import { Link, usePathname } from '@/i18n/routing';
-import { ADMIN_ROLES, getVisibleAdminTabs, pathMatches, type AdminRole } from '@/config/admin-navigation';
+import { ADMIN_ROLES, findAdminNavItem, getVisibleAdminTabs, pathMatches, type AdminRole } from '@/config/admin-navigation';
 
 function isAdminRole(value: unknown): value is AdminRole {
   return typeof value === 'string' && (ADMIN_ROLES as readonly string[]).includes(value);
@@ -21,6 +21,12 @@ export default function AdminSectionTabs({ section, className = '' }: { section:
   // first and hiding them a moment later would flash links the user may not be
   // allowed to open.
   const tabs = session ? getVisibleAdminTabs(section, role) : [];
+
+  // Suppress section tabs if the active page belongs to a different dedicated workspace item (e.g. suppliers)
+  const currentNav = session ? findAdminNavItem(pathname, role) : null;
+  if (currentNav && currentNav.item.section !== section) {
+    return null;
+  }
 
   const activeHref = tabs
     .filter((tab) => pathMatches(pathname, tab.href))
